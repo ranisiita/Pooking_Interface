@@ -1,0 +1,25 @@
+<app-navbar></app-navbar>
+
+<section class="hero">
+  <video class="hero-video" autoplay muted loop playsinline>
+    <source src="videos/Fondo_Pooking.mp4" type="video/mp4" />
+  </video>
+
+  <div class="hero-overlay"></div>
+
+  <div class="hero-content">
+    <h1 class="hero-title">¿A dónde vamos hoy?</h1>
+    <p class="hero-subtitle">Pooking.com</p>
+
+    <div class="categories">
+      <button
+        *ngFor="let cat of categories"
+        class="category-btn"
+        (click)="navigateTo(cat.tab)"
+      >
+        <span class="material-icons category-icon">{{ cat.icon }}</span>
+        <span class="category-label">{{ cat.label }}</span>
+      </button>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,89 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2.5rem;
+  height: 64px;
+  background: rgba(251, 248, 234, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(198, 177, 125, 0.3);
+}
+
+.navbar-logo {
+  font-family: var(--font-titulo);
+  font-size: 1.6rem;
+  color: var(--color-titulo);
+  letter-spacing: 0.03em;
+  user-select: none;
+  cursor: pointer;
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.nav-icon-wrapper:hover {
+  background: rgba(142, 90, 84, 0.1);
+}
+
+.nav-icon {
+  font-size: 1.4rem;
+  color: var(--color-extra1);
+  transition: color 0.2s ease;
+}
+
+.nav-icon-wrapper:hover .nav-icon {
+  color: var(--color-titulo);
+}
+
+.tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  background: var(--color-extra1);
+  color: var(--color-bg);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.tooltip.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: var(--color-extra1);
+}
