@@ -13,7 +13,6 @@ import { NavbarComponent } from '../../components/navbar/navbar.component';
 })
 export class SearchComponent implements OnInit {
 
-  showTransition: boolean = true;
   activeTab: string = 'alojamiento';
 
   tabs = [
@@ -43,11 +42,6 @@ export class SearchComponent implements OnInit {
         this.activeTab = params['tab'];
       }
     });
-
-    // Ocultar transición después de 2 segundos
-    setTimeout(() => {
-      this.showTransition = false;
-    }, 2000);
   }
 
   setTab(key: string) {

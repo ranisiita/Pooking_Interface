@@ -1,0 +1,50 @@
+<app-navbar></app-navbar>
+
+<div class="auth-container">
+  <div class="auth-content">
+    <div class="auth-form-wrapper">
+      <button class="close-btn" routerLink="/">&times;</button>
+      <h2 class="auth-title">Sign Up</h2>
+
+      <form class="auth-form">
+        <div class="form-group">
+          <label>Usuario</label>
+          <div class="input-wrapper">
+            <span class="material-icons">person_outline</span>
+            <input type="text" placeholder="Tu nombre de usuario" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Correo electrónico</label>
+          <div class="input-wrapper">
+            <span class="material-icons">mail_outline</span>
+            <input type="email" placeholder="ejemplo@email.com" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Contraseña</label>
+          <div class="input-wrapper">
+            <span class="material-icons">lock_outline</span>
+            <input type="password" placeholder="********" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Confirmar contraseña</label>
+          <div class="input-wrapper">
+            <span class="material-icons">lock_outline</span>
+            <input type="password" placeholder="********" required>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" style="margin-top: 1rem;">Registrarse</button>
+      </form>
+
+      <div class="auth-footer">
+        <p>¿Ya tienes una cuenta? <a routerLink="/login">Inicia sesión aquí</a></p>
+      </div>
+    </div>
+  </div>
+</div>
