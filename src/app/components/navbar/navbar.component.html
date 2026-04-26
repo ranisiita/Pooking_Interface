@@ -1,0 +1,25 @@
+<nav class="navbar">
+  <div class="navbar-logo" routerLink="/" style="cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">Pooking.com</div>
+  <div class="navbar-actions">
+    <div
+      *ngFor="let item of navItems"
+      class="nav-icon-wrapper"
+      (mouseenter)="showTooltip(item.tooltip)"
+      (mouseleave)="hideTooltip()"
+      (click)="toggleDropdown(item.id, $event)"
+      style="position: relative;"
+    >
+      <span class="material-icons nav-icon">{{ item.icon }}</span>
+      <span class="tooltip" [class.visible]="activeTooltip === item.tooltip && !showUserDropdown">
+        {{ item.tooltip }}
+      </span>
+
+      <!-- Dropdown for user icon -->
+      <div class="user-dropdown" *ngIf="item.id === 'user' && showUserDropdown">
+        <a routerLink="/login" class="dropdown-item">
+          <span class="material-icons">login</span> Login
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>

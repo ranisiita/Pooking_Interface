@@ -1,0 +1,195 @@
+<app-navbar></app-navbar>
+
+<div class="search-page">
+
+  <!-- HEADER -->
+  <div class="search-header">
+    <h1 class="search-title">¿A dónde vamos hoy?</h1>
+    <p class="search-subtitle">Encuentra las mejores opciones para tu próximo viaje</p>
+  </div>
+
+  <!-- PANEL PRINCIPAL -->
+  <div class="search-panel">
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button
+        *ngFor="let tab of tabs"
+        class="tab-btn"
+        [class.active]="activeTab === tab.key"
+        (click)="setTab(tab.key)"
+      >
+        <span class="material-icons tab-icon">{{ tab.icon }}</span>
+        <span class="tab-label">{{ tab.label }}</span>
+      </button>
+    </div>
+
+    <!-- CONTENIDO POR TAB -->
+    <div class="tab-content">
+
+      <!-- ALOJAMIENTO -->
+      <div *ngIf="activeTab === 'alojamiento'" class="form-grid">
+        <div class="field full-width">
+          <label>Destino</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">location_on</span>
+            <input type="text" [(ngModel)]="aloj.destino" placeholder="¿A dónde vas?" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Fecha de llegada</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">calendar_today</span>
+            <input type="date" [(ngModel)]="aloj.llegada" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Fecha de salida</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">calendar_today</span>
+            <input type="date" [(ngModel)]="aloj.salida" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Habitaciones</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">bed</span>
+            <input type="number" [(ngModel)]="aloj.habitaciones" min="1" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Adultos</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">person</span>
+            <input type="number" [(ngModel)]="aloj.adultos" min="1" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Niños</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">child_care</span>
+            <input type="number" [(ngModel)]="aloj.ninos" min="0" />
+          </div>
+        </div>
+        <div class="field full-width center">
+          <button class="search-btn">
+            <span class="material-icons">search</span>
+            Buscar alojamiento
+          </button>
+        </div>
+      </div>
+
+      <!-- VUELOS -->
+      <div *ngIf="activeTab === 'vuelos'" class="form-grid">
+        <div class="field">
+          <label>Origen</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">flight_takeoff</span>
+            <input type="text" [(ngModel)]="vuelos.origen" placeholder="Ciudad de origen" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Destino</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">flight_land</span>
+            <input type="text" [(ngModel)]="vuelos.destino" placeholder="Ciudad de destino" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Fecha de salida</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">calendar_today</span>
+            <input type="date" [(ngModel)]="vuelos.salida" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Fecha de regreso</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">calendar_today</span>
+            <input type="date" [(ngModel)]="vuelos.regreso" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Pasajeros</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">person</span>
+            <input type="number" [(ngModel)]="vuelos.pasajeros" min="1" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Clase</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">airline_seat_recline_normal</span>
+            <select [(ngModel)]="vuelos.clase">
+              <option>Económica</option>
+              <option>Ejecutiva</option>
+              <option>Primera clase</option>
+            </select>
+          </div>
+        </div>
+        <div class="field full-width center">
+          <button class="search-btn">
+            <span class="material-icons">search</span>
+            Buscar vuelos
+          </button>
+        </div>
+      </div>
+
+      <!-- ALQUILER DE COCHES -->
+      <div *ngIf="activeTab === 'coches'" class="form-grid">
+        <div class="field full-width">
+          <label>Lugar de recogida</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">location_on</span>
+            <input type="text" [(ngModel)]="coches.lugar" placeholder="Ciudad o aeropuerto" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Fecha de recogida</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">calendar_today</span>
+            <input type="date" [(ngModel)]="coches.recogida" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Fecha de devolución</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">calendar_today</span>
+            <input type="date" [(ngModel)]="coches.devolucion" />
+          </div>
+        </div>
+        <div class="field full-width center">
+          <button class="search-btn">
+            <span class="material-icons">search</span>
+            Buscar coches
+          </button>
+        </div>
+      </div>
+
+      <!-- ATRACCIONES -->
+      <div *ngIf="activeTab === 'atracciones'" class="form-grid">
+        <div class="field">
+          <label>Destino</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">location_on</span>
+            <input type="text" [(ngModel)]="atracciones.destino" placeholder="¿Dónde quieres explorar?" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Fecha</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">calendar_today</span>
+            <input type="date" [(ngModel)]="atracciones.fecha" />
+          </div>
+        </div>
+        <div class="field full-width center">
+          <button class="search-btn">
+            <span class="material-icons">search</span>
+            Buscar atracciones
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

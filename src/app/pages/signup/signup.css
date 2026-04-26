@@ -1,0 +1,153 @@
+.auth-container {
+  display: flex;
+  min-height: 100vh;
+  padding-top: 64px; /* To clear the fixed navbar */
+  
+  /* The background uses a gradient to fade into the form color on the right, and a semi-transparent filter matching the palette */
+  background-image: 
+    linear-gradient(to right, rgba(142, 90, 84, 0.2) 0%, rgba(251, 248, 234, 0.6) 60%, var(--color-bg) 100%),
+    url('../../../assets/images/fondo_signup.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.auth-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* Push form to the right */
+  padding: 2rem 5%; /* Responsive padding from the edge */
+}
+
+.auth-form-wrapper {
+  background: white;
+  padding: 3rem 4rem;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  font-size: 2rem;
+  color: var(--color-subtitulo);
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.close-btn:hover {
+  color: var(--color-titulo);
+}
+
+.auth-title {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 2.5rem;
+  color: var(--color-extra1);
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--color-extra1);
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-extra2);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--color-titulo);
+  box-shadow: 0 0 0 3px rgba(142, 90, 84, 0.1);
+}
+
+.input-wrapper .material-icons {
+  color: var(--color-subtitulo);
+  margin-right: 0.75rem;
+  font-size: 1.2rem;
+}
+
+.input-wrapper input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 1rem;
+  color: var(--color-extra1);
+  background: transparent;
+}
+
+.forgot-password {
+  text-align: right;
+  margin-bottom: 2rem;
+}
+
+.forgot-password a {
+  color: var(--color-extra2);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: underline;
+  transition: color 0.3s;
+}
+
+.forgot-password a:hover {
+  color: var(--color-titulo);
+}
+
+.submit-btn {
+  width: 100%;
+  background-color: var(--color-titulo);
+  color: white;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: background-color 0.3s, transform 0.2s;
+  box-shadow: 0 4px 15px rgba(142, 90, 84, 0.3);
+}
+
+.submit-btn:hover {
+  background-color: #7a4a44;
+  transform: translateY(-2px);
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  color: var(--color-subtitulo);
+  font-size: 0.95rem;
+}
+
+.auth-footer a {
+  color: var(--color-titulo);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .auth-container {
+    flex-direction: column;
+  }
+  .auth-left {
+    display: none;
+  }
+  .auth-form-wrapper {
+    padding: 2rem;
+  }
+}
