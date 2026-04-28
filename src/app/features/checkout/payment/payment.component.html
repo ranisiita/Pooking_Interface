@@ -1,0 +1,95 @@
+<app-navbar></app-navbar>
+
+<div class="page-bg checkout-page">
+  <div class="page-header">
+    <h1 class="page-title">Pago</h1>
+    <p class="page-subtitle">Confirma tu reserva con el método de pago</p>
+  </div>
+
+  <!-- Stepper -->
+  <div class="stepper" style="max-width:700px;width:100%">
+    <div class="step done"><div class="step-number"><span class="material-icons" style="font-size:1rem">check</span></div><span class="step-label">Pasajeros</span></div>
+    <div class="step-connector done"></div>
+    <div class="step done"><div class="step-number"><span class="material-icons" style="font-size:1rem">check</span></div><span class="step-label">Resumen</span></div>
+    <div class="step-connector done"></div>
+    <div class="step active"><div class="step-number">3</div><span class="step-label">Pago</span></div>
+    <div class="step-connector"></div>
+    <div class="step"><div class="step-number">4</div><span class="step-label">Confirmación</span></div>
+  </div>
+
+  <div class="payment-layout">
+
+    <!-- Panel de pago mock -->
+    <div class="panel-glass payment-main">
+
+      @if (resultadoSimulado() === 'APROBADO') {
+        <div class="resultado-box aprobado">
+          <span class="material-icons resultado-icon">check_circle</span>
+          <h2>¡Pago aprobado!</h2>
+          <p>Tu reserva ha sido confirmada. Generando documentos de viaje...</p>
+          <div class="spinner" style="margin:1.5rem auto"></div>
+        </div>
+      } @else if (resultadoSimulado() === 'RECHAZADO') {
+        <div class="resultado-box rechazado">
+          <span class="material-icons resultado-icon">cancel</span>
+          <h2>Pago rechazado</h2>
+          <p>No fue posible procesar tu pago. La reserva ha sido cancelada.</p>
+          <button class="btn-secondary" style="margin-top:1.5rem" (click)="volver()">
+            Intentar de nuevo
+          </button>
+        </div>
+      } @else {
+        <div class="mock-card-header">
+          <span class="material-icons" style="font-size:2.5rem;color:var(--color-titulo)">credit_card</span>
+          <div>
+            <p class="section-title" style="margin-bottom:0.25rem">Pasarela de pago simulada</p>
+            <p style="font-family:var(--font-body);font-size:0.82rem;color:var(--color-subtitulo)">
+              Ambiente de pruebas — elige el resultado
+            </p>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="mock-card-info">
+          <div class="input-icon-wrapper" style="opacity:0.6;pointer-events:none">
+            <span class="material-icons">credit_card</span>
+            <input type="text" value="4111 1111 1111 1111" readonly />
+          </div>
+          <div style="display:flex;gap:1rem">
+            <div class="input-icon-wrapper" style="flex:1;opacity:0.6;pointer-events:none">
+              <span class="material-icons">calendar_today</span>
+              <input type="text" value="12/28" readonly />
+            </div>
+            <div class="input-icon-wrapper" style="flex:1;opacity:0.6;pointer-events:none">
+              <span class="material-icons">lock</span>
+              <input type="text" value="***" readonly />
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="price-summary">
+          <p>Total a pagar:</p>
+          <p class="precio-total">{{ (state().reserva?.total_reserva ?? 0) | money }}</p>
+        </div>
+
+        <div class="pago-botones">
+          <button class="btn-primary" style="flex:1" (click)="pagar('APROBADO')" [disabled]="procesando()">
+            <span class="material-icons">check_circle</span>
+            {{ procesando() ? 'Procesando...' : 'Simular pago aprobado' }}
+          </button>
+          <button class="btn-secondary" style="flex:1" (click)="pagar('RECHAZADO')" [disabled]="procesando()">
+            <span class="material-icons">cancel</span>
+            Simular rechazo
+          </button>
+        </div>
+
+        <button class="btn-ghost" style="width:100%;justify-content:center;margin-top:1rem" (click)="volver()" [disabled]="procesando()">
+          <span class="material-icons">arrow_back</span> Volver al resumen
+        </button>
+      }
+    </div>
+  </div>
+</div>

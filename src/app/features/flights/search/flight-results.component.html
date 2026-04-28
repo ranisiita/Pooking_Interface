@@ -1,0 +1,142 @@
+<app-navbar></app-navbar>
+
+<div class="page-bg results-page">
+  <div class="page-header">
+    <h1 class="page-title">Resultados de vuelos</h1>
+    <p class="page-subtitle">
+      {{ searchStore.criterios().origen || 'Origen' }}
+      <span class="material-icons" style="font-size:1rem;vertical-align:middle">arrow_forward</span>
+      {{ searchStore.criterios().destino || 'Destino' }}
+      &nbsp;·&nbsp;{{ searchStore.criterios().fechaSalida || '' }}
+      &nbsp;·&nbsp;{{ searchStore.criterios().pasajeros }} pasajero(s)
+    </p>
+  </div>
+
+  <div class="results-layout">
+
+    <!-- Filtros lateral -->
+    <aside class="filters-panel panel-glass-light">
+      <p class="filters-title"><span class="material-icons">tune</span> Filtrar</p>
+
+      <div class="field" style="margin-top:1rem">
+        <label class="field-label">Buscar aerolínea</label>
+        <div class="input-icon-wrapper">
+          <span class="material-icons">search</span>
+          <input type="text" placeholder="Nombre de la aerolínea..."
+            [value]="filtroTermino()"
+            (input)="filtroTermino.set($any($event.target).value)" />
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:1rem">
+        <label class="field-label">Ordenar por</label>
+        <div class="input-icon-wrapper">
+          <span class="material-icons">sort</span>
+          <select [value]="ordenamiento()" (change)="ordenamiento.set($any($event.target).value)">
+            <option value="nombre">Nombre</option>
+            <option value="precio">Precio</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-ghost" style="margin-top:1.5rem" (click)="volver()">
+        <span class="material-icons">arrow_back</span> Cambiar búsqueda
+      </button>
+    </aside>
+
+    <!-- Lista de resultados -->
+    <section class="results-list">
+
+      @if (searchStore.loading()) {
+        <div style="text-align:center;padding:3rem">
+          <div class="spinner" style="margin:auto"></div>
+        </div>
+
+      } @else if (!searchStore.hasResults()) {
+        <div class="empty-state panel-glass-light">
+          <span class="material-icons" style="font-size:3rem;color:var(--color-extra2)">flight_off</span>
+          <p>No se encontraron vuelos disponibles para tu búsqueda.</p>
+          <button class="btn-secondary" (click)="volver()">Cambiar búsqueda</button>
+        </div>
+
+      } @else {
+
+        @for (servicio of resultadosFiltrados(); track servicio.guidServicio) {
+          @let vuelo = getMockVuelo(servicio);
+          <div class="result-card flight-card" (click)="seleccionar(servicio)" role="button"
+               [attr.aria-label]="'Ver detalles de ' + (servicio.nombreComercial ?? servicio.razonSocial)">
+
+            <!-- Encabezado: aerolínea -->
+            <div class="flight-card-header">
+              <div class="flight-provider">
+                <span class="material-icons flight-icon">flight</span>
+                <div>
+                  <p class="flight-nombre">{{ servicio.nombreComercial ?? servicio.razonSocial }}</p>
+                  <p class="flight-tipo">{{ servicio.tipoServicioNombre ?? 'Vuelos' }}</p>
+                </div>
+              </div>
+              <span class="badge badge-success" style="margin-left:auto">
+                <span class="material-icons" style="font-size:0.8rem">check_circle</span> Disponible
+              </span>
+            </div>
+
+            <!-- Ruta principal -->
+            <div class="flight-route" style="display:flex;align-items:center;gap:0.75rem;margin:1rem 0;flex-wrap:wrap">
+
+              <!-- Salida -->
+              <div style="text-align:center;min-width:70px">
+                <p style="font-size:1.5rem;font-weight:700;margin:0;color:var(--color-primary)">{{ vuelo.salida }}</p>
+                <p style="font-size:0.78rem;color:var(--color-text-muted);margin:0">{{ vuelo.origen }}</p>
+              </div>
+
+              <!-- Línea central -->
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:100px">
+                <p style="font-size:0.72rem;color:var(--color-text-muted);margin:0">{{ vuelo.duracion }}</p>
+                <div style="display:flex;align-items:center;width:100%;gap:4px">
+                  <div style="flex:1;height:1px;background:var(--color-border)"></div>
+                  @if (vuelo.escalas === 0) {
+                    <span class="material-icons" style="font-size:1rem;color:var(--color-primary);transform:rotate(90deg)">flight</span>
+                  } @else {
+                    <span class="material-icons" style="font-size:1rem;color:#f59e0b">connecting_airports</span>
+                  }
+                  <div style="flex:1;height:1px;background:var(--color-border)"></div>
+                </div>
+                <p style="font-size:0.72rem;margin:0"
+                   [style.color]="vuelo.escalas === 0 ? 'var(--color-success, #22c55e)' : '#f59e0b'">
+                  {{ vuelo.escalas === 0 ? 'Directo' : vuelo.escalas + ' escala' + (vuelo.escalas > 1 ? 's' : '') }}
+                </p>
+              </div>
+
+              <!-- Llegada -->
+              <div style="text-align:center;min-width:70px">
+                <p style="font-size:1.5rem;font-weight:700;margin:0;color:var(--color-primary)">{{ vuelo.llegada }}</p>
+                <p style="font-size:0.78rem;color:var(--color-text-muted);margin:0">{{ vuelo.destino }}</p>
+              </div>
+            </div>
+
+            <!-- Footer: precio + acción -->
+            <div class="flight-card-footer" style="align-items:center">
+              <div>
+                <p style="font-size:0.72rem;color:var(--color-text-muted);margin:0">Tarifa base por persona</p>
+                <p style="font-size:1.3rem;font-weight:700;color:var(--color-primary);margin:0">
+                  ${{ vuelo.precioBase | number:'1.2-2' }}
+                </p>
+              </div>
+              <button class="btn-primary" style="padding:0.55rem 1.4rem;font-size:0.85rem"
+                      (click)="seleccionar(servicio);$event.stopPropagation()">
+                Ver detalle
+              </button>
+            </div>
+
+          </div>
+        }
+
+        <app-pagination
+          [pagina]="paginaActual()"
+          [totalPaginas]="totalPaginas()"
+          (cambiar)="cargar($event)"
+        />
+      }
+    </section>
+  </div>
+</div>

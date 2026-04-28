@@ -1,0 +1,27 @@
+.checkout-page { padding-bottom: 4rem; align-items: center; }
+.checkout-form { padding: 2rem; margin-bottom: 2rem; }
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-titulo);
+  font-size: 1.05rem;
+  color: var(--color-titulo);
+  margin-bottom: 1rem;
+}
+
+.mismo-check {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-extra1);
+  cursor: pointer;
+}
+
+.mismo-check input[type="checkbox"] {
+  accent-color: var(--color-titulo);
+  width: 16px;
+  height: 16px;
+}

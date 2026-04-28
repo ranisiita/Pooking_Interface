@@ -1,11 +1,13 @@
 import { Component, signal, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { RouterOutlet, Router, Event, NavigationStart, NavigationEnd, NavigationCancel, NavigationError } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { ToastComponent } from './shared/ui/toast/toast.component';
+import { SpinnerComponent } from './shared/ui/spinner/spinner.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommonModule],
+  imports: [RouterOutlet, CommonModule, ToastComponent, SpinnerComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

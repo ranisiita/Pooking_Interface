@@ -113,7 +113,7 @@
           <label>Pasajeros</label>
           <div class="input-icon-wrapper">
             <span class="material-icons">person</span>
-            <input type="number" [(ngModel)]="vuelos.pasajeros" min="1" />
+            <input type="number" [(ngModel)]="vuelos.pasajeros" min="1" max="9" />
           </div>
         </div>
         <div class="field">
@@ -128,7 +128,7 @@
           </div>
         </div>
         <div class="field full-width center">
-          <button class="search-btn">
+          <button class="search-btn" (click)="buscarVuelos()">
             <span class="material-icons">search</span>
             Buscar vuelos
           </button>

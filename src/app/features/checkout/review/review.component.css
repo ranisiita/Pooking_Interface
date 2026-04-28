@@ -1,0 +1,69 @@
+.checkout-page { padding-bottom: 4rem; align-items: center; }
+
+.review-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1.5rem;
+  max-width: 900px;
+  width: 100%;
+  padding: 0 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) { .review-layout { grid-template-columns: 1fr; } }
+
+.review-main { padding: 2rem; }
+.review-sidebar { padding: 1.5rem; position: sticky; top: 80px; }
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-extra1);
+  margin-bottom: 0.6rem;
+}
+
+.total-row {
+  font-size: 1.05rem;
+  color: var(--color-titulo);
+}
+
+.total-row strong { font-family: var(--font-titulo); font-size: 1.2rem; }
+
+.info-row {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-extra1);
+  margin-bottom: 0.4rem;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-titulo);
+  font-size: 1.05rem;
+  color: var(--color-titulo);
+  margin-bottom: 1rem;
+}
+
+.detail-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.6rem;
+  background: rgba(198, 177, 125, 0.08);
+  border-radius: 8px;
+}
+
+.info-item .material-icons { color: var(--color-extra2); font-size: 1.1rem; }
+
+.info-label { font-family: var(--font-body); font-size: 0.7rem; font-weight: 600; color: var(--color-subtitulo); text-transform: uppercase; letter-spacing: 0.04em; margin: 0; }
+.info-value { font-family: var(--font-body); font-size: 0.88rem; color: var(--color-extra1); margin: 0.2rem 0 0; }

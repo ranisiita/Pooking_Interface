@@ -1,0 +1,275 @@
+<app-navbar></app-navbar>
+
+<div class="page-bg checkout-page">
+  <div class="page-header">
+    <h1 class="page-title">Datos de los pasajeros</h1>
+    <p class="page-subtitle">
+      {{ cantidadPasajeros() }} pasajero{{ cantidadPasajeros() > 1 ? 's' : '' }} en total
+    </p>
+  </div>
+
+  <!-- Stepper principal del checkout -->
+  <div class="stepper" style="max-width:760px;width:100%">
+    <div class="step active"><div class="step-number">1</div><span class="step-label">Pasajeros</span></div>
+    <div class="step-connector"></div>
+    <div class="step"><div class="step-number">2</div><span class="step-label">Resumen</span></div>
+    <div class="step-connector"></div>
+    <div class="step"><div class="step-number">3</div><span class="step-label">Pago</span></div>
+    <div class="step-connector"></div>
+    <div class="step"><div class="step-number">4</div><span class="step-label">Confirmación</span></div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="guardar()" style="max-width:760px;width:100%;display:flex;flex-direction:column;gap:1.5rem">
+
+    <!-- ══ TITULAR DE LA RESERVA — solo visible en pasajero 1 ════════════ -->
+    @if (paxActual() === 0) {
+    <div class="checkout-form panel-glass">
+      <p class="section-title"><span class="material-icons">person</span> Titular de la reserva</p>
+      <div class="form-grid">
+
+        <div class="field">
+          <label class="field-label">Tipo de identificación *</label>
+          <div class="input-icon-wrapper" [class.error]="getError('tipo_identificacion','required')">
+            <span class="material-icons">badge</span>
+            <select formControlName="tipo_identificacion">
+              @for (t of tiposId; track t) { <option [value]="t">{{ labelTipoId(t) }}</option> }
+            </select>
+          </div>
+          @if (getError('tipo_identificacion','required')) {
+            <span class="field-error">Selecciona el tipo de identificación</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field-label">Número de identificación *</label>
+          <div class="input-icon-wrapper" [class.error]="getError('numero_identificacion','required') || getError('numero_identificacion','maxlength')">
+            <span class="material-icons">credit_card</span>
+            <input type="text" formControlName="numero_identificacion" placeholder="Ej: 1712345678" />
+          </div>
+          @if (getError('numero_identificacion','required')) {
+            <span class="field-error">El número de identificación es requerido</span>
+          }
+          @if (getError('numero_identificacion','maxlength')) {
+            <span class="field-error">Máximo 30 caracteres</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field-label">Nombres *</label>
+          <div class="input-icon-wrapper" [class.error]="getError('nombres','required')">
+            <span class="material-icons">person_outline</span>
+            <input type="text" formControlName="nombres" placeholder="Nombres completos" />
+          </div>
+          @if (getError('nombres','required')) {
+            <span class="field-error">Los nombres son requeridos</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field-label">Apellidos</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">person_outline</span>
+            <input type="text" formControlName="apellidos" placeholder="Apellidos" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Correo electrónico *</label>
+          <div class="input-icon-wrapper" [class.error]="getError('correo','required') || getError('correo','email')">
+            <span class="material-icons">email</span>
+            <input type="email" formControlName="correo" placeholder="ejemplo@correo.com" />
+          </div>
+          @if (getError('correo','required')) { <span class="field-error">El correo es requerido</span> }
+          @if (getError('correo','email')) { <span class="field-error">Ingresa un correo válido (ej: usuario&#64;dominio.com)</span> }
+        </div>
+
+        <div class="field">
+          <label class="field-label">Teléfono *</label>
+          <div class="input-icon-wrapper" [class.error]="getError('telefono','required') || getError('telefono','telefono')">
+            <span class="material-icons">phone</span>
+            <input type="tel" formControlName="telefono" placeholder="09XXXXXXXX" />
+          </div>
+          @if (getError('telefono','required')) { <span class="field-error">El teléfono es requerido</span> }
+          @if (getError('telefono','telefono')) { <span class="field-error">{{ form.get('telefono')?.errors?.['telefono'] }}</span> }
+        </div>
+
+        <div class="field full-width">
+          <label class="field-label">Dirección *</label>
+          <div class="input-icon-wrapper" [class.error]="getError('direccion','required')">
+            <span class="material-icons">home</span>
+            <input type="text" formControlName="direccion" placeholder="Dirección de residencia" />
+          </div>
+          @if (getError('direccion','required')) { <span class="field-error">La dirección es requerida</span> }
+        </div>
+
+        <div class="field">
+          <label class="field-label">Fecha de nacimiento</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">cake</span>
+            <input type="date" formControlName="fecha_nacimiento" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Género</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">wc</span>
+            <select formControlName="genero">
+              <option value="">— Seleccionar —</option>
+              <option value="MASCULINO">Masculino</option>
+              <option value="FEMENINO">Femenino</option>
+              <option value="OTRO">Otro</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    } <!-- fin @if titular -->
+
+    <!-- ══ PASAJEROS — paso a paso ════════════════════════════════════════ -->
+    <div class="checkout-form panel-glass">
+
+      <!-- Indicador de progreso de pasajeros -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.5rem">
+        <p class="section-title" style="margin:0">
+          <span class="material-icons">airline_seat_recline_normal</span>
+          Pasajero {{ paxActual() + 1 }} de {{ cantidadPasajeros() }}
+        </p>
+
+        <!-- Puntos de progreso -->
+        <div style="display:flex;gap:0.5rem;align-items:center">
+          @for (i of indicesPax(); track i) {
+            <div
+              style="width:10px;height:10px;border-radius:50%;transition:background 0.2s"
+              [style.background]="i === paxActual() ? 'var(--color-primary)' : i < paxActual() ? 'var(--color-success, #22c55e)' : 'var(--color-border)'">
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Checkbox "mismo que el titular" solo en el pasajero 1 -->
+      @if (paxActual() === 0) {
+        <label class="mismo-check" style="margin-bottom:1rem">
+          <input type="checkbox" formControlName="mismo_pasajero" />
+          <span>Los datos del Pasajero 1 son los mismos del titular</span>
+        </label>
+      }
+
+      <!-- Formulario del pasajero actual.
+           Se usa @for + @if para que Angular destruya y recree los controles
+           al cambiar de pasajero, evitando que los inputs hereden valores del anterior. -->
+      <div formArrayName="pasajeros">
+        @for (pGroup of pasajerosArray.controls; track $index; let i = $index) {
+          @if (i === paxActual()) {
+            <div [formGroupName]="i">
+              <div class="form-grid">
+
+                <div class="field">
+                  <label class="field-label">Nombre *</label>
+                  <div class="input-icon-wrapper" [class.error]="getPaxError('nombre_pasajero','required')">
+                    <span class="material-icons">person_outline</span>
+                    <input type="text" formControlName="nombre_pasajero" placeholder="Nombre del pasajero" />
+                  </div>
+                  @if (getPaxError('nombre_pasajero','required')) {
+                    <span class="field-error">El nombre del Pasajero {{ paxActual() + 1 }} es requerido</span>
+                  }
+                  @if (getPaxError('nombre_pasajero','maxlength')) {
+                    <span class="field-error">Máximo 100 caracteres</span>
+                  }
+                </div>
+
+                <div class="field">
+                  <label class="field-label">Apellido *</label>
+                  <div class="input-icon-wrapper" [class.error]="getPaxError('apellido_pasajero','required')">
+                    <span class="material-icons">person_outline</span>
+                    <input type="text" formControlName="apellido_pasajero" placeholder="Apellido del pasajero" />
+                  </div>
+                  @if (getPaxError('apellido_pasajero','required')) {
+                    <span class="field-error">El apellido del Pasajero {{ paxActual() + 1 }} es requerido</span>
+                  }
+                </div>
+
+                <div class="field">
+                  <label class="field-label">Tipo de documento *</label>
+                  <div class="input-icon-wrapper">
+                    <span class="material-icons">badge</span>
+                    <select formControlName="tipo_documento_pasajero">
+                      @for (t of tiposDocPasajero; track t) {
+                        <option [value]="t">{{ labelTipoDoc(t) }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label class="field-label">Número de documento *</label>
+                  <div class="input-icon-wrapper" [class.error]="getPaxError('numero_documento_pasajero','required')">
+                    <span class="material-icons">credit_card</span>
+                    <input type="text" formControlName="numero_documento_pasajero" placeholder="Número de documento" />
+                  </div>
+                  @if (getPaxError('numero_documento_pasajero','required')) {
+                    <span class="field-error">El documento del Pasajero {{ paxActual() + 1 }} es requerido</span>
+                  }
+                  @if (getPaxError('numero_documento_pasajero','maxlength')) {
+                    <span class="field-error">Máximo 30 caracteres</span>
+                  }
+                </div>
+
+                <div class="field">
+                  <label class="field-label">Fecha de nacimiento</label>
+                  <div class="input-icon-wrapper">
+                    <span class="material-icons">cake</span>
+                    <input type="date" formControlName="fecha_nacimiento_pasajero" />
+                  </div>
+                </div>
+
+                <div class="field" style="align-self:flex-end">
+                  <label class="mismo-check">
+                    <input type="checkbox" formControlName="requiere_asistencia" />
+                    <span>Requiere asistencia especial</span>
+                  </label>
+                </div>
+
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Navegación entre pasajeros -->
+      <div style="display:flex;justify-content:space-between;margin-top:1.5rem;gap:1rem;flex-wrap:wrap">
+        @if (!esPrimerPax()) {
+          <button type="button" class="btn-ghost" (click)="anterior()">
+            <span class="material-icons">arrow_back</span> Pasajero anterior
+          </button>
+        } @else {
+          <div></div>
+        }
+
+        @if (!esUltimoPax()) {
+          <button type="button" class="btn-secondary" (click)="siguiente()">
+            Siguiente pasajero <span class="material-icons">arrow_forward</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- ══ ACCIONES FINALES ═══════════════════════════════════════════════ -->
+    <div class="checkout-form panel-glass" style="padding:1rem 1.5rem">
+      <div class="form-actions">
+        <button type="button" class="btn-ghost" (click)="volver()">
+          <span class="material-icons">arrow_back</span> Volver a resultados
+        </button>
+
+        @if (esUltimoPax()) {
+          <button type="submit" class="btn-primary" [disabled]="guardando()">
+            <span class="material-icons">check_circle</span>
+            {{ guardando() ? 'Guardando...' : 'Continuar al resumen' }}
+          </button>
+        }
+      </div>
+    </div>
+
+  </form>
+</div>

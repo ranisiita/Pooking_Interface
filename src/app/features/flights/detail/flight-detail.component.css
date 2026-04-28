@@ -1,0 +1,122 @@
+.detail-page { padding-bottom: 4rem; }
+
+.detail-container {
+  width: 100%;
+  max-width: 1000px;
+  padding: 0 1.5rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .detail-grid { grid-template-columns: 1fr; }
+}
+
+.detail-main { padding: 2rem; }
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.detail-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(142, 90, 84, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.detail-icon { font-size: 1.8rem; color: var(--color-titulo); }
+
+.detail-desc {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--color-subtitulo);
+  line-height: 1.7;
+  margin-bottom: 0.5rem;
+}
+
+.detail-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(198, 177, 125, 0.08);
+  border-radius: 10px;
+}
+
+.info-item .material-icons { color: var(--color-extra2); font-size: 1.2rem; margin-top: 2px; }
+
+.info-label {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-subtitulo);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.info-value {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-extra1);
+  margin: 0.2rem 0 0;
+  word-break: break-all;
+}
+
+.detail-raw {
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: var(--color-subtitulo);
+  background: rgba(70, 64, 60, 0.04);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow: auto;
+  max-height: 200px;
+}
+
+.detail-sidebar { padding: 1.5rem; position: sticky; top: 80px; }
+
+.detail-sidebar-title {
+  font-family: var(--font-titulo);
+  font-size: 1.2rem;
+  color: var(--color-titulo);
+  margin-bottom: 0.35rem;
+}
+
+.detail-sidebar-sub {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--color-subtitulo);
+  margin-bottom: 0;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem;
+  text-align: center;
+  font-family: var(--font-body);
+  color: var(--color-subtitulo);
+  margin: 2rem 0;
+}
