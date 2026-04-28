@@ -1,0 +1,100 @@
+<app-navbar></app-navbar>
+
+<div class="profile-container">
+  <!-- Cover Banner -->
+  <div class="profile-header">
+    <div class="cover-image" [ngStyle]="{'background-image': 'url(' + user.coverUrl + ')'}">
+      <div class="cover-overlay"></div>
+    </div>
+    
+    <div class="profile-info-wrapper">
+      <div class="avatar-container">
+        <img [src]="user.avatarUrl" alt="Avatar" class="avatar-img" />
+        <div class="level-badge">
+          <span class="material-icons badge-icon">star</span>
+        </div>
+      </div>
+      
+      <div class="user-details">
+        <h1 class="user-name">{{ user.name }}</h1>
+        <p class="user-email">{{ user.email }}</p>
+        <div class="user-meta">
+          <span class="meta-item"><span class="material-icons">card_membership</span> {{ user.level }}</span>
+          <span class="meta-item"><span class="material-icons">calendar_today</span> Miembro desde {{ user.memberSince }}</span>
+        </div>
+      </div>
+      
+      <div class="profile-actions">
+        <button class="btn btn-outline">Editar Perfil</button>
+        <button class="btn btn-primary">Configuración</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Section -->
+  <div class="profile-content">
+    
+    <!-- Stats Sidebar -->
+    <div class="sidebar">
+      <div class="stats-card">
+        <h3>Estadísticas de Viaje</h3>
+        <div class="stat-item">
+          <div class="stat-icon-wrapper trips">
+            <span class="material-icons">flight_takeoff</span>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ user.stats.trips }}</span>
+            <span class="stat-label">Viajes</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon-wrapper reviews">
+            <span class="material-icons">rate_review</span>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ user.stats.reviews }}</span>
+            <span class="stat-label">Reseñas</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon-wrapper points">
+            <span class="material-icons">loyalty</span>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value">{{ user.stats.points }}</span>
+            <span class="stat-label">Puntos Pooking</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content: Trips -->
+    <div class="main-panel">
+      <div class="section-header">
+        <h2>Tus viajes ya realizados</h2>
+        <a href="#" class="view-all">Ver todos</a>
+      </div>
+      
+      <div class="trips-grid">
+        <div class="trip-card" *ngFor="let trip of upcomingTrips">
+          <div class="trip-image" [ngStyle]="{'background-image': 'url(' + trip.imageUrl + ')'}"></div>
+          <div class="trip-details">
+            <h3 class="trip-destination">{{ trip.destination }}</h3>
+            <p class="trip-date"><span class="material-icons">event</span> {{ trip.date }}</p>
+            <p class="trip-hotel"><span class="material-icons">hotel</span> {{ trip.hotel }}</p>
+          </div>
+        </div>
+        
+        <!-- Empty State / Add New -->
+        <div class="trip-card add-new-trip" routerLink="/">
+          <div class="add-icon-wrapper">
+            <span class="material-icons">add</span>
+          </div>
+          <h3>Planear un nuevo viaje</h3>
+          <p>Descubre tu próximo destino</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
