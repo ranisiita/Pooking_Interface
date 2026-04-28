@@ -30,7 +30,7 @@ export class Signup implements OnDestroy {
   generalError = '';
 
   // Password visibility toggles
-  showPassword        = false;
+  showPassword = false;
   showConfirmPassword = false;
 
   // Custom Dropdown state
@@ -52,23 +52,23 @@ export class Signup implements OnDestroy {
   ) {
     this.step1Form = this.fb.group(
       {
-        username:        ['', [usernameValidator()], [usernameAvailableValidator(this.http)]],
-        correo:          ['', [correoValidator()], [correoAvailableValidator(this.http)]],
-        password:        ['', passwordValidator()],
+        username: ['', [usernameValidator()], [usernameAvailableValidator(this.http)]],
+        correo: ['', [correoValidator()], [correoAvailableValidator(this.http)]],
+        password: ['', passwordValidator()],
         confirmPassword: [''],
       },
       { validators: passwordMatchValidator('password', 'confirmPassword') }
     );
 
     this.step2Form = this.fb.group({
-      tipo_identificacion:  ['', tipoIdentificacionValidator()],
+      tipo_identificacion: ['', tipoIdentificacionValidator()],
       numero_identificacion: ['', numeroIdentificacionValidator()],
-      nombres:    [''],
-      apellidos:  [''],
+      nombres: [''],
+      apellidos: [''],
       razon_social: [''],
       prefijo_telefono: ['+593'],
-      telefono:   ['', telefonoValidator()],
-      direccion:  [''],
+      telefono: ['', telefonoValidator()],
+      direccion: [''],
     });
 
     // Update conditional validators whenever tipo changes
@@ -87,9 +87,9 @@ export class Signup implements OnDestroy {
     const isPersonaNatural = ['CI', 'PASS', 'EXT'].includes(tipo);
     const isRUC = tipo === 'RUC';
 
-    const numero     = this.step2Form.get('numero_identificacion')!;
-    const nombres    = this.step2Form.get('nombres')!;
-    const apellidos  = this.step2Form.get('apellidos')!;
+    const numero = this.step2Form.get('numero_identificacion')!;
+    const nombres = this.step2Form.get('nombres')!;
+    const apellidos = this.step2Form.get('apellidos')!;
     const razonSocial = this.step2Form.get('razon_social')!;
 
     // Actualizar validator de número con las reglas del tipo seleccionado
@@ -144,10 +144,10 @@ export class Signup implements OnDestroy {
     const p = this.passwordValue;
     if (!p) return { label: '', score: 0, color: '' };
     let score = 0;
-    if (p.length >= 8)           score++;
-    if (/[A-Z]/.test(p))         score++;
-    if (/[0-9]/.test(p))         score++;
-    if (/[^A-Za-z0-9]/.test(p))  score++;
+    if (p.length >= 8) score++;
+    if (/[A-Z]/.test(p)) score++;
+    if (/[0-9]/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
     const labels = ['', 'Débil', 'Regular', 'Buena', 'Fuerte'];
     const colors = ['', '#e74c3c', '#e67e22', '#3498db', '#27ae60'];
     return { label: labels[score], score, color: colors[score] };
@@ -177,10 +177,10 @@ export class Signup implements OnDestroy {
   get passwordRules() {
     const p = this.passwordValue;
     return {
-      length:    p.length >= 8,
+      length: p.length >= 8,
       uppercase: /[A-Z]/.test(p),
-      number:    /[0-9]/.test(p),
-      special:   /[^A-Za-z0-9]/.test(p),
+      number: /[0-9]/.test(p),
+      special: /[^A-Za-z0-9]/.test(p),
     };
   }
 
@@ -210,10 +210,10 @@ export class Signup implements OnDestroy {
   showToast(message: string, type: 'error' | 'success' = 'error'): void {
     if (this.toastTimer) clearTimeout(this.toastTimer);
     this.toastMessage = message;
-    this.toastType    = type;
+    this.toastType = type;
     this.toastVisible = true;
     this.cdr.detectChanges(); // <-- Forzar actualización de pantalla
-    this.toastTimer   = setTimeout(() => {
+    this.toastTimer = setTimeout(() => {
       this.toastVisible = false;
       this.cdr.detectChanges();
     }, 5000);
@@ -236,18 +236,18 @@ export class Signup implements OnDestroy {
 
     // Un solo payload — el backend crea usuario Y cliente internamente
     const payload = {
-      username:              s1.username,
-      correo:                s1.correo,
-      password:              s1.password,
-      nombreRol:             'CLIENTE',
+      username: s1.username,
+      correo: s1.correo,
+      password: s1.password,
+      nombreRol: 'CLIENTE',
       // Datos de cliente — planos, no anidados
-      tipoIdentificacion:    s2.tipo_identificacion,
-      numeroIdentificacion:  s2.numero_identificacion,
-      nombres:               s2.nombres      || "",
-      apellidos:             s2.apellidos    || "",
-      razonSocial:           s2.razon_social || "",
-      telefono:              s2.telefono ? `${s2.prefijo_telefono}${s2.telefono}` : "",
-      direccion:             s2.direccion    || "",
+      tipoIdentificacion: s2.tipo_identificacion,
+      numeroIdentificacion: s2.numero_identificacion,
+      nombres: s2.nombres || "",
+      apellidos: s2.apellidos || "",
+      razonSocial: s2.razon_social || "",
+      telefono: s2.telefono ? `${s2.prefijo_telefono}${s2.telefono}` : "",
+      direccion: s2.direccion || "",
     };
 
     // Una sola llamada — el backend resuelve todo
@@ -259,7 +259,7 @@ export class Signup implements OnDestroy {
       },
       error: (err) => {
         this.signupStatus = 'error';
-        
+
         let body = err?.error;
         if (typeof body === 'string') {
           try { body = JSON.parse(body); } catch (e) { /* ignore */ }
@@ -269,7 +269,7 @@ export class Signup implements OnDestroy {
         console.log('🚨 [Signup] err.error (body):', body);
 
         let messages: string[] = [];
-        
+
         if (Array.isArray(body?.errors)) {
           messages = body.errors;
         } else if (body?.errors && typeof body.errors === 'object') {
@@ -277,21 +277,21 @@ export class Signup implements OnDestroy {
         }
 
         // Extraer mensaje general y forzar a string
-        let rawMessage = body?.message 
-          ?? body?.title 
-          ?? body?.detail 
-          ?? (typeof body === 'string' ? body : null) 
+        let rawMessage = body?.message
+          ?? body?.title
+          ?? body?.detail
+          ?? (typeof body === 'string' ? body : null)
           ?? `Error ${err.status}: Ocurrió un error al registrarte.`;
-          
+
         let finalMessage = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
 
         if (messages.length > 0) {
           const errorMsg = messages.join(' • ');
           this.generalError = errorMsg;
-          
+
           // 1. Mostrar toast INMEDIATAMENTE
-          this.showToast(errorMsg); 
-          
+          this.showToast(errorMsg);
+
           // 2. Mapear con seguridad
           try {
             this.mapBackendErrors(messages);
@@ -301,10 +301,10 @@ export class Signup implements OnDestroy {
           }
         } else {
           this.generalError = finalMessage;
-          
+
           // 1. Mostrar toast INMEDIATAMENTE
           this.showToast(finalMessage);
-          
+
           // 2. Mapear con seguridad
           try {
             this.mapBackendErrors([finalMessage]);
@@ -324,16 +324,16 @@ export class Signup implements OnDestroy {
    */
   private mapBackendErrors(messages: string[]): void {
     const FIELD_MAP: Array<{ keywords: string[]; form: FormGroup; field: string }> = [
-      { keywords: ['usuario', 'username'],    form: this.step1Form, field: 'username' },
-      { keywords: ['correo', 'email'],        form: this.step1Form, field: 'correo' },
+      { keywords: ['usuario', 'username'], form: this.step1Form, field: 'username' },
+      { keywords: ['correo', 'email'], form: this.step1Form, field: 'correo' },
       { keywords: ['contraseña', 'password'], form: this.step1Form, field: 'password' },
-      { keywords: ['tipo'],                   form: this.step2Form, field: 'tipo_identificacion' },
-      { keywords: ['identificaci'],           form: this.step2Form, field: 'numero_identificacion' },
-      { keywords: ['nombre'],                 form: this.step2Form, field: 'nombres' },
-      { keywords: ['apellido'],               form: this.step2Form, field: 'apellidos' },
-      { keywords: ['raz'],                    form: this.step2Form, field: 'razon_social' },
-      { keywords: ['teléfono', 'telefono'],   form: this.step2Form, field: 'telefono' },
-      { keywords: ['direcci'],                form: this.step2Form, field: 'direccion' },
+      { keywords: ['tipo'], form: this.step2Form, field: 'tipo_identificacion' },
+      { keywords: ['identificaci'], form: this.step2Form, field: 'numero_identificacion' },
+      { keywords: ['nombre'], form: this.step2Form, field: 'nombres' },
+      { keywords: ['apellido'], form: this.step2Form, field: 'apellidos' },
+      { keywords: ['raz'], form: this.step2Form, field: 'razon_social' },
+      { keywords: ['teléfono', 'telefono'], form: this.step2Form, field: 'telefono' },
+      { keywords: ['direcci'], form: this.step2Form, field: 'direccion' },
     ];
 
     const step2Fields = [
@@ -363,7 +363,7 @@ export class Signup implements OnDestroy {
 
     // Mensajes no mapeados → bloque general visible en el template
     this.generalError = unmapped.join(' • ');
-    
+
     this.cdr.detectChanges(); // Forzar actualización de Angular
   }
 }
