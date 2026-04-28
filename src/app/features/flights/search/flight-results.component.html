@@ -34,7 +34,8 @@
           <span class="material-icons">sort</span>
           <select [value]="ordenamiento()" (change)="ordenamiento.set($any($event.target).value)">
             <option value="nombre">Nombre</option>
-            <option value="precio">Precio</option>
+            <option value="precio_asc">Precio: Menor a Mayor</option>
+            <option value="precio_desc">Precio: Mayor a Menor</option>
           </select>
         </div>
       </div>
@@ -133,3 +134,5 @@
     </section>
   </div>
 </div>
+
+<app-footer></app-footer>

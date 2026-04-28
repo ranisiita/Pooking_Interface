@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
+import { FooterComponent } from '../../../components/navbar/footer.component';
 
 export interface FlightItem {
   guidServicio: string;
@@ -21,7 +22,7 @@ export interface FlightItem {
 @Component({
   selector: 'app-flight-results',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, NavbarComponent],
+  imports: [CommonModule, RouterModule, FormsModule, NavbarComponent, FooterComponent],
   templateUrl: './flight-results.component.html',
   styleUrls: ['./flight-results.component.css'],
 })
@@ -32,7 +33,7 @@ export class FlightResultsComponent implements OnInit {
   paginaActual = signal(1);
   readonly tamanoPagina = 6;
   filtroTermino = signal('');
-  ordenamiento = signal<'nombre' | 'precio'>('nombre');
+  ordenamiento = signal<'nombre' | 'precio_asc' | 'precio_desc'>('nombre');
   private readonly resultados = signal<FlightItem[]>([]);
 
   readonly criterios = signal({
@@ -49,8 +50,10 @@ export class FlightResultsComponent implements OnInit {
     if (t) items = items.filter((s) => s.nombreComercial.toLowerCase().includes(t));
     if (this.ordenamiento() === 'nombre') {
       items = [...items].sort((a, b) => a.nombreComercial.localeCompare(b.nombreComercial));
-    } else {
+    } else if (this.ordenamiento() === 'precio_asc') {
       items = [...items].sort((a, b) => a.precioBase - b.precioBase);
+    } else {
+      items = [...items].sort((a, b) => b.precioBase - a.precioBase);
     }
     return items;
   });

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NavbarComponent } from '../../components/navbar/navbar.component';
+import { FooterComponent } from '../../components/navbar/footer.component';
 
 type FlightClass = 'Económica' | 'Ejecutiva' | 'Primera clase';
 interface FlightSearchCriteria {
@@ -17,7 +18,7 @@ interface FlightSearchCriteria {
 @Component({
   selector: 'app-search',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavbarComponent],
+  imports: [CommonModule, FormsModule, NavbarComponent, FooterComponent],
   templateUrl: './search.component.html',
   styleUrls: ['./search.component.css'],
 })
@@ -37,6 +38,7 @@ export class SearchComponent implements OnInit {
 
   aloj = { destino: '', llegada: '', salida: '', habitaciones: 1, adultos: 2, ninos: 0 };
   vuelos = { origen: '', destino: '', salida: '', regreso: '', pasajeros: 1, clase: 'Económica' };
+  flightFormError = '';
   coches = { lugar: '', recogida: '', devolucion: '' };
   atracciones = { destino: '', fecha: '' };
 
@@ -63,6 +65,15 @@ export class SearchComponent implements OnInit {
       window.alert('Por favor completa origen, destino y fecha de salida.');
       return;
     }
+    if (!this.isCityTextOnly(origen) || !this.isCityTextOnly(destino)) {
+      this.flightFormError = 'Origen y destino solo permiten letras y espacios.';
+      return;
+    }
+    if (regreso && regreso < salida) {
+      this.flightFormError = 'La fecha de regreso no puede ser anterior a la fecha de salida.';
+      return;
+    }
+    this.flightFormError = '';
 
     const criterios: FlightSearchCriteria = {
       origen: origen.trim(),
@@ -76,5 +87,18 @@ export class SearchComponent implements OnInit {
     this.router.navigate(['/vuelos/resultados'], {
       queryParams: { origen: criterios.origen, destino: criterios.destino, fecha: criterios.fechaSalida, pasajeros, clase },
     });
+  }
+
+  onCityInput(field: 'origen' | 'destino', event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const saneado = input.value.replace(/[^a-zA-Z\u00C0-\u017F\s]/g, '');
+    this.vuelos[field] = saneado;
+    if (this.flightFormError) {
+      this.flightFormError = '';
+    }
+  }
+
+  private isCityTextOnly(value: string): boolean {
+    return /^[a-zA-Z\u00C0-\u017F\s]+$/.test(value.trim());
   }
 }

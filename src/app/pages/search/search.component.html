@@ -85,14 +85,24 @@
           <label>Origen</label>
           <div class="input-icon-wrapper">
             <span class="material-icons">flight_takeoff</span>
-            <input type="text" [(ngModel)]="vuelos.origen" placeholder="Ciudad de origen" />
+            <input
+              type="text"
+              [value]="vuelos.origen"
+              (input)="onCityInput('origen', $event)"
+              placeholder="Ciudad de origen"
+            />
           </div>
         </div>
         <div class="field">
           <label>Destino</label>
           <div class="input-icon-wrapper">
             <span class="material-icons">flight_land</span>
-            <input type="text" [(ngModel)]="vuelos.destino" placeholder="Ciudad de destino" />
+            <input
+              type="text"
+              [value]="vuelos.destino"
+              (input)="onCityInput('destino', $event)"
+              placeholder="Ciudad de destino"
+            />
           </div>
         </div>
         <div class="field">
@@ -126,6 +136,9 @@
               <option>Primera clase</option>
             </select>
           </div>
+        </div>
+        <div class="field full-width" *ngIf="flightFormError">
+          <small style="color:#b91c1c;font-size:0.75rem">{{ flightFormError }}</small>
         </div>
         <div class="field full-width center">
           <button class="search-btn" (click)="buscarVuelos()">
@@ -193,3 +206,5 @@
     </div>
   </div>
 </div>
+
+<app-footer></app-footer>

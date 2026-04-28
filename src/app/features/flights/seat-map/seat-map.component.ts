@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
+import { FooterComponent } from '../../../components/navbar/footer.component';
 
 type ClaseCabina = 'ECONOMICA' | 'EJECUTIVA' | 'PRIMERA';
 interface Asiento {
@@ -16,12 +17,12 @@ interface Asiento {
 @Component({
   selector: 'app-seat-map',
   standalone: true,
-  imports: [CommonModule, RouterModule, NavbarComponent],
+  imports: [CommonModule, RouterModule, NavbarComponent, FooterComponent],
   templateUrl: './seat-map.component.html',
   styleUrls: ['./seat-map.component.css'],
 })
 export class SeatMapComponent implements OnInit {
-  private _route = inject(ActivatedRoute);
+  private route = inject(ActivatedRoute);
   private router = inject(Router);
 
   asientos = signal<Asiento[]>([]);
@@ -46,6 +47,11 @@ export class SeatMapComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    const claseQuery = this.route.snapshot.queryParamMap.get('clase') ?? '';
+    const claseNormalizada = this.mapearClase(claseQuery);
+    if (claseNormalizada) {
+      this.claseActiva.set(claseNormalizada);
+    }
     this.asientos.set(this.generarAsientos());
     this.loading.set(false);
   }
@@ -87,5 +93,13 @@ export class SeatMapComponent implements OnInit {
     pushClase(4, 8, 'EJECUTIVA', 35);
     pushClase(9, 24, 'ECONOMICA', 0);
     return asientos;
+  }
+
+  private mapearClase(valor: string): ClaseCabina | null {
+    const key = valor.toLowerCase();
+    if (key.includes('ejecutiva') || key.includes('business')) return 'EJECUTIVA';
+    if (key.includes('primera') || key.includes('first')) return 'PRIMERA';
+    if (key.includes('econ') || key.includes('tourist')) return 'ECONOMICA';
+    return null;
   }
 }
