@@ -6,9 +6,7 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test",
-    "test:unit": "vitest run",
-    "test:unit:watch": "vitest"
+    "test": "ng test"
   },
   "private": true,
   "packageManager": "npm@11.12.1",
@@ -26,8 +24,6 @@
     "@angular/build": "^21.2.8",
     "@angular/cli": "^21.2.8",
     "@angular/compiler-cli": "^21.2.0",
-    "@emnapi/core": "^1.10.0",
-    "@emnapi/runtime": "^1.10.0",
     "jsdom": "^28.0.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2",

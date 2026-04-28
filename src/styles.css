@@ -10,13 +10,6 @@
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
 /* ------------------------------------------------
-   SHARED COMPONENT STYLES
-   ------------------------------------------------ */
-@import './app/shared/styles/panels.css';
-@import './app/shared/styles/forms.css';
-@import './app/shared/styles/navigation.css';
-
-/* ------------------------------------------------
    FUENTE PERSONALIZADA — BILENA
    Coloca el archivo en src/assets/fonts/
    ------------------------------------------------ */
