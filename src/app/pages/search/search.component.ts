@@ -3,11 +3,16 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NavbarComponent } from '../../components/navbar/navbar.component';
-import { SearchStore } from '../../state/search.store';
-import { ServiciosService } from '../../core/services/servicios.service';
-import { TiposServicioService } from '../../core/services/tipos-servicio.service';
-import { ToastService } from '../../shared/ui/toast/toast.service';
-import { LoadingService } from '../../shared/ui/spinner/loading.service';
+
+type FlightClass = 'Económica' | 'Ejecutiva' | 'Primera clase';
+interface FlightSearchCriteria {
+  origen: string;
+  destino: string;
+  fechaSalida: string;
+  fechaRegreso: string;
+  pasajeros: number;
+  clase: FlightClass;
+}
 
 @Component({
   selector: 'app-search',
@@ -19,11 +24,7 @@ import { LoadingService } from '../../shared/ui/spinner/loading.service';
 export class SearchComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private searchStore = inject(SearchStore);
-  private serviciosService = inject(ServiciosService);
-  private tiposServicioService = inject(TiposServicioService);
-  private toast = inject(ToastService);
-  readonly loading = inject(LoadingService);
+  private readonly tabsValidas = new Set(['alojamiento', 'vuelos', 'coches', 'atracciones']);
 
   activeTab = 'alojamiento';
 
@@ -41,72 +42,39 @@ export class SearchComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
-      if (params['tab']) this.activeTab = params['tab'];
+      const tab = params['tab'];
+      this.activeTab = this.tabsValidas.has(tab) ? tab : 'alojamiento';
     });
   }
 
-  setTab(key: string): void { this.activeTab = key; }
+  setTab(key: string): void {
+    this.activeTab = key;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: key },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
 
   buscarVuelos(): void {
     const { origen, destino, salida, regreso, pasajeros, clase } = this.vuelos;
     if (!origen.trim() || !destino.trim() || !salida) {
-      this.toast.show('Por favor completa origen, destino y fecha de salida.', 'error');
+      window.alert('Por favor completa origen, destino y fecha de salida.');
       return;
     }
 
-    this.searchStore.setCriterios({
+    const criterios: FlightSearchCriteria = {
       origen: origen.trim(),
       destino: destino.trim(),
       fechaSalida: salida,
       fechaRegreso: regreso,
       pasajeros,
-      clase,
-      esIdaVuelta: !!regreso,
-      termino: `${origen.trim()} ${destino.trim()}`.trim(),
+      clase: clase as FlightClass,
+    };
+    sessionStorage.setItem('flight-search-criteria', JSON.stringify(criterios));
+    this.router.navigate(['/vuelos/resultados'], {
+      queryParams: { origen: criterios.origen, destino: criterios.destino, fecha: criterios.fechaSalida, pasajeros, clase },
     });
-
-    const guidTipo = this.searchStore.guidTipoVuelos();
-
-    if (!guidTipo) {
-      this.tiposServicioService.getPorNombre('Vuelos').subscribe({
-        next: (tipoRes) => {
-          const guidEncontrado = tipoRes.data?.guidTipoServicio;
-          if (!guidEncontrado) {
-            this.toast.show('Servicio de vuelos no disponible en este momento.', 'error');
-            return;
-          }
-          this.searchStore.setGuidTipoVuelos(guidEncontrado);
-          this.ejecutarBusquedaVuelos(guidEncontrado, origen, destino, salida, pasajeros, clase);
-        },
-        error: () => this.toast.show('Servicio de vuelos no disponible en este momento.', 'error'),
-      });
-      return;
-    }
-
-    this.ejecutarBusquedaVuelos(guidTipo, origen, destino, salida, pasajeros, clase);
-  }
-
-  private ejecutarBusquedaVuelos(
-    guidTipo: string,
-    origen: string,
-    destino: string,
-    salida: string,
-    pasajeros: number,
-    clase: string,
-  ): void {
-    this.searchStore.setLoading(true);
-    this.serviciosService
-      .list({ guidTipo, paginaActual: 1, tamanoPagina: 10 })
-      .subscribe({
-        next: (res) => {
-          this.searchStore.setResultados(res.data ?? [], res.meta);
-          this.router.navigate(['/vuelos/resultados'], {
-            queryParams: { origen, destino, fecha: salida, pasajeros, clase },
-          });
-        },
-        error: () => {
-          this.searchStore.setLoading(false);
-        },
-      });
   }
 }

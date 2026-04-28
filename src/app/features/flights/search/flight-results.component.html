@@ -4,11 +4,11 @@
   <div class="page-header">
     <h1 class="page-title">Resultados de vuelos</h1>
     <p class="page-subtitle">
-      {{ searchStore.criterios().origen || 'Origen' }}
+      {{ criterios().origen || 'Origen' }}
       <span class="material-icons" style="font-size:1rem;vertical-align:middle">arrow_forward</span>
-      {{ searchStore.criterios().destino || 'Destino' }}
-      &nbsp;·&nbsp;{{ searchStore.criterios().fechaSalida || '' }}
-      &nbsp;·&nbsp;{{ searchStore.criterios().pasajeros }} pasajero(s)
+      {{ criterios().destino || 'Destino' }}
+      &nbsp;·&nbsp;{{ criterios().fechaSalida || '' }}
+      &nbsp;·&nbsp;{{ criterios().pasajeros }} pasajero(s)
     </p>
   </div>
 
@@ -47,12 +47,7 @@
     <!-- Lista de resultados -->
     <section class="results-list">
 
-      @if (searchStore.loading()) {
-        <div style="text-align:center;padding:3rem">
-          <div class="spinner" style="margin:auto"></div>
-        </div>
-
-      } @else if (!searchStore.hasResults()) {
+      @if (totalResultados() === 0) {
         <div class="empty-state panel-glass-light">
           <span class="material-icons" style="font-size:3rem;color:var(--color-extra2)">flight_off</span>
           <p>No se encontraron vuelos disponibles para tu búsqueda.</p>
@@ -61,18 +56,17 @@
 
       } @else {
 
-        @for (servicio of resultadosFiltrados(); track servicio.guidServicio) {
-          @let vuelo = getMockVuelo(servicio);
-          <div class="result-card flight-card" (click)="seleccionar(servicio)" role="button"
-               [attr.aria-label]="'Ver detalles de ' + (servicio.nombreComercial ?? servicio.razonSocial)">
+        @for (vuelo of paginaResultados(); track vuelo.guidServicio) {
+          <div class="result-card flight-card" (click)="seleccionar(vuelo)" role="button"
+               [attr.aria-label]="'Ver detalles de ' + vuelo.nombreComercial">
 
             <!-- Encabezado: aerolínea -->
             <div class="flight-card-header">
               <div class="flight-provider">
                 <span class="material-icons flight-icon">flight</span>
                 <div>
-                  <p class="flight-nombre">{{ servicio.nombreComercial ?? servicio.razonSocial }}</p>
-                  <p class="flight-tipo">{{ servicio.tipoServicioNombre ?? 'Vuelos' }}</p>
+                  <p class="flight-nombre">{{ vuelo.nombreComercial }}</p>
+                  <p class="flight-tipo">{{ vuelo.tipoServicioNombre }}</p>
                 </div>
               </div>
               <span class="badge badge-success" style="margin-left:auto">
@@ -123,19 +117,18 @@
                 </p>
               </div>
               <button class="btn-primary" style="padding:0.55rem 1.4rem;font-size:0.85rem"
-                      (click)="seleccionar(servicio);$event.stopPropagation()">
+                      (click)="seleccionar(vuelo);$event.stopPropagation()">
                 Ver detalle
               </button>
             </div>
 
           </div>
         }
-
-        <app-pagination
-          [pagina]="paginaActual()"
-          [totalPaginas]="totalPaginas()"
-          (cambiar)="cargar($event)"
-        />
+        <div class="pager">
+          <button class="btn-ghost" [disabled]="paginaActual() === 1" (click)="cargar(paginaActual() - 1)">Anterior</button>
+          <span class="pager-text">Página {{ paginaActual() }} de {{ totalPaginas() }}</span>
+          <button class="btn-ghost" [disabled]="paginaActual() >= totalPaginas()" (click)="cargar(paginaActual() + 1)">Siguiente</button>
+        </div>
       }
     </section>
   </div>

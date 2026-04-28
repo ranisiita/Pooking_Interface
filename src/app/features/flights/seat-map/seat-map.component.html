@@ -47,7 +47,7 @@
                     [disabled]="!asiento.disponible"
                     (click)="seleccionar(asiento)"
                     [attr.aria-label]="'Asiento ' + asiento.numero_asiento + (asiento.disponible ? '' : ' ocupado')"
-                    [title]="asiento.numero_asiento + ' | ' + (asiento.posicion ?? '') + (asiento.precio_extra > 0 ? ' + $' + asiento.precio_extra : '')"
+                    [title]="asiento.numero_asiento + ' | ' + asiento.posicion + (asiento.precio_extra > 0 ? ' + $' + asiento.precio_extra : '')"
                   >
                     {{ asiento.numero_asiento }}
                   </button>
@@ -107,7 +107,7 @@
           <span class="material-icons">attach_money</span>
           <div>
             <p class="info-label">Cargo extra</p>
-            <p class="info-value">{{ a.precio_extra | money }}</p>
+            <p class="info-value">${{ a.precio_extra | number:'1.2-2' }}</p>
           </div>
         </div>
         <div class="divider"></div>

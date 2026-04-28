@@ -3,8 +3,6 @@ import { HomeComponent } from './pages/home/home.component';
 import { SearchComponent } from './pages/search/search.component';
 import { Login } from './pages/login/login';
 import { Signup } from './pages/signup/signup';
-import { ProfileComponent } from './pages/profile/profile.component';
-import { authGuard } from './core/auth/auth.guard';
 
 
 export const routes: Routes = [
@@ -38,17 +36,9 @@ export const routes: Routes = [
       ),
   },
 
-  // Checkout (requiere selección previa de vuelo)
-  {
-    path: 'checkout',
-    loadChildren: () =>
-      import('./features/checkout/checkout.routes').then((m) => m.CHECKOUT_ROUTES),
-  },
-
   // Cuenta
   { path: 'login', component: Login },
   { path: 'signup', component: Signup },
-  { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '' }
 
 ];

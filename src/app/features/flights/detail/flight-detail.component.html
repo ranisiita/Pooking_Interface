@@ -13,33 +13,23 @@
       <div style="text-align:center;padding:4rem">
         <div class="spinner" style="margin:auto"></div>
       </div>
-
     } @else if (error()) {
       <div class="panel-glass empty-state">
         <span class="material-icons" style="font-size:2.5rem;color:#d25040">error_outline</span>
         <p>{{ error() }}</p>
         <button class="btn-secondary" (click)="volver()">Volver a resultados</button>
       </div>
-
     } @else if (detalle(); as d) {
       <div class="detail-grid">
-
-        <!-- Panel principal -->
         <div class="detail-main panel-glass">
-
-          <!-- ── Panel de vuelo ─────────────────────────────────────── -->
           @if (mockVuelo(); as v) {
             <div style="background:linear-gradient(135deg,rgba(var(--color-primary-rgb,139,69,19),0.07),rgba(0,0,0,0.02));border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.25rem">
-
-              <!-- Ruta y horario -->
               <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;justify-content:center">
-
                 <div style="text-align:center;min-width:80px">
                   <p style="font-size:2rem;font-weight:800;margin:0;color:var(--color-primary)">{{ v.salida }}</p>
                   <p style="font-size:0.82rem;font-weight:600;margin:0.2rem 0 0">{{ v.origen }}</p>
-                  <p style="font-size:0.72rem;color:var(--color-text-muted);margin:0">Aeropuerto origen</p>
+                  <p style="font-size:0.72rem;color:var(--color-text-muted);margin:0">Origen</p>
                 </div>
-
                 <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:120px">
                   <p style="font-size:0.75rem;color:var(--color-text-muted);margin:0">{{ v.duracion }}</p>
                   <div style="display:flex;align-items:center;width:100%;gap:6px">
@@ -53,17 +43,13 @@
                     {{ v.escalas === 0 ? 'Vuelo directo' : v.escalas + ' escala' + (v.escalas > 1 ? 's' : '') }}
                   </span>
                 </div>
-
                 <div style="text-align:center;min-width:80px">
                   <p style="font-size:2rem;font-weight:800;margin:0;color:var(--color-primary)">{{ v.llegada }}</p>
                   <p style="font-size:0.82rem;font-weight:600;margin:0.2rem 0 0">{{ v.destino }}</p>
-                  <p style="font-size:0.72rem;color:var(--color-text-muted);margin:0">Aeropuerto destino</p>
+                  <p style="font-size:0.72rem;color:var(--color-text-muted);margin:0">Destino</p>
                 </div>
               </div>
-
-              <!-- Detalles del vuelo en grid -->
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.75rem;margin-top:1.25rem;border-top:1px solid var(--color-border);padding-top:1rem">
-
                 <div style="text-align:center">
                   <p style="font-size:0.7rem;color:var(--color-text-muted);margin:0;text-transform:uppercase;letter-spacing:0.05em">Hora salida</p>
                   <p style="font-size:1rem;font-weight:700;margin:0.2rem 0 0">{{ v.salida }}</p>
@@ -98,148 +84,72 @@
                     <p style="font-size:1rem;font-weight:700;margin:0.2rem 0 0">{{ v.fecha }}</p>
                   </div>
                 }
-
               </div>
             </div>
           }
 
           <div class="divider"></div>
-
-          <!-- Encabezado: nombre comercial o razón social -->
           <div class="detail-header">
             <div class="detail-icon-wrap">
-              @if (d.logoUrl) {
-                <img [src]="d.logoUrl" [alt]="d.nombreComercial ?? d.razonSocial" style="width:48px;height:48px;object-fit:contain;border-radius:6px" />
-              } @else {
-                <span class="material-icons detail-icon">flight</span>
-              }
+              <span class="material-icons detail-icon">flight</span>
             </div>
             <div style="flex:1;min-width:0">
               <h1 class="page-title" style="font-size:1.6rem;margin:0">
-                {{ d.nombreComercial ?? d.razonSocial }}
+                {{ d.nombreComercial }}
               </h1>
-              @if (d.nombreComercial && d.razonSocial !== d.nombreComercial) {
-                <p style="color:var(--color-text-muted);font-size:0.85rem;margin:0.2rem 0 0">
-                  {{ d.razonSocial }}
-                </p>
-              }
               <p class="page-subtitle" style="margin:0.3rem 0 0">
                 <span class="badge badge-success" style="font-size:0.75rem">
                   <span class="material-icons" style="font-size:0.8rem">check_circle</span>
                   Disponible
                 </span>
-                &nbsp;·&nbsp;{{ d.tipoServicioNombre ?? 'Vuelos' }}
+                &nbsp;·&nbsp;{{ d.tipoServicioNombre }}
               </p>
             </div>
           </div>
 
           <div class="divider"></div>
-
-          <!-- Grid de información del proveedor -->
           <div class="detail-info-grid">
-
             <div class="info-item">
-              <span class="material-icons">badge</span>
+              <span class="material-icons">flight_takeoff</span>
               <div>
-                <p class="info-label">Tipo de identificación</p>
-                <p class="info-value">{{ d.tipoIdentificacion ?? '—' }}</p>
+                <p class="info-label">Origen</p>
+                <p class="info-value">{{ d.origen }}</p>
               </div>
             </div>
-
             <div class="info-item">
-              <span class="material-icons">confirmation_number</span>
+              <span class="material-icons">flight_land</span>
               <div>
-                <p class="info-label">Número de identificación</p>
-                <p class="info-value">{{ d.numeroIdentificacion ?? '—' }}</p>
+                <p class="info-label">Destino</p>
+                <p class="info-value">{{ d.destino }}</p>
               </div>
             </div>
-
             <div class="info-item">
-              <span class="material-icons">category</span>
+              <span class="material-icons">schedule</span>
               <div>
-                <p class="info-label">Tipo de servicio</p>
-                <p class="info-value">{{ d.tipoServicioNombre ?? 'Vuelos' }}</p>
+                <p class="info-label">Duración</p>
+                <p class="info-value">{{ d.duracion }}</p>
               </div>
             </div>
-
             <div class="info-item">
-              <span class="material-icons">toggle_on</span>
+              <span class="material-icons">attach_money</span>
               <div>
-                <p class="info-label">Estado</p>
-                <p class="info-value">{{ d.estado === 'ACT' ? 'Activo' : d.estado === 'INA' ? 'Inactivo' : (d.estado ?? '—') }}</p>
+                <p class="info-label">Tarifa base</p>
+                <p class="info-value">${{ d.precioBase | number:'1.2-2' }}</p>
               </div>
             </div>
-
-            @if (d.correoContacto) {
-              <div class="info-item">
-                <span class="material-icons">email</span>
-                <div>
-                  <p class="info-label">Correo de contacto</p>
-                  <p class="info-value">
-                    <a [href]="'mailto:' + d.correoContacto" style="color:var(--color-primary)">{{ d.correoContacto }}</a>
-                  </p>
-                </div>
-              </div>
-            }
-
-            @if (d.telefonoContacto) {
-              <div class="info-item">
-                <span class="material-icons">phone</span>
-                <div>
-                  <p class="info-label">Teléfono de contacto</p>
-                  <p class="info-value">
-                    <a [href]="'tel:' + d.telefonoContacto" style="color:var(--color-primary)">{{ d.telefonoContacto }}</a>
-                  </p>
-                </div>
-              </div>
-            }
-
-            @if (d.sitioWeb) {
-              <div class="info-item">
-                <span class="material-icons">language</span>
-                <div>
-                  <p class="info-label">Sitio web</p>
-                  <p class="info-value">
-                    <a [href]="d.sitioWeb" target="_blank" rel="noopener" style="color:var(--color-primary)">{{ d.sitioWeb }}</a>
-                  </p>
-                </div>
-              </div>
-            }
-
-            @if (d.direccion) {
-              <div class="info-item">
-                <span class="material-icons">location_on</span>
-                <div>
-                  <p class="info-label">Dirección</p>
-                  <p class="info-value">{{ d.direccion }}</p>
-                </div>
-              </div>
-            }
-
           </div>
-
-          @if (d.descripcion) {
-            <div class="divider"></div>
-            <p class="detail-desc">{{ d.descripcion }}</p>
-          }
-
-          <!-- Identificador técnico (colapsable) -->
           <div class="divider"></div>
           <details style="font-size:0.78rem;color:var(--color-text-muted)">
             <summary style="cursor:pointer;user-select:none">ID interno del proveedor</summary>
             <code style="font-size:0.75rem;word-break:break-all;display:block;margin-top:0.4rem">{{ d.guidServicio }}</code>
           </details>
-
         </div>
-
-        <!-- Panel lateral de acción -->
         <aside class="detail-sidebar panel-glass-light">
           <p class="detail-sidebar-title">¿Listo para reservar?</p>
-          <p class="detail-sidebar-sub">Selecciona los pasajeros y confirma tu reserva.</p>
-
+          <p class="detail-sidebar-sub">Selecciona tu asiento para continuar.</p>
           <div style="margin:1rem 0;padding:1rem;background:rgba(0,0,0,0.04);border-radius:10px">
             <p style="font-size:0.82rem;color:var(--color-text-muted);margin:0 0 0.4rem">Aerolínea</p>
-            <p style="font-weight:600;margin:0">{{ d.nombreComercial ?? d.razonSocial }}</p>
+            <p style="font-weight:600;margin:0">{{ d.nombreComercial }}</p>
             @if (mockVuelo(); as v) {
               <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--color-border)">
                 <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem">
@@ -266,16 +176,14 @@
               </div>
             }
           </div>
-
           <button class="btn-primary" style="width:100%" (click)="irAlCheckout()">
-            <span class="material-icons">arrow_forward</span>
-            Continuar con reserva
+            <span class="material-icons">event_seat</span>
+            Seleccionar asiento
           </button>
           <button class="btn-ghost" style="width:100%;margin-top:0.5rem;justify-content:center" (click)="volver()">
             Cambiar selección
           </button>
         </aside>
-
       </div>
     }
   </div>
