@@ -1,38 +1,90 @@
 <app-navbar></app-navbar>
 
 <div class="auth-container">
+  <div class="auth-image"></div>
   <div class="auth-content">
     <div class="auth-form-wrapper">
-      <button class="close-btn" routerLink="/">&times;</button>
-      <h2 class="auth-title">Login</h2>
+      <h1 class="auth-title">Iniciar Sesión</h1>
 
-      <form class="auth-form">
+      <!-- Success -->
+      <div *ngIf="loginStatus === 'success'" class="feedback-msg success">
+        ✓ ¡Bienvenido! Redirigiendo...
+      </div>
+
+      <!-- General backend error -->
+      <div *ngIf="generalError" class="feedback-msg error">
+        {{ generalError }}
+      </div>
+
+      <form (ngSubmit)="onLogin()" #loginForm="ngForm" *ngIf="loginStatus !== 'success'">
         <div class="form-group">
-          <label>Usuario</label>
-          <div class="input-wrapper">
-            <span class="material-icons">person_outline</span>
-            <input type="text" placeholder="Tu nombre de usuario" required>
+          <label for="username">Usuario</label>
+          <div class="input-wrapper" [class.input-error]="usernameError">
+            <span class="material-icons">person</span>
+            <input
+              id="username"
+              type="text"
+              name="username"
+              placeholder="Tu nombre de usuario"
+              [(ngModel)]="loginData.username"
+              (blur)="touch('username')"
+            />
           </div>
+          <small *ngIf="usernameError" class="field-error">{{ usernameError }}</small>
         </div>
 
         <div class="form-group">
-          <label>Contraseña</label>
-          <div class="input-wrapper">
-            <span class="material-icons">visibility</span>
-            <input type="password" placeholder="********" required>
+          <label for="password">Contraseña</label>
+          <div class="input-wrapper" [class.input-error]="passwordError">
+            <span class="material-icons">lock</span>
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              name="password"
+              placeholder="Tu contraseña"
+              [(ngModel)]="loginData.password"
+              (blur)="touch('password')"
+            />
+            <button type="button" class="toggle-pwd" (click)="showPassword = !showPassword" tabindex="-1"
+              [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+              <span class="material-icons">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+            </button>
           </div>
+          <small *ngIf="passwordError" class="field-error">{{ passwordError }}</small>
         </div>
 
         <div class="forgot-password">
           <a href="#">¿Olvidaste tu contraseña?</a>
         </div>
 
-        <button type="submit" class="submit-btn">Inciar Sesión</button>
+        <button type="submit" class="submit-btn" [disabled]="loginStatus === 'loading'">
+          {{ loginStatus === 'loading' ? 'Ingresando...' : 'Ingresar' }}
+        </button>
       </form>
 
       <div class="auth-footer">
-        <p>¿No tienes una cuenta? <a routerLink="/signup">Regístrate aquí</a></p>
+        <span>¿No tienes cuenta? </span>
+        <a routerLink="/signup">Regístrate aquí</a>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ── TOAST POPUP ─────────────────────────────────────────── -->
+<div class="toast-overlay" *ngIf="toastVisible" (click)="dismissToast()">
+  <div class="toast-popup" [class.toast-error]="toastType === 'error'" [class.toast-success]="toastType === 'success'"
+    (click)="$event.stopPropagation()">
+    <div class="toast-icon">
+      <span class="material-icons">
+        {{ toastType === 'error' ? 'error_outline' : 'check_circle' }}
+      </span>
+    </div>
+    <div class="toast-body">
+      <p class="toast-title">{{ toastType === 'error' ? 'Error al ingresar' : '¡Éxito!' }}</p>
+      <p class="toast-msg">{{ toastMessage }}</p>
+    </div>
+    <button class="toast-close" (click)="dismissToast()">
+      <span class="material-icons">close</span>
+    </button>
   </div>
 </div>
