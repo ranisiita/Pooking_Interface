@@ -1,50 +1,364 @@
 <app-navbar></app-navbar>
 
 <div class="auth-container">
+  <div class="auth-image"></div>
   <div class="auth-content">
     <div class="auth-form-wrapper">
-      <button class="close-btn" routerLink="/">&times;</button>
-      <h2 class="auth-title">Sign Up</h2>
+      <h1 class="auth-title">Crear cuenta</h1>
 
-      <form class="auth-form">
+      <!-- ── STEPPER INDICATOR ─────────────────────────── -->
+      <div class="stepper-header">
+        <div class="step-item" [class.active]="currentStep >= 1" [class.done]="currentStep > 1">
+          <div class="step-circle">
+            <span class="material-icons" *ngIf="currentStep > 1">check</span>
+            <span *ngIf="currentStep <= 1">1</span>
+          </div>
+          <span class="step-label">Acceso</span>
+        </div>
+        <div class="step-line" [class.done]="currentStep > 1"></div>
+        <div class="step-item" [class.active]="currentStep >= 2" [class.done]="currentStep > 2">
+          <div class="step-circle">
+            <span class="material-icons" *ngIf="currentStep > 2">check</span>
+            <span *ngIf="currentStep <= 2">2</span>
+          </div>
+          <span class="step-label">Perfil</span>
+        </div>
+        <div class="step-line" [class.done]="currentStep > 2"></div>
+        <div class="step-item" [class.active]="currentStep >= 3">
+          <div class="step-circle">3</div>
+          <span class="step-label">Confirmar</span>
+        </div>
+      </div>
+
+      <!-- ── PASO 1: Datos de acceso ───────────────────── -->
+      <div *ngIf="currentStep === 1" class="step-panel" [formGroup]="step1Form">
+
         <div class="form-group">
-          <label>Usuario</label>
-          <div class="input-wrapper">
+          <label for="username">Usuario <span class="req">*</span></label>
+          <div class="input-wrapper" [class.input-error]="step1Form.get('username')?.hasError('usernameTaken') || getError(step1Form, 'username')">
             <span class="material-icons">person_outline</span>
-            <input type="text" placeholder="Tu nombre de usuario" required>
+            <input id="username" type="text" formControlName="username" placeholder="juan123" maxlength="50" />
+            
+            <!-- Indicadores de estado -->
+            <span *ngIf="step1Form.get('username')?.status === 'PENDING'" class="material-icons loading-icon">sync</span>
+            <span *ngIf="step1Form.get('username')?.status === 'VALID' && step1Form.get('username')?.value" class="material-icons success-icon">check_circle</span>
+            <span *ngIf="step1Form.get('username')?.hasError('usernameTaken')" class="material-icons error-icon">error</span>
           </div>
+          
+          <small *ngIf="step1Form.get('username')?.hasError('usernameTaken')" class="field-error">
+            Este usuario ya está registrado o en uso.
+          </small>
+          <small *ngIf="getError(step1Form, 'username') && !step1Form.get('username')?.hasError('usernameTaken')" class="field-error">
+            {{ getError(step1Form, 'username') }}
+          </small>
+          <small *ngIf="step1Form.get('username')?.status === 'VALID' && step1Form.get('username')?.value" class="field-success">
+            ¡Usuario disponible!
+          </small>
+          <small *ngIf="step1Form.get('username')?.status === 'PENDING'" class="field-info">
+            Verificando disponibilidad...
+          </small>
         </div>
 
         <div class="form-group">
-          <label>Correo electrónico</label>
-          <div class="input-wrapper">
+          <label for="correo">Correo electrónico <span class="req">*</span></label>
+          <div class="input-wrapper" [class.input-error]="getError(step1Form, 'correo')">
             <span class="material-icons">mail_outline</span>
-            <input type="email" placeholder="ejemplo@email.com" required>
+            <input id="correo" type="email" formControlName="correo" placeholder="ejemplo@correo.com" maxlength="120" />
           </div>
+          <small *ngIf="getError(step1Form, 'correo')" class="field-error">
+            {{ getError(step1Form, 'correo') }}
+          </small>
         </div>
 
         <div class="form-group">
-          <label>Contraseña</label>
-          <div class="input-wrapper">
+          <label for="password">Contraseña <span class="req">*</span></label>
+          <div class="input-wrapper" [class.input-error]="getError(step1Form, 'password')">
             <span class="material-icons">lock_outline</span>
-            <input type="password" placeholder="********" required>
+            <input id="password" [type]="showPassword ? 'text' : 'password'" formControlName="password"
+              placeholder="Mínimo 8 caracteres" />
+            <button type="button" class="toggle-pwd" (click)="showPassword = !showPassword" tabindex="-1"
+              [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+              <span class="material-icons">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+            </button>
           </div>
+
+          <!-- Barra de fortaleza -->
+          <div class="password-strength-bar" *ngIf="passwordValue">
+            <div class="strength-track">
+              <div class="strength-fill" [style.width.%]="passwordStrength.score * 25"
+                [style.background]="passwordStrength.color">
+              </div>
+            </div>
+            <span class="strength-label" [style.color]="passwordStrength.color">
+              {{ passwordStrength.label }}
+            </span>
+          </div>
+
+          <!-- Reglas visuales -->
+          <ul class="password-rules" *ngIf="step1Form.get('password')?.touched || passwordValue">
+            <li [class.rule-ok]="passwordRules.length" [class.rule-fail]="!passwordRules.length">
+              <span class="material-icons">{{ passwordRules.length ? 'check_circle' : 'cancel' }}</span>
+              Mínimo 8 caracteres
+            </li>
+            <li [class.rule-ok]="passwordRules.number" [class.rule-fail]="!passwordRules.number">
+              <span class="material-icons">{{ passwordRules.number ? 'check_circle' : 'cancel' }}</span>
+              Al menos un número
+            </li>
+            <li [class.rule-ok]="passwordRules.special" [class.rule-fail]="!passwordRules.special">
+              <span class="material-icons">{{ passwordRules.special ? 'check_circle' : 'cancel' }}</span>
+              Al menos un carácter especial (!@#$...)
+            </li>
+            <li [class.rule-ok]="passwordRules.uppercase" [class.rule-fail]="!passwordRules.uppercase">
+              <span class="material-icons">{{ passwordRules.uppercase ? 'check_circle' : 'cancel' }}</span>
+              Al menos una mayúscula
+            </li>
+          </ul>
+
+          <small *ngIf="getError(step1Form, 'password')" class="field-error">
+            {{ getError(step1Form, 'password') }}
+          </small>
         </div>
 
         <div class="form-group">
-          <label>Confirmar contraseña</label>
-          <div class="input-wrapper">
+          <label for="confirmPassword">Confirmar contraseña <span class="req">*</span></label>
+          <div class="input-wrapper" [class.input-error]="confirmPasswordError">
             <span class="material-icons">lock_outline</span>
-            <input type="password" placeholder="********" required>
+            <input id="confirmPassword" [type]="showConfirmPassword ? 'text' : 'password'"
+              formControlName="confirmPassword" placeholder="Repite tu contraseña" />
+            <button type="button" class="toggle-pwd" (click)="showConfirmPassword = !showConfirmPassword" tabindex="-1"
+              [attr.aria-label]="showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+              <span class="material-icons">{{ showConfirmPassword ? 'visibility_off' : 'visibility' }}</span>
+            </button>
+          </div>
+          <small *ngIf="confirmPasswordError" class="field-error">{{ confirmPasswordError }}</small>
+        </div>
+
+        <!-- Errores generales del backend no mapeados a un campo -->
+        <div *ngIf="generalError" class="feedback-msg error">{{ generalError }}</div>
+
+        <div class="step-actions">
+          <button type="button" class="submit-btn" (click)="nextStep()">
+            Siguiente <span class="material-icons">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── PASO 2: Datos personales ──────────────────── -->
+      <div *ngIf="currentStep === 2" class="step-panel" [formGroup]="step2Form">
+
+        <div class="form-group">
+          <label for="tipo_identificacion">Tipo de identificación <span class="req">*</span></label>
+          <div class="input-wrapper select-wrapper" [class.input-error]="getError(step2Form, 'tipo_identificacion')">
+            <span class="material-icons">article</span>
+            <select id="tipo_identificacion" formControlName="tipo_identificacion">
+              <option value="" disabled>Selecciona un tipo</option>
+              <option value="CI">Cédula de Identidad</option>
+              <option value="RUC">Registro Único de Contribuyentes</option>
+              <option value="PASS">Pasaporte</option>
+              <option value="EXT">Extranjero</option>
+            </select>
+          </div>
+          <small *ngIf="getError(step2Form, 'tipo_identificacion')" class="field-error">
+            {{ getError(step2Form, 'tipo_identificacion') }}
+          </small>
+        </div>
+
+        <div class="form-group" *ngIf="step2Form.get('tipo_identificacion')?.value">
+          <label for="numero_identificacion">Número de identificación <span class="req">*</span></label>
+          <div class="input-wrapper" [class.input-error]="getError(step2Form, 'numero_identificacion')">
+            <span class="material-icons">tag</span>
+            <input id="numero_identificacion" type="text" formControlName="numero_identificacion"
+              placeholder="Número único" />
+          </div>
+          <small *ngIf="getError(step2Form, 'numero_identificacion')" class="field-error">
+            {{ getError(step2Form, 'numero_identificacion') }}
+          </small>
+        </div>
+
+        <!-- Persona natural: CI / PASS / EXT -->
+        <ng-container *ngIf="isPersonaNatural">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="nombres">Nombres <span class="req">*</span></label>
+              <div class="input-wrapper" [class.input-error]="getError(step2Form, 'nombres')">
+                <span class="material-icons">person</span>
+                <input id="nombres" type="text" formControlName="nombres" placeholder="Tus nombres" />
+              </div>
+              <small *ngIf="getError(step2Form, 'nombres')" class="field-error">
+                {{ getError(step2Form, 'nombres') }}
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label for="apellidos">Apellidos <span class="req">*</span></label>
+              <div class="input-wrapper" [class.input-error]="getError(step2Form, 'apellidos')">
+                <span class="material-icons">person</span>
+                <input id="apellidos" type="text" formControlName="apellidos" placeholder="Tus apellidos" />
+              </div>
+              <small *ngIf="getError(step2Form, 'apellidos')" class="field-error">
+                {{ getError(step2Form, 'apellidos') }}
+              </small>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Empresa: RUC -->
+        <div class="form-group" *ngIf="isRUC">
+          <label for="razon_social">Razón social <span class="req">*</span></label>
+          <div class="input-wrapper" [class.input-error]="getError(step2Form, 'razon_social')">
+            <span class="material-icons">business</span>
+            <input id="razon_social" type="text" formControlName="razon_social"
+              placeholder="Nombre legal de la empresa" />
+          </div>
+          <small *ngIf="getError(step2Form, 'razon_social')" class="field-error">
+            {{ getError(step2Form, 'razon_social') }}
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="telefono">Teléfono <span class="opt">(opcional)</span></label>
+          <div class="input-wrapper phone-wrapper" [class.input-error]="getError(step2Form, 'telefono')">
+            <span class="material-icons">phone</span>
+            <div class="custom-prefix-select" (click)="togglePrefixDropdown($event)">
+              <div class="selected-prefix">
+                <span>{{ selectedPrefixFlag }} {{ step2Form.get('prefijo_telefono')?.value }}</span>
+                <span class="material-icons drop-icon">arrow_drop_down</span>
+              </div>
+              
+              <div class="prefix-dropdown-menu" *ngIf="isPrefixDropdownOpen">
+                <div class="prefix-option" *ngFor="let country of countryCodes" (click)="selectPrefix(country.code)">
+                  <span class="flag">{{ country.flag }}</span>
+                  <span class="code">{{ country.code }}</span>
+                </div>
+              </div>
+            </div>
+            <input id="telefono" type="tel" formControlName="telefono" placeholder="991234567" />
+          </div>
+          <small *ngIf="getError(step2Form, 'telefono')" class="field-error">
+            {{ getError(step2Form, 'telefono') }}
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="direccion">Dirección <span class="opt">(opcional)</span></label>
+          <div class="input-wrapper">
+            <span class="material-icons">location_on</span>
+            <input id="direccion" type="text" formControlName="direccion" placeholder="Tu dirección" />
           </div>
         </div>
 
-        <button type="submit" class="submit-btn" style="margin-top: 1rem;">Registrarse</button>
-      </form>
+        <!-- Errores generales del backend no mapeados a un campo -->
+        <div *ngIf="generalError" class="feedback-msg error">{{ generalError }}</div>
 
+        <div class="step-actions two-col">
+          <button type="button" class="back-btn" (click)="prevStep()">
+            <span class="material-icons">arrow_back</span> Atrás
+          </button>
+          <button type="button" class="submit-btn" (click)="nextStep()">
+            Siguiente <span class="material-icons">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── PASO 3: Confirmación ──────────────────────── -->
+      <div *ngIf="currentStep === 3" class="step-panel">
+
+        <!-- Success -->
+        <div *ngIf="signupStatus === 'success'" class="feedback-msg success">
+          ✓ ¡Cuenta creada exitosamente! Redirigiendo al login...
+        </div>
+
+        <!-- General backend error (non-field) -->
+        <div *ngIf="generalError" class="feedback-msg error">{{ generalError }}</div>
+
+        <!-- Summary card -->
+        <div *ngIf="signupStatus !== 'success'" class="summary-card">
+          <div class="summary-section">
+            <span class="summary-section-title">
+              <span class="material-icons">manage_accounts</span> Datos de acceso
+            </span>
+            <div class="summary-row">
+              <span class="summary-key">Usuario</span>
+              <span class="summary-val">{{ step1Form.value.username }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">Correo</span>
+              <span class="summary-val">{{ step1Form.value.correo }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">Contraseña</span>
+              <span class="summary-val">••••••••</span>
+            </div>
+          </div>
+
+          <div class="summary-section">
+            <span class="summary-section-title">
+              <span class="material-icons">badge</span> Perfil personal
+            </span>
+            <div class="summary-row">
+              <span class="summary-key">Tipo ID</span>
+              <span class="summary-val">{{ step2Form.value.tipo_identificacion }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">Nº Identificación</span>
+              <span class="summary-val">{{ step2Form.value.numero_identificacion }}</span>
+            </div>
+            <div class="summary-row" *ngIf="step2Form.value.nombres">
+              <span class="summary-key">Nombres</span>
+              <span class="summary-val">
+                {{ step2Form.value.nombres }} {{ step2Form.value.apellidos }}
+              </span>
+            </div>
+            <div class="summary-row" *ngIf="step2Form.value.razon_social">
+              <span class="summary-key">Razón social</span>
+              <span class="summary-val">{{ step2Form.value.razon_social }}</span>
+            </div>
+            <div class="summary-row" *ngIf="step2Form.value.telefono">
+              <span class="summary-key">Teléfono</span>
+              <span class="summary-val">{{ step2Form.value.prefijo_telefono }} {{ step2Form.value.telefono }}</span>
+            </div>
+            <div class="summary-row" *ngIf="step2Form.value.direccion">
+              <span class="summary-key">Dirección</span>
+              <span class="summary-val">{{ step2Form.value.direccion }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="signupStatus !== 'success'" class="step-actions two-col">
+          <button type="button" class="back-btn" (click)="prevStep()" [disabled]="signupStatus === 'loading'">
+            <span class="material-icons">arrow_back</span> Atrás
+          </button>
+          <button type="button" class="submit-btn" (click)="onSignup()" [disabled]="signupStatus === 'loading'">
+            <span class="material-icons">check_circle</span>
+            {{ signupStatus === 'loading' ? 'Registrando...' : 'Confirmar registro' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer -->
       <div class="auth-footer">
-        <p>¿Ya tienes una cuenta? <a routerLink="/login">Inicia sesión aquí</a></p>
+        <span>¿Ya tienes cuenta? </span>
+        <a routerLink="/login">Inicia sesión aquí</a>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ── TOAST POPUP ─────────────────────────────────────────── -->
+<div class="toast-overlay" *ngIf="toastVisible" (click)="dismissToast()">
+  <div class="toast-popup" [class.toast-error]="toastType === 'error'" [class.toast-success]="toastType === 'success'"
+    (click)="$event.stopPropagation()">
+    <div class="toast-icon">
+      <span class="material-icons">
+        {{ toastType === 'error' ? 'error_outline' : 'check_circle' }}
+      </span>
+    </div>
+    <div class="toast-body">
+      <p class="toast-title">{{ toastType === 'error' ? 'Error en el registro' : '¡Éxito!' }}</p>
+      <p class="toast-msg">{{ toastMessage }}</p>
+    </div>
+    <button class="toast-close" (click)="dismissToast()">
+      <span class="material-icons">close</span>
+    </button>
   </div>
 </div>

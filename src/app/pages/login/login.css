@@ -1,48 +1,41 @@
 .auth-container {
   display: flex;
   min-height: 100vh;
-  padding-top: 64px; /* To clear the fixed navbar */
-  
-  /* The background uses a gradient to fade into the form color on the right, and a semi-transparent filter matching the palette */
-  background-image: 
-    linear-gradient(to right, rgba(142, 90, 84, 0.2) 0%, rgba(251, 248, 234, 0.6) 60%, var(--color-bg) 100%),
-    url('../../../assets/images/fondo_login.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background-color: var(--color-bg);
+}
+
+.auth-image {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .auth-image {
+    display: block;
+    flex: 1.2;
+    background-image: url('../../../assets/images/fondo_login.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
 }
 
 .auth-content {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* Push form to the right */
-  padding: 2rem 5%; /* Responsive padding from the edge */
+  justify-content: center;
+  padding: calc(64px + 3rem) 5% 3rem 5%;
 }
 
 .auth-form-wrapper {
-  background: white;
-  padding: 3rem 4rem;
-  border-radius: 24px;
+  background: transparent;
+  padding: 0;
   width: 100%;
-  max-width: 500px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  max-width: 450px;
   position: relative;
 }
 
-.close-btn {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  font-size: 2rem;
-  color: var(--color-subtitulo);
-  cursor: pointer;
-  transition: color 0.3s;
-}
 
-.close-btn:hover {
-  color: var(--color-titulo);
-}
 
 .auth-title {
   text-align: center;
@@ -90,6 +83,40 @@
   color: var(--color-extra1);
   background: transparent;
 }
+
+.input-wrapper.input-error {
+  border-color: #c0392b;
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1);
+}
+
+.field-error {
+  color: #c0392b;
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+  display: block;
+}
+
+.feedback-msg {
+  text-align: center;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.feedback-msg.success {
+  background: rgba(39, 174, 96, 0.1);
+  color: #27ae60;
+  border: 1px solid rgba(39, 174, 96, 0.3);
+}
+
+.feedback-msg.error {
+  background: rgba(192, 57, 43, 0.08);
+  color: #c0392b;
+  border: 1px solid rgba(192, 57, 43, 0.2);
+}
+
 
 .forgot-password {
   text-align: right;
@@ -144,10 +171,7 @@
   .auth-container {
     flex-direction: column;
   }
-  .auth-left {
-    display: none;
-  }
-  .auth-form-wrapper {
+  .auth-content {
     padding: 2rem;
   }
 }
