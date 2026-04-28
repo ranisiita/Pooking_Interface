@@ -1,4 +1,4 @@
-import { Component, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -6,8 +6,8 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, AbstractControl } from '@a
 import { Subscription } from 'rxjs';
 
 import { NavbarComponent } from '../../components/navbar/navbar.component';
-import { usernameValidator, correoValidator, passwordValidator, usernameAvailableValidator } from '../../shared/validators/usuario.validators';
-import { tipoIdentificacionValidator, numeroIdentificacionValidator, nombresValidator, apellidosValidator, razonSocialValidator, telefonoValidator } from '../../shared/validators/cliente.validators';
+import { usernameValidator, correoValidator, passwordValidator, usernameAvailableValidator, correoAvailableValidator } from '../../shared/validators/usuario.validators';
+import { tipoIdentificacionValidator, numeroIdentificacionValidator, nombresValidator, apellidosValidator, razonSocialValidator, telefonoValidator, numeroIdentificacionAvailableValidator } from '../../shared/validators/cliente.validators';
 import { passwordMatchValidator } from '../../shared/validators/password-match.validator';
 import { COUNTRY_CODES } from '../../shared/data/country-codes';
 
@@ -47,12 +47,13 @@ export class Signup implements OnDestroy {
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {
     this.step1Form = this.fb.group(
       {
         username:        ['', [usernameValidator()], [usernameAvailableValidator(this.http)]],
-        correo:          ['', correoValidator()],
+        correo:          ['', [correoValidator()], [correoAvailableValidator(this.http)]],
         password:        ['', passwordValidator()],
         confirmPassword: [''],
       },
@@ -93,6 +94,11 @@ export class Signup implements OnDestroy {
 
     // Actualizar validator de número con las reglas del tipo seleccionado
     numero.setValidators(numeroIdentificacionValidator(tipo));
+    if (tipo) {
+      numero.setAsyncValidators(numeroIdentificacionAvailableValidator(this.http, tipo));
+    } else {
+      numero.clearAsyncValidators();
+    }
 
     nombres.setValidators(isPersonaNatural ? nombresValidator() : null);
     apellidos.setValidators(isPersonaNatural ? apellidosValidator() : null);
@@ -206,7 +212,11 @@ export class Signup implements OnDestroy {
     this.toastMessage = message;
     this.toastType    = type;
     this.toastVisible = true;
-    this.toastTimer   = setTimeout(() => (this.toastVisible = false), 5000);
+    this.cdr.detectChanges(); // <-- Forzar actualización de pantalla
+    this.toastTimer   = setTimeout(() => {
+      this.toastVisible = false;
+      this.cdr.detectChanges();
+    }, 5000);
   }
 
   dismissToast(): void {
@@ -224,96 +234,84 @@ export class Signup implements OnDestroy {
 
     const baseUrl = 'https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1';
 
-    // Payload para crear la cuenta de usuario
-    const userPayload = {
-      username:   s1.username,
-      correo:     s1.correo,
-      password:   s1.password,
-      nombreRol:  'CLIENTE',
-      creadoPorUsuario: "admin" // Según Swagger
+    // Un solo payload — el backend crea usuario Y cliente internamente
+    const payload = {
+      username:              s1.username,
+      correo:                s1.correo,
+      password:              s1.password,
+      nombreRol:             'CLIENTE',
+      // Datos de cliente — planos, no anidados
+      tipoIdentificacion:    s2.tipo_identificacion,
+      numeroIdentificacion:  s2.numero_identificacion,
+      nombres:               s2.nombres      || "",
+      apellidos:             s2.apellidos    || "",
+      razonSocial:           s2.razon_social || "",
+      telefono:              s2.telefono ? `${s2.prefijo_telefono}${s2.telefono}` : "",
+      direccion:             s2.direccion    || "",
     };
 
-    // 1. Crear el usuario
-    this.http.post(`${baseUrl}/auth/registro`, userPayload).subscribe({
-      next: (userRes: any) => {
-        // Extraemos el ID del usuario recién creado. Ajusta esta propiedad según cómo responde tu backend
-        // (por ejemplo, userRes.data.id, userRes.id, userRes.usuarioId)
-        const usuarioId = userRes?.data?.id || userRes?.id || userRes?.idUsuario || userRes?.usuarioId;
-
-        const clientePayload = {
-          idUsuario:            usuarioId, // Según Swagger es idUsuario
-          nombres:              s2.nombres      || "",
-          apellidos:            s2.apellidos    || "",
-          razonSocial:          s2.razon_social || "",
-          tipoIdentificacion:   s2.tipo_identificacion,
-          numeroIdentificacion: s2.numero_identificacion,
-          correo:               s1.correo, // REQUERIDO: Debes pasarlo desde el step1
-          telefono:             s2.telefono ? `${s2.prefijo_telefono}${s2.telefono}` : "",
-          direccion:            s2.direccion    || "",
-          creadoPorUsuario:     "admin", // Según tu captura de éxito, el backend registró "admin"
-          modificacionIp:       "",
-          servicioOrigen:       "Angular_Web"
-        };
-
-        // 2. Crear el cliente
-        this.http.post(`${baseUrl}/clientes`, clientePayload).subscribe({
-          next: () => {
-            this.signupStatus = 'success';
-            this.showToast('¡Cuenta y perfil creados exitosamente!', 'success');
-            setTimeout(() => this.router.navigate(['/login']), 2500);
-          },
-          error: (clientErr) => {
-            this.signupStatus = 'error';
-            console.error('[Signup] Error al crear cliente:', clientErr);
-            
-            const body = clientErr?.error;
-            let specificError = '';
-
-            // Si el backend (ASP.NET) devuelve los errores en un objeto 'errors': { "Cedula": ["Ya existe"] }
-            if (body?.errors && typeof body.errors === 'object') {
-              specificError = Object.values(body.errors).flat().join(' ');
-            }
-
-            const mensajeApi = specificError 
-              || body?.message 
-              || body?.title 
-              || 'Error al guardar el perfil del cliente.';
-              
-            this.generalError = 'Hubo un error al guardar tu perfil: ' + mensajeApi;
-            this.showToast(this.generalError);
-          }
-        });
+    // Una sola llamada — el backend resuelve todo
+    this.http.post(`${baseUrl}/auth/registro`, payload).subscribe({
+      next: () => {
+        this.signupStatus = 'success';
+        this.showToast('¡Cuenta y perfil creados exitosamente!', 'success');
+        setTimeout(() => this.router.navigate(['/login']), 2500);
       },
       error: (err) => {
         this.signupStatus = 'error';
-        const body = err?.error;
         
-        console.log('[Signup] HTTP status:', err.status);
-        console.log('[Signup] err.error (body):', body);
+        let body = err?.error;
+        if (typeof body === 'string') {
+          try { body = JSON.parse(body); } catch (e) { /* ignore */ }
+        }
+
+        console.log('🚨 [Signup] HTTP status:', err.status);
+        console.log('🚨 [Signup] err.error (body):', body);
 
         let messages: string[] = [];
         
-        // Extraer los mensajes de error reales, ya sea que vengan como Array o como Objeto
         if (Array.isArray(body?.errors)) {
           messages = body.errors;
         } else if (body?.errors && typeof body.errors === 'object') {
-          // Convierte { "Email": ["Ya registrado"], "Password": ["Débil"] } a ["Ya registrado", "Débil"]
           messages = Object.values(body.errors).flat() as string[];
         }
 
-        const mensajeApi = body?.message 
+        // Extraer mensaje general y forzar a string
+        let rawMessage = body?.message 
           ?? body?.title 
-          ?? 'Error al registrar el usuario. Inténtalo de nuevo.';
+          ?? body?.detail 
+          ?? (typeof body === 'string' ? body : null) 
+          ?? `Error ${err.status}: Ocurrió un error al registrarte.`;
+          
+        let finalMessage = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
 
         if (messages.length > 0) {
-          // Une todos los errores si hay varios, para mostrarlos en el popup
           const errorMsg = messages.join(' • ');
           this.generalError = errorMsg;
+          
+          // 1. Mostrar toast INMEDIATAMENTE
           this.showToast(errorMsg); 
-          this.mapBackendErrors(messages); // También los marca en rojo en los campos de texto
+          
+          // 2. Mapear con seguridad
+          try {
+            this.mapBackendErrors(messages);
+          } catch (e) {
+            console.error('Error en mapBackendErrors:', e);
+            this.currentStep = 1;
+          }
         } else {
-          this.generalError = mensajeApi;
-          this.showToast(mensajeApi);
+          this.generalError = finalMessage;
+          
+          // 1. Mostrar toast INMEDIATAMENTE
+          this.showToast(finalMessage);
+          
+          // 2. Mapear con seguridad
+          try {
+            this.mapBackendErrors([finalMessage]);
+          } catch (e) {
+            console.error('Error en mapBackendErrors:', e);
+            this.currentStep = 1;
+          }
         }
       },
     });
@@ -365,5 +363,7 @@ export class Signup implements OnDestroy {
 
     // Mensajes no mapeados → bloque general visible en el template
     this.generalError = unmapped.join(' • ');
+    
+    this.cdr.detectChanges(); // Forzar actualización de Angular
   }
 }

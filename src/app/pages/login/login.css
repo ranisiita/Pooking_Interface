@@ -175,3 +175,121 @@
     padding: 2rem;
   }
 }
+
+/* ── Password toggle button ────────────────────────── */
+.toggle-pwd {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-subtitulo);
+  padding: 0 0 0 0.5rem;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+.toggle-pwd:hover {
+  color: var(--color-titulo);
+}
+
+.toggle-pwd .material-icons {
+  font-size: 1.2rem;
+}
+
+/* ── Toast popup ───────────────────────────────────── */
+.toast-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: toastFadeIn 0.25s ease both;
+  backdrop-filter: blur(3px);
+}
+
+@keyframes toastFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.toast-popup {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: toastSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  border-left: 5px solid transparent;
+  position: relative;
+}
+
+@keyframes toastSlideUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.toast-error {
+  border-left-color: #c0392b;
+}
+
+.toast-success {
+  border-left-color: #27ae60;
+}
+
+.toast-icon .material-icons {
+  font-size: 2rem;
+  margin-top: 0.1rem;
+}
+
+.toast-error .toast-icon .material-icons {
+  color: #c0392b;
+}
+
+.toast-success .toast-icon .material-icons {
+  color: #27ae60;
+}
+
+.toast-body {
+  flex: 1;
+}
+
+.toast-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-extra1);
+  margin: 0 0 0.3rem;
+}
+
+.toast-msg {
+  font-size: 0.9rem;
+  color: var(--color-subtitulo);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-subtitulo);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  color: var(--color-titulo);
+}
+
+.toast-close .material-icons {
+  font-size: 1.1rem;
+}

@@ -11,10 +11,6 @@
         ✓ ¡Bienvenido! Redirigiendo...
       </div>
 
-      <!-- General backend error -->
-      <div *ngIf="generalError" class="feedback-msg error">
-        {{ generalError }}
-      </div>
 
       <form (ngSubmit)="onLogin()" #loginForm="ngForm" *ngIf="loginStatus !== 'success'">
         <div class="form-group">

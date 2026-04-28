@@ -69,6 +69,41 @@ export function correoValidator(): ValidatorFn {
   };
 }
 
+export function correoAvailableValidator(http: HttpClient): AsyncValidatorFn {
+  return (control: AbstractControl): Observable<ValidationErrors | null> => {
+    if (!control.value || control.value.trim() === '' || !control.value.includes('@')) {
+      return of(null);
+    }
+    
+    return timer(500).pipe(
+      switchMap(() => {
+        const url = `https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/clientes/disponibilidad/correo/${control.value}`;
+        
+        return http.get<any>(url).pipe(
+          map(res => {
+            let isAvailable = true;
+            if (typeof res === 'boolean') {
+              isAvailable = res;
+            } else if (res?.data && typeof res.data.disponible === 'boolean') {
+              isAvailable = res.data.disponible;
+            } else if (res && typeof res.disponible === 'boolean') {
+              isAvailable = res.disponible;
+            } else if (res === false) {
+              isAvailable = false;
+            }
+
+            if (!isAvailable) {
+              return { correoTaken: 'Este correo ya está registrado.' };
+            }
+            return null;
+          }),
+          catchError(() => of(null))
+        );
+      })
+    );
+  };
+}
+
 export function passwordValidator(): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     const p: string = control.value ?? '';
