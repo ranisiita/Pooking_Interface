@@ -1,4 +1,7 @@
-import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+import { AbstractControl, AsyncValidatorFn, ValidationErrors, ValidatorFn } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { Observable, of, timer } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 
 export function tipoIdentificacionValidator(): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -33,6 +36,51 @@ export function numeroIdentificacionValidator(tipo = ''): ValidatorFn {
     }
 
     return null;
+  };
+}
+
+export function numeroIdentificacionAvailableValidator(http: HttpClient, tipo: string): AsyncValidatorFn {
+  return (control: AbstractControl): Observable<ValidationErrors | null> => {
+    const v: string = (control.value ?? '').trim();
+    if (!v || !tipo) {
+      return of(null);
+    }
+
+    let urlSegment = '';
+    switch (tipo) {
+      case 'CI':   urlSegment = 'ci'; break;
+      case 'RUC':  urlSegment = 'ruc'; break;
+      case 'PASS': urlSegment = 'pasaporte'; break;
+      case 'EXT':  urlSegment = 'extranjero'; break;
+      default:     return of(null);
+    }
+
+    return timer(500).pipe(
+      switchMap(() => {
+        const url = `https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/clientes/disponibilidad/${urlSegment}/${v}`;
+        
+        return http.get<any>(url).pipe(
+          map(res => {
+            let isAvailable = true;
+            if (typeof res === 'boolean') {
+              isAvailable = res;
+            } else if (res?.data && typeof res.data.disponible === 'boolean') {
+              isAvailable = res.data.disponible;
+            } else if (res && typeof res.disponible === 'boolean') {
+              isAvailable = res.disponible;
+            } else if (res === false) {
+              isAvailable = false;
+            }
+
+            if (!isAvailable) {
+              return { identificacionTaken: 'Este número de identificación ya está registrado.' };
+            }
+            return null;
+          }),
+          catchError(() => of(null))
+        );
+      })
+    );
   };
 }
 

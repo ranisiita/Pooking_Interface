@@ -61,12 +61,26 @@
 
         <div class="form-group">
           <label for="correo">Correo electrónico <span class="req">*</span></label>
-          <div class="input-wrapper" [class.input-error]="getError(step1Form, 'correo')">
+          <div class="input-wrapper" [class.input-error]="step1Form.get('correo')?.hasError('correoTaken') || getError(step1Form, 'correo')">
             <span class="material-icons">mail_outline</span>
             <input id="correo" type="email" formControlName="correo" placeholder="ejemplo@correo.com" maxlength="120" />
+            
+            <!-- Indicadores de estado -->
+            <span *ngIf="step1Form.get('correo')?.status === 'PENDING'" class="material-icons loading-icon">sync</span>
+            <span *ngIf="step1Form.get('correo')?.status === 'VALID' && step1Form.get('correo')?.value" class="material-icons success-icon">check_circle</span>
+            <span *ngIf="step1Form.get('correo')?.hasError('correoTaken')" class="material-icons error-icon">error</span>
           </div>
-          <small *ngIf="getError(step1Form, 'correo')" class="field-error">
+          <small *ngIf="step1Form.get('correo')?.hasError('correoTaken')" class="field-error">
+            Este correo ya está registrado.
+          </small>
+          <small *ngIf="getError(step1Form, 'correo') && !step1Form.get('correo')?.hasError('correoTaken')" class="field-error">
             {{ getError(step1Form, 'correo') }}
+          </small>
+          <small *ngIf="step1Form.get('correo')?.status === 'VALID' && step1Form.get('correo')?.value" class="field-success">
+            ¡Correo disponible!
+          </small>
+          <small *ngIf="step1Form.get('correo')?.status === 'PENDING'" class="field-info">
+            Verificando disponibilidad...
           </small>
         </div>
 
@@ -165,13 +179,27 @@
 
         <div class="form-group" *ngIf="step2Form.get('tipo_identificacion')?.value">
           <label for="numero_identificacion">Número de identificación <span class="req">*</span></label>
-          <div class="input-wrapper" [class.input-error]="getError(step2Form, 'numero_identificacion')">
+          <div class="input-wrapper" [class.input-error]="step2Form.get('numero_identificacion')?.hasError('identificacionTaken') || getError(step2Form, 'numero_identificacion')">
             <span class="material-icons">tag</span>
             <input id="numero_identificacion" type="text" formControlName="numero_identificacion"
               placeholder="Número único" />
+              
+            <!-- Indicadores de estado -->
+            <span *ngIf="step2Form.get('numero_identificacion')?.status === 'PENDING'" class="material-icons loading-icon">sync</span>
+            <span *ngIf="step2Form.get('numero_identificacion')?.status === 'VALID' && step2Form.get('numero_identificacion')?.value" class="material-icons success-icon">check_circle</span>
+            <span *ngIf="step2Form.get('numero_identificacion')?.hasError('identificacionTaken')" class="material-icons error-icon">error</span>
           </div>
-          <small *ngIf="getError(step2Form, 'numero_identificacion')" class="field-error">
+          <small *ngIf="step2Form.get('numero_identificacion')?.hasError('identificacionTaken')" class="field-error">
+            Este número de identificación ya está registrado.
+          </small>
+          <small *ngIf="getError(step2Form, 'numero_identificacion') && !step2Form.get('numero_identificacion')?.hasError('identificacionTaken')" class="field-error">
             {{ getError(step2Form, 'numero_identificacion') }}
+          </small>
+          <small *ngIf="step2Form.get('numero_identificacion')?.status === 'VALID' && step2Form.get('numero_identificacion')?.value" class="field-success">
+            ¡Número disponible!
+          </small>
+          <small *ngIf="step2Form.get('numero_identificacion')?.status === 'PENDING'" class="field-info">
+            Verificando disponibilidad...
           </small>
         </div>
 

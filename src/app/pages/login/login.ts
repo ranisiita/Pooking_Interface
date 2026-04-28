@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -54,7 +54,11 @@ export class Login {
     this.toastMessage = message;
     this.toastType    = type;
     this.toastVisible = true;
-    this.toastTimer   = setTimeout(() => (this.toastVisible = false), 5000);
+    this.cdr.detectChanges(); // <-- Forzar actualización de pantalla
+    this.toastTimer   = setTimeout(() => {
+      this.toastVisible = false;
+      this.cdr.detectChanges();
+    }, 5000);
   }
 
   dismissToast(): void {
@@ -62,7 +66,12 @@ export class Login {
     if (this.toastTimer) clearTimeout(this.toastTimer);
   }
 
-  constructor(private http: HttpClient, private router: Router) { }
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    private zone: NgZone
+  ) { }
 
   onLogin() {
     // Touch all fields to show any pending errors
@@ -79,22 +88,54 @@ export class Login {
 
     this.http.post(apiUrl, this.loginData).subscribe({
       next: (response: any) => {
-        console.log('Login successful', response);
-        this.loginStatus = 'success';
-        setTimeout(() => this.router.navigate(['/']), 2000);
+        this.zone.run(() => {
+          console.log('Login successful', response);
+          this.loginStatus = 'success';
+          setTimeout(() => this.router.navigate(['/']), 2000);
+        });
       },
       error: (err) => {
-        this.loginStatus = 'error';
-        const body = err?.error;
-        if (body?.errors && typeof body.errors === 'object') {
-          this.backendErrors = body.errors;
-          const msgs = Object.values(body.errors).flat() as string[];
-          if (msgs.length > 0) this.showToast(msgs.join(' • '));
-        } else {
-          this.generalError =
-            body?.message || 'Credenciales inválidas. Por favor intenta de nuevo.';
-          this.showToast(this.generalError);
-        }
+        this.zone.run(() => {
+          this.loginStatus = 'error';
+          
+          let body = err?.error;
+          if (typeof body === 'string') {
+            try { body = JSON.parse(body); } catch (e) { /* ignore */ }
+          }
+
+          console.log('🚨 [Login] HTTP status:', err.status);
+          console.log('🚨 [Login] err.error (body):', body);
+
+          let messages: string[] = [];
+          if (Array.isArray(body?.errors)) {
+            messages = body.errors;
+          } else if (body?.errors && typeof body.errors === 'object') {
+            this.backendErrors = body.errors; // Guardar para mapeo de campos
+            messages = Object.values(body.errors).flat() as string[];
+          }
+
+          // Extraer mensaje general y forzar a string
+          let rawMessage = body?.message 
+            ?? body?.title 
+            ?? body?.detail 
+            ?? (typeof body === 'string' ? body : null) 
+            ?? `Error ${err.status}: Credenciales inválidas. Por favor intenta de nuevo.`;
+            
+          let finalMessage = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
+
+          if (messages.length > 0) {
+            const errorMsg = messages.join(' • ');
+            this.generalError = errorMsg;
+            
+            // Mostrar toast inmediatamente
+            this.showToast(errorMsg); 
+          } else {
+            this.generalError = finalMessage;
+            
+            // Mostrar toast inmediatamente
+            this.showToast(finalMessage);
+          }
+        });
       },
     });
   }
