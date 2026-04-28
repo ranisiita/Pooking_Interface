@@ -3,11 +3,9 @@ import { HomeComponent } from './pages/home/home.component';
 import { SearchComponent } from './pages/search/search.component';
 import { Login } from './pages/login/login';
 import { Signup } from './pages/signup/signup';
-<<<<<<< Updated upstream
 import { ProfileComponent } from './pages/profile/profile.component';
-=======
 import { authGuard } from './core/auth/auth.guard';
->>>>>>> Stashed changes
+
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -50,11 +48,7 @@ export const routes: Routes = [
   // Cuenta
   { path: 'login', component: Login },
   { path: 'signup', component: Signup },
-<<<<<<< Updated upstream
-  { path: 'profile', component: ProfileComponent },
+  { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '' }
-=======
 
-  { path: '**', redirectTo: '' },
->>>>>>> Stashed changes
 ];
