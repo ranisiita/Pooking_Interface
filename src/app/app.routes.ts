@@ -5,7 +5,6 @@ import { Login } from './pages/login/login';
 import { Signup } from './pages/signup/signup';
 import { ProfileComponent } from './pages/profile/profile.component';
 
-
 export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'buscar', component: SearchComponent },
