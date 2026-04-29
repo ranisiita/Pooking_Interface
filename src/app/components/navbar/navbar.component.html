@@ -16,9 +16,22 @@
 
       <!-- Dropdown for user icon -->
       <div class="user-dropdown" *ngIf="item.id === 'user' && showUserDropdown">
-        <a routerLink="/login" class="dropdown-item">
-          <span class="material-icons">login</span> Login
-        </a>
+        <ng-container *ngIf="!isLoggedIn">
+          <a routerLink="/login" class="dropdown-item" (click)="showUserDropdown = false">
+            <span class="material-icons">login</span> Login
+          </a>
+          <a routerLink="/signup" class="dropdown-item" (click)="showUserDropdown = false">
+            <span class="material-icons">person_add</span> Registrarse
+          </a>
+        </ng-container>
+        <ng-container *ngIf="isLoggedIn">
+          <a routerLink="/profile" class="dropdown-item" (click)="showUserDropdown = false">
+            <span class="material-icons">person</span> Mi Perfil
+          </a>
+          <a (click)="logout()" class="dropdown-item" style="cursor: pointer;">
+            <span class="material-icons">logout</span> Cerrar Sesión
+          </a>
+        </ng-container>
       </div>
     </div>
   </div>

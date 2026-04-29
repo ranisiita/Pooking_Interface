@@ -91,6 +91,18 @@ export class Login {
       next: (response: any) => {
         this.zone.run(() => {
           console.log('Login successful', response);
+          
+          const token = response?.data?.token || response?.token;
+          const guid = response?.data?.usuarioGuid || response?.usuarioGuid || response?.data?.guid || response?.guid;
+          
+          if (token && guid) {
+            localStorage.setItem('token', token);
+            localStorage.setItem('usuarioGuid', guid);
+            console.log('Saved to localStorage:', { token, guid });
+          } else {
+            console.warn('Token or GUID missing in response', response);
+          }
+          
           this.loginStatus = 'success';
           setTimeout(() => this.router.navigate(['/']), 2000);
         });
