@@ -23,30 +23,46 @@ export class AdminComponent implements OnInit {
   isLoadingUsuarios = false;
   errorUsuarios = '';
 
+  clientes: any[] = [];
+  isLoadingClientes = false;
+  errorClientes = '';
+
+  servicios: any[] = [];
+  isLoadingServicios = false;
+  errorServicios = '';
+
+  facturacion: any[] = [];
+  isLoadingFacturacion = false;
+  errorFacturacion = '';
+
   constructor(private http: HttpClient, private router: Router) {}
 
   ngOnInit() {
-    this.cargarUsuarios();
+    this.cargarDatosDashboard();
   }
 
-  cargarUsuarios() {
-    let token = null;
-    try {
-      token = localStorage.getItem('token');
-    } catch {}
+  cargarDatosDashboard() {
+    // Si necesitas cargar totales, aquí iría. Por defecto el dashboard usa mock.
+  }
 
+  getTokenHeaders() {
+    const token = localStorage.getItem('token');
     if (!token) {
       this.router.navigate(['/login']);
-      return;
+      return null;
     }
-
-    this.isLoadingUsuarios = true;
-    this.errorUsuarios = '';
-
-    const headers = new HttpHeaders({
+    return new HttpHeaders({
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     });
+  }
+
+  cargarUsuarios() {
+    const headers = this.getTokenHeaders();
+    if (!headers) return;
+
+    this.isLoadingUsuarios = true;
+    this.errorUsuarios = '';
 
     const body = {
       pageNumber: 1,
@@ -65,14 +81,87 @@ export class AdminComponent implements OnInit {
           this.isLoadingUsuarios = false;
           this.errorUsuarios = 'No se pudieron cargar los usuarios.';
           console.error('Error fetching users:', err);
-          if (err.status === 401) {
-            this.router.navigate(['/login']);
-          }
+          if (err.status === 401) this.router.navigate(['/login']);
+        }
+      });
+  }
+
+  cargarClientes() {
+    const headers = this.getTokenHeaders();
+    if (!headers) return;
+
+    this.isLoadingClientes = true;
+    this.errorClientes = '';
+    const body = { pageNumber: 1, pageSize: 50 };
+
+    this.http.post('https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/clientes/buscar', body, { headers })
+      .subscribe({
+        next: (response: any) => {
+          this.isLoadingClientes = false;
+          if (response?.data?.items) this.clientes = response.data.items;
+        },
+        error: (err) => {
+          this.isLoadingClientes = false;
+          this.errorClientes = 'No se pudieron cargar los clientes.';
+          if (err.status === 401) this.router.navigate(['/login']);
+        }
+      });
+  }
+
+  cargarServicios() {
+    const headers = this.getTokenHeaders();
+    if (!headers) return;
+
+    this.isLoadingServicios = true;
+    this.errorServicios = '';
+    const body = { pageNumber: 1, pageSize: 50 };
+
+    this.http.post('https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/servicios/buscar', body, { headers })
+      .subscribe({
+        next: (response: any) => {
+          this.isLoadingServicios = false;
+          if (response?.data?.items) this.servicios = response.data.items;
+        },
+        error: (err) => {
+          this.isLoadingServicios = false;
+          this.errorServicios = 'No se pudieron cargar los servicios.';
+          if (err.status === 401) this.router.navigate(['/login']);
+        }
+      });
+  }
+
+  cargarFacturacion() {
+    const headers = this.getTokenHeaders();
+    if (!headers) return;
+
+    this.isLoadingFacturacion = true;
+    this.errorFacturacion = '';
+    const body = { pageNumber: 1, pageSize: 50 };
+
+    this.http.post('https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/facturacion/buscar', body, { headers })
+      .subscribe({
+        next: (response: any) => {
+          this.isLoadingFacturacion = false;
+          if (response?.data?.items) this.facturacion = response.data.items;
+        },
+        error: (err) => {
+          this.isLoadingFacturacion = false;
+          this.errorFacturacion = 'No se pudo cargar la facturación.';
+          if (err.status === 401) this.router.navigate(['/login']);
         }
       });
   }
 
   setTab(tab: string) {
     this.activeTab = tab;
+    if (tab === 'usuarios' && this.usuarios.length === 0) {
+      this.cargarUsuarios();
+    } else if (tab === 'clientes' && this.clientes.length === 0) {
+      this.cargarClientes();
+    } else if (tab === 'servicios' && this.servicios.length === 0) {
+      this.cargarServicios();
+    } else if (tab === 'facturacion' && this.facturacion.length === 0) {
+      this.cargarFacturacion();
+    }
   }
 }
