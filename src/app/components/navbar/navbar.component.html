@@ -28,6 +28,9 @@
           <a routerLink="/profile" class="dropdown-item" (click)="showUserDropdown = false">
             <span class="material-icons">person</span> Mi Perfil
           </a>
+          <a *ngIf="isAdmin" routerLink="/admin" class="dropdown-item" (click)="showUserDropdown = false">
+            <span class="material-icons">dashboard</span> Dashboard
+          </a>
           <a (click)="logout()" class="dropdown-item" style="cursor: pointer;">
             <span class="material-icons">logout</span> Cerrar Sesión
           </a>

@@ -48,10 +48,22 @@ export class NavbarComponent {
     }
   }
 
+  get isAdmin(): boolean {
+    try {
+      const rolesStr = localStorage.getItem('roles');
+      if (!rolesStr) return false;
+      const roles = JSON.parse(rolesStr);
+      return Array.isArray(roles) && roles.includes('ADMINISTRADOR');
+    } catch {
+      return false;
+    }
+  }
+
   logout() {
     try {
       localStorage.removeItem('token');
       localStorage.removeItem('usuarioGuid');
+      localStorage.removeItem('roles');
     } catch {}
     this.showUserDropdown = false;
     this.router.navigate(['/']);

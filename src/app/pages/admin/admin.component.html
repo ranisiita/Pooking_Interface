@@ -1,0 +1,307 @@
+<div class="admin-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>Pooking Admin</h2>
+    </div>
+    <nav class="sidebar-nav">
+      <button [class.active]="activeTab === 'dashboard'" (click)="setTab('dashboard')">
+        <span class="material-icons">dashboard</span> Dashboard
+      </button>
+      <button [class.active]="activeTab === 'usuarios'" (click)="setTab('usuarios')">
+        <span class="material-icons">group</span> Usuarios
+      </button>
+      <button [class.active]="activeTab === 'clientes'" (click)="setTab('clientes')">
+        <span class="material-icons">person_add</span> Clientes
+      </button>
+      <button [class.active]="activeTab === 'servicios'" (click)="setTab('servicios')">
+        <span class="material-icons">cases</span> Servicios
+      </button>
+      <button [class.active]="activeTab === 'facturacion'" (click)="setTab('facturacion')">
+        <span class="material-icons">receipt_long</span> Facturación
+      </button>
+      <button [class.active]="activeTab === 'auditoria'" (click)="setTab('auditoria')">
+        <span class="material-icons">history</span> Auditoría
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button routerLink="/login">
+        <span class="material-icons">logout</span> Cerrar Sesión
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="topbar">
+      <div class="search-bar">
+        <span class="material-icons">search</span>
+        <input type="text" placeholder="Buscar usuarios, servicios, o clientes..." />
+      </div>
+      <div class="user-profile">
+        <span class="material-icons">notifications</span>
+        <div class="avatar">A</div>
+        <div class="user-info">
+          <span class="name">Admin</span>
+          <span class="role">Administrador</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="content-wrapper">
+      <!-- DASHBOARD TAB -->
+      <section *ngIf="activeTab === 'dashboard'" class="tab-content fade-in">
+        <div class="header-section">
+          <h1>Resumen General</h1>
+          <p>Bienvenido al panel de control de Pooking.</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card" *ngFor="let stat of stats">
+            <div class="stat-icon" [style.background-color]="stat.color + '20'" [style.color]="stat.color">
+              <span class="material-icons">{{ stat.icon }}</span>
+            </div>
+            <div class="stat-info">
+              <h3>{{ stat.value }}</h3>
+              <p>{{ stat.title }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="recent-activity-section">
+          <h2>Actividad Reciente</h2>
+          <div class="card glass-card mt-3">
+            <p class="empty-state"><span class="material-icons">pending_actions</span> Cargando datos de auditoría...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- USUARIOS TAB -->
+      <section *ngIf="activeTab === 'usuarios'" class="tab-content fade-in">
+        <div class="header-section flex-between">
+          <div>
+            <h1>Gestión de Usuarios</h1>
+            <p>Administra los usuarios del sistema y sus roles.</p>
+          </div>
+          <button class="btn-primary">
+            <span class="material-icons">add</span> Nuevo Usuario
+          </button>
+        </div>
+
+        <div class="card glass-card table-container">
+          <div *ngIf="isLoadingUsuarios" class="empty-state">
+            <span class="material-icons">sync</span> Cargando usuarios...
+          </div>
+          
+          <div *ngIf="errorUsuarios" class="empty-state" style="color: #f44336;">
+            <span class="material-icons">error</span> {{ errorUsuarios }}
+          </div>
+
+          <table class="modern-table" *ngIf="!isLoadingUsuarios && !errorUsuarios">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let user of usuarios">
+                <td>
+                  <div class="user-cell">
+                    <div class="avatar-small">{{ (user.username || 'U').charAt(0).toUpperCase() }}</div>
+                    <span>{{ user.username }}</span>
+                  </div>
+                </td>
+                <td>{{ user.correo }}</td>
+                <td>
+                  <span class="badge" [ngClass]="user.roles && user.roles.length > 0 ? user.roles[0].toLowerCase() : 'desconocido'">
+                    {{ user.roles && user.roles.length > 0 ? user.roles[0] : 'SIN ROL' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="status-indicator" [class.active]="user.activo">
+                    {{ user.activo ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="actions">
+                    <button class="btn-icon edit" title="Editar"><span class="material-icons">edit</span></button>
+                    <button class="btn-icon delete" title="Eliminar"><span class="material-icons">delete</span></button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="usuarios.length === 0">
+                <td colspan="5" class="text-center" style="text-align: center; padding: 2rem;">
+                  No se encontraron usuarios.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CLIENTES TAB -->
+      <section *ngIf="activeTab === 'clientes'" class="tab-content fade-in">
+        <div class="header-section flex-between">
+          <div>
+            <h1>Gestión de Clientes</h1>
+            <p>Administra la información de los clientes registrados.</p>
+          </div>
+          <button class="btn-primary">
+            <span class="material-icons">add</span> Nuevo Cliente
+          </button>
+        </div>
+
+        <div class="card glass-card table-container">
+          <div *ngIf="isLoadingClientes" class="empty-state">
+            <span class="material-icons">sync</span> Cargando clientes...
+          </div>
+          <div *ngIf="errorClientes" class="empty-state" style="color: #f44336;">
+            <span class="material-icons">error</span> {{ errorClientes }}
+          </div>
+
+          <table class="modern-table" *ngIf="!isLoadingClientes && !errorClientes">
+            <thead>
+              <tr>
+                <th>Nombres</th>
+                <th>Apellidos</th>
+                <th>Correo</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let cliente of clientes">
+                <td>{{ cliente.nombres || 'N/A' }}</td>
+                <td>{{ cliente.apellidos || 'N/A' }}</td>
+                <td>{{ cliente.correo || 'N/A' }}</td>
+                <td>
+                  <span class="status-indicator" [class.active]="cliente.activo">
+                    {{ cliente.activo !== false ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="clientes.length === 0">
+                <td colspan="4" class="text-center" style="text-align: center; padding: 2rem;">
+                  No se encontraron clientes.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SERVICIOS TAB -->
+      <section *ngIf="activeTab === 'servicios'" class="tab-content fade-in">
+        <div class="header-section flex-between">
+          <div>
+            <h1>Gestión de Servicios</h1>
+            <p>Administra los vuelos, autos y alojamientos ofrecidos.</p>
+          </div>
+          <button class="btn-primary">
+            <span class="material-icons">add</span> Nuevo Servicio
+          </button>
+        </div>
+
+        <div class="card glass-card table-container">
+          <div *ngIf="isLoadingServicios" class="empty-state">
+            <span class="material-icons">sync</span> Cargando servicios...
+          </div>
+          <div *ngIf="errorServicios" class="empty-state" style="color: #f44336;">
+            <span class="material-icons">error</span> {{ errorServicios }}
+          </div>
+
+          <table class="modern-table" *ngIf="!isLoadingServicios && !errorServicios">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Precio Base</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let servicio of servicios">
+                <td><strong>{{ servicio.nombre || 'N/A' }}</strong></td>
+                <td>{{ servicio.descripcion || 'Sin descripción' }}</td>
+                <td>{{ servicio.precioBase | currency:'USD' }}</td>
+                <td>
+                  <span class="status-indicator" [class.active]="servicio.activo !== false">
+                    {{ servicio.activo !== false ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="servicios.length === 0">
+                <td colspan="4" class="text-center" style="text-align: center; padding: 2rem;">
+                  No se encontraron servicios.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- FACTURACION TAB -->
+      <section *ngIf="activeTab === 'facturacion'" class="tab-content fade-in">
+        <div class="header-section flex-between">
+          <div>
+            <h1>Gestión de Facturación</h1>
+            <p>Revisa el estado de pagos y facturas generadas.</p>
+          </div>
+        </div>
+
+        <div class="card glass-card table-container">
+          <div *ngIf="isLoadingFacturacion" class="empty-state">
+            <span class="material-icons">sync</span> Cargando facturación...
+          </div>
+          <div *ngIf="errorFacturacion" class="empty-state" style="color: #f44336;">
+            <span class="material-icons">error</span> {{ errorFacturacion }}
+          </div>
+
+          <table class="modern-table" *ngIf="!isLoadingFacturacion && !errorFacturacion">
+            <thead>
+              <tr>
+                <th>Número</th>
+                <th>Monto</th>
+                <th>Fecha Emisión</th>
+                <th>Estado Pago</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let factura of facturacion">
+                <td>{{ factura.numeroFactura || factura.guid || 'N/A' }}</td>
+                <td>{{ factura.montoTotal | currency:'USD' }}</td>
+                <td>{{ factura.fechaEmisionUtc | date:'short' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="factura.estadoPago === 'PAGADO' ? 'cliente' : 'administrador'">
+                    {{ factura.estadoPago || 'PENDIENTE' }}
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="facturacion.length === 0">
+                <td colspan="4" class="text-center" style="text-align: center; padding: 2rem;">
+                  No se encontró información de facturación.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- OTHER TABS -->
+      <section *ngIf="activeTab === 'auditoria'" class="tab-content fade-in">
+        <div class="header-section">
+          <h1 style="text-transform: capitalize;">Gestión de {{ activeTab }}</h1>
+          <p>Módulo en construcción para administrar {{ activeTab }}.</p>
+        </div>
+        <div class="card glass-card center-content">
+          <span class="material-icons giant-icon">construction</span>
+          <h2>Módulo Próximamente</h2>
+          <p>Estamos trabajando en la integración con las APIs correspondientes.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
