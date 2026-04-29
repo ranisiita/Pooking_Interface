@@ -1,0 +1,19 @@
+<footer class="app-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <p class="brand-name">{{ brandName }}</p>
+      <p class="brand-copy">{{ copyrightText }}</p>
+    </div>
+
+    <div class="footer-links-grid">
+      <section class="footer-section" *ngFor="let section of sections">
+        <h3 class="section-title">{{ section.title }}</h3>
+        <ul class="section-list">
+          <li *ngFor="let link of section.links">
+            <span class="footer-link is-disabled">{{ link.label }}</span>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</footer>

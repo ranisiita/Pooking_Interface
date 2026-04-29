@@ -1,0 +1,104 @@
+@import '../shared/flight-ui-shared.css';
+
+.seat-page { padding-bottom: 4rem; }
+
+.seat-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 960px;
+  padding: 0 1.5rem;
+}
+
+@media (max-width: 768px) { .seat-layout { grid-template-columns: 1fr; } }
+
+.seat-main { padding: 1.5rem; }
+.seat-sidebar { padding: 1.5rem; position: sticky; top: 80px; }
+.sidebar-title {
+  font-family: var(--font-titulo);
+  font-size: 1.1rem;
+  color: var(--color-titulo);
+  margin-bottom: 1rem;
+}
+
+.clase-tabs { display: flex; border-bottom: 2px solid rgba(198,177,125,0.2); }
+
+.leyenda {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1rem 0;
+  align-items: center;
+}
+
+.leyenda-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--color-subtitulo);
+}
+
+.asiento {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px 8px 4px 4px;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.asiento.disponible-ej { background: rgba(72,160,90,0.15); color: #2d7a3a; }
+.asiento.ocupado-ej    { background: rgba(70,64,60,0.1);   color: var(--color-subtitulo); }
+.asiento.seleccionado-ej { background: var(--color-titulo); color: #fff; }
+
+.asiento.disponible  { background: rgba(72,160,90,0.15);  color: #2d7a3a;  border: 1px solid rgba(72,160,90,0.3); }
+.asiento.disponible:hover { background: rgba(72,160,90,0.3); transform: scale(1.1); }
+.asiento.ocupado     { background: rgba(70,64,60,0.1);    color: var(--color-subtitulo); cursor: not-allowed; }
+.asiento.seleccionado { background: var(--color-titulo);  color: #fff; border-color: var(--color-titulo); box-shadow: 0 4px 12px rgba(142,90,84,0.3); transform: scale(1.1); }
+
+.mapa-avion { display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem 0; }
+
+.fila-asientos {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.fila-numero {
+  width: 24px;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  color: var(--color-subtitulo);
+}
+
+.asientos-lado { display: flex; gap: 0.35rem; }
+.pasillo { width: 24px; }
+
+.seat-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.seat-info-item .material-icons { color: var(--color-extra2); font-size: 1.1rem; margin-top: 2px; }
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  font-family: var(--font-body);
+  color: var(--color-subtitulo);
+}

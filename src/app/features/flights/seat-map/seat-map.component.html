@@ -1,0 +1,134 @@
+<app-navbar></app-navbar>
+
+<div class="page-bg seat-page">
+  <div class="page-header">
+    <h1 class="page-title">Selecciona tu asiento</h1>
+    <p class="page-subtitle">Elige la clase y el asiento de tu preferencia</p>
+  </div>
+
+  <div class="seat-layout">
+    <div class="seat-main panel-glass">
+      <!-- Selector de clase -->
+      <div class="clase-tabs">
+        @for (c of clases; track c) {
+          <button class="tab-item" [class.active]="claseActiva() === c" (click)="claseActiva.set(c)">
+            {{ c === 'ECONOMICA' ? 'Económica' : c === 'EJECUTIVA' ? 'Ejecutiva' : 'Primera Clase' }}
+          </button>
+        }
+      </div>
+
+      @if (loading()) {
+        <div style="text-align:center;padding:3rem">
+          <div class="spinner" style="margin:auto"></div>
+        </div>
+      } @else if (filas().length === 0) {
+        <div class="empty-state">
+          <span class="material-icons" style="font-size:2rem;color:var(--color-extra2)">event_seat</span>
+          <p>No hay asientos disponibles en esta clase.</p>
+        </div>
+      } @else {
+        <div class="leyenda">
+          <div class="leyenda-item"><div class="asiento disponible-ej"></div><span>Disponible</span></div>
+          <div class="leyenda-item"><div class="asiento ocupado-ej"></div><span>Ocupado</span></div>
+          <div class="leyenda-item"><div class="asiento seleccionado-ej"></div><span>Seleccionado</span></div>
+        </div>
+
+        <div class="mapa-avion">
+          @for (fila of filas(); track fila[0]) {
+            <div class="fila-asientos">
+              <span class="fila-numero">{{ fila[0] }}</span>
+              <div class="asientos-lado">
+                @for (asiento of fila[1].slice(0, 3); track asiento.id_asiento) {
+                  <button
+                    class="asiento"
+                    [class.disponible]="asiento.disponible"
+                    [class.ocupado]="!asiento.disponible"
+                    [class.seleccionado]="asientoSeleccionado()?.id_asiento === asiento.id_asiento"
+                    [disabled]="!asiento.disponible"
+                    (click)="seleccionar(asiento)"
+                    [attr.aria-label]="'Asiento ' + asiento.numero_asiento + (asiento.disponible ? '' : ' ocupado')"
+                    [title]="asiento.numero_asiento + ' | ' + asiento.posicion + (asiento.precio_extra > 0 ? ' + $' + asiento.precio_extra : '')"
+                  >
+                    {{ asiento.numero_asiento }}
+                  </button>
+                }
+              </div>
+              <div class="pasillo"></div>
+              <div class="asientos-lado">
+                @for (asiento of fila[1].slice(3); track asiento.id_asiento) {
+                  <button
+                    class="asiento"
+                    [class.disponible]="asiento.disponible"
+                    [class.ocupado]="!asiento.disponible"
+                    [class.seleccionado]="asientoSeleccionado()?.id_asiento === asiento.id_asiento"
+                    [disabled]="!asiento.disponible"
+                    (click)="seleccionar(asiento)"
+                    [attr.aria-label]="'Asiento ' + asiento.numero_asiento"
+                    [title]="asiento.numero_asiento"
+                  >
+                    {{ asiento.numero_asiento }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Sidebar selección -->
+    <aside class="seat-sidebar panel-glass-light">
+      @if (asientoSeleccionado(); as a) {
+        <p class="sidebar-title">Asiento seleccionado</p>
+        <div class="seat-info-item">
+          <span class="material-icons">event_seat</span>
+          <div>
+            <p class="info-label">Número</p>
+            <p class="info-value">{{ a.numero_asiento }}</p>
+          </div>
+        </div>
+        <div class="seat-info-item">
+          <span class="material-icons">airline_seat_recline_normal</span>
+          <div>
+            <p class="info-label">Clase</p>
+            <p class="info-value">{{ a.clase }}</p>
+          </div>
+        </div>
+        @if (a.posicion) {
+          <div class="seat-info-item">
+            <span class="material-icons">airline_seat_flat</span>
+            <div>
+              <p class="info-label">Posición</p>
+              <p class="info-value">{{ a.posicion }}</p>
+            </div>
+          </div>
+        }
+        <div class="seat-info-item">
+          <span class="material-icons">attach_money</span>
+          <div>
+            <p class="info-label">Cargo extra</p>
+            <p class="info-value">${{ a.precio_extra | number:'1.2-2' }}</p>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <button class="btn-primary" style="width:100%" (click)="confirmar()">
+          <span class="material-icons">check</span> Confirmar asiento
+        </button>
+        <button class="btn-ghost" style="width:100%;justify-content:center;margin-top:0.5rem" (click)="asientoSeleccionado.set(null)">
+          Cancelar selección
+        </button>
+      } @else {
+        <div class="empty-state">
+          <span class="material-icons" style="font-size:2.5rem;color:var(--color-extra2)">touch_app</span>
+          <p>Haz clic en un asiento disponible para seleccionarlo.</p>
+        </div>
+      }
+      <div class="divider"></div>
+      <button class="btn-ghost" style="width:100%;justify-content:center" (click)="volver()">
+        <span class="material-icons">arrow_back</span> Volver
+      </button>
+    </aside>
+  </div>
+</div>
+
+<app-footer></app-footer>
