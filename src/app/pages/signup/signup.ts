@@ -6,6 +6,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, AbstractControl } from '@a
 import { Subscription } from 'rxjs';
 
 import { NavbarComponent } from '../../components/navbar/navbar.component';
+import { FooterComponent } from '../../components/navbar/footer.component';
 import { usernameValidator, correoValidator, passwordValidator, usernameAvailableValidator, correoAvailableValidator } from '../../shared/validators/usuario.validators';
 import { tipoIdentificacionValidator, numeroIdentificacionValidator, nombresValidator, apellidosValidator, razonSocialValidator, telefonoValidator, numeroIdentificacionAvailableValidator } from '../../shared/validators/cliente.validators';
 import { passwordMatchValidator } from '../../shared/validators/password-match.validator';
@@ -14,7 +15,7 @@ import { COUNTRY_CODES } from '../../shared/data/country-codes';
 @Component({
   selector: 'app-signup',
   standalone: true,
-  imports: [CommonModule, RouterModule, NavbarComponent, ReactiveFormsModule],
+  imports: [CommonModule, RouterModule, NavbarComponent, ReactiveFormsModule, FooterComponent],
   templateUrl: './signup.html',
   styleUrl: './signup.css',
 })

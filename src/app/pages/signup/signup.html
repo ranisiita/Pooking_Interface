@@ -372,6 +372,8 @@
   </div>
 </div>
 
+<app-footer></app-footer>
+
 <!-- ── TOAST POPUP ─────────────────────────────────────────── -->
 <div class="toast-overlay" *ngIf="toastVisible" (click)="dismissToast()">
   <div class="toast-popup" [class.toast-error]="toastType === 'error'" [class.toast-success]="toastType === 'success'"
