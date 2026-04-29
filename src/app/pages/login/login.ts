@@ -94,11 +94,13 @@ export class Login {
           
           const token = response?.data?.token || response?.token;
           const guid = response?.data?.usuarioGuid || response?.usuarioGuid || response?.data?.guid || response?.guid;
+          const roles = response?.data?.roles || response?.roles || [];
           
           if (token && guid) {
             localStorage.setItem('token', token);
             localStorage.setItem('usuarioGuid', guid);
-            console.log('Saved to localStorage:', { token, guid });
+            localStorage.setItem('roles', JSON.stringify(roles));
+            console.log('Saved to localStorage:', { token, guid, roles });
           } else {
             console.warn('Token or GUID missing in response', response);
           }

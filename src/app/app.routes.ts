@@ -4,9 +4,11 @@ import { SearchComponent } from './pages/search/search.component';
 import { Login } from './pages/login/login';
 import { Signup } from './pages/signup/signup';
 import { ProfileComponent } from './pages/profile/profile.component';
+import { AdminComponent } from './pages/admin/admin.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
+  { path: 'admin', component: AdminComponent },
   { path: 'buscar', component: SearchComponent },
 
   // Resultados de vuelos (integración real con servicios/guidTipo)
