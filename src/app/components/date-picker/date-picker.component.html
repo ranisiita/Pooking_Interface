@@ -1,0 +1,58 @@
+<div class="dp-wrapper" [class.dp-dark]="theme === 'dark'" [class.dp-error]="hasError">
+
+  <!-- ── TRIGGER ROW ─────────────────────────── -->
+  <div class="dp-trigger" (click)="toggleCalendar($event)" [class.dp-open]="isOpen">
+    <span *ngIf="theme === 'light'" class="material-icons dp-icon">calendar_today</span>
+    <span class="dp-value" [class.dp-placeholder]="!value">
+      {{ value ? displayValue : placeholder }}
+    </span>
+    <span class="material-icons dp-chevron" [class.rotated]="isOpen">expand_more</span>
+  </div>
+
+  <!-- ── FLOATING CALENDAR ───────────────────── -->
+  <div class="dp-calendar" *ngIf="isOpen" (click)="$event.stopPropagation()">
+
+    <!-- Header: Mes / Año y navegación -->
+    <div class="dp-cal-header">
+      <button
+        class="dp-nav-btn"
+        type="button"
+        (click)="prevMonth(); $event.stopPropagation()"
+        [disabled]="!canGoPrev()"
+        aria-label="Mes anterior"
+      >
+        <span class="material-icons">chevron_left</span>
+      </button>
+      <span class="dp-month-label">{{ monthNames[viewMonth] }} {{ viewYear }}</span>
+      <button
+        class="dp-nav-btn"
+        type="button"
+        (click)="nextMonth(); $event.stopPropagation()"
+        aria-label="Mes siguiente"
+      >
+        <span class="material-icons">chevron_right</span>
+      </button>
+    </div>
+
+    <!-- Nombres de días -->
+    <div class="dp-day-names">
+      <span *ngFor="let d of dayNames">{{ d }}</span>
+    </div>
+
+    <!-- Cuadrícula de días -->
+    <div class="dp-days-grid">
+      <button
+        *ngFor="let day of calendarDays"
+        type="button"
+        class="dp-day"
+        [class.dp-empty]="!day"
+        [class.dp-disabled]="day !== null && isDisabled(day)"
+        [class.dp-selected]="day !== null && isSelected(day)"
+        [class.dp-today]="day !== null && isToday(day)"
+        [disabled]="!day || isDisabled(day)"
+        (click)="selectDay(day, $event)"
+      >{{ day || '' }}</button>
+    </div>
+
+  </div>
+</div>

@@ -10,6 +10,13 @@ export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'admin', component: AdminComponent },
   { path: 'buscar', component: SearchComponent },
+  {
+    path: 'alojamiento/resultados',
+    loadComponent: () =>
+      import('./pages/lodging-results/lodging-results.component').then(
+        (m) => m.LodgingResultsComponent
+      ),
+  },
 
   // Resultados de vuelos (integración real con servicios/guidTipo)
   {
