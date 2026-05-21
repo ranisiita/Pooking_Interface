@@ -45,6 +45,15 @@ export const routes: Routes = [
       ),
   },
 
+  // Atracciones — listado (datos mock, sin API por ahora)
+  {
+    path: 'atracciones',
+    loadComponent: () =>
+      import('./features/atracciones/atracciones-list/atracciones-list.component').then(
+        (m) => m.AtraccionesListComponent,
+      ),
+  },
+
   // Cuenta
   { path: 'login', component: Login },
   { path: 'signup', component: Signup },

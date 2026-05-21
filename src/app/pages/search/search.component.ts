@@ -305,6 +305,14 @@ export class SearchComponent implements OnInit {
     });
   }
 
+  buscarAtracciones(): void {
+    const { destino, fecha } = this.atracciones;
+    const queryParams: { ciudad?: string; fecha?: string } = {};
+    if (destino.trim()) queryParams.ciudad = destino.trim();
+    if (fecha) queryParams.fecha = fecha;
+    this.router.navigate(['/atracciones'], { queryParams });
+  }
+
   onCityInput(field: 'origen' | 'destino', event: Event): void {
     const input = event.target as HTMLInputElement;
     const saneado = input.value.replace(/[^a-zA-Z\u00C0-\u017F\s]/g, '');
