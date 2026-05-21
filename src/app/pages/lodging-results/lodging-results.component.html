@@ -1,0 +1,423 @@
+<app-navbar></app-navbar>
+
+<!-- ══════════════════════════════════════
+     BANNER DE BÚSQUEDA ACTIVA (HERO BANNER)
+══════════════════════════════════════ -->
+<header class="search-hero-banner" role="banner">
+  <div class="search-hero-overlay"></div>
+  <div class="search-hero-container">
+    <h1 class="search-hero-title">Explora tu próximo destino</h1>
+
+    <!-- Barra de búsqueda activa — dos filas -->
+    <div class="active-search-bar" role="form" aria-label="Modificar búsqueda">
+
+      <!-- ── FILA 1: Destino + Fechas ───────────────────────────── -->
+      <div class="asb-row asb-row-main">
+
+        <!-- Destino -->
+        <div class="asb-field asb-field-destino">
+          <label class="seg-label" for="search-destino">Destino</label>
+          <div class="asb-input-wrap" [class.asb-error-border]="busquedaErrors.destino">
+            <span class="material-icons asb-ico">location_on</span>
+            <input
+              type="text"
+              id="search-destino"
+              [(ngModel)]="busqueda.destino"
+              placeholder="¿A dónde vas?"
+              class="seg-input"
+              (input)="busquedaErrors.destino = ''"
+              (blur)="validarBusqueda('destino')"
+            />
+          </div>
+          <small class="asb-field-error" *ngIf="busquedaErrors.destino">{{ busquedaErrors.destino }}</small>
+        </div>
+
+        <!-- Llegada -->
+        <div class="asb-field asb-field-date">
+          <label class="seg-label">Llegada</label>
+          <div class="asb-input-wrap" [class.asb-error-border]="busquedaErrors.llegada">
+            <app-date-picker
+              [value]="busqueda.llegada"
+              [min]="fechaHoy"
+              [hasError]="!!busquedaErrors.llegada"
+              placeholder="dd/mm/aaaa"
+              theme="dark"
+              (valueChange)="busqueda.llegada = $event; validarBusqueda('llegada')"
+            ></app-date-picker>
+          </div>
+          <small class="asb-field-error" *ngIf="busquedaErrors.llegada">{{ busquedaErrors.llegada }}</small>
+        </div>
+
+        <!-- Salida -->
+        <div class="asb-field asb-field-date">
+          <label class="seg-label">Salida</label>
+          <div class="asb-input-wrap" [class.asb-error-border]="busquedaErrors.salida">
+            <app-date-picker
+              [value]="busqueda.salida"
+              [min]="busqueda.llegada || fechaHoy"
+              [hasError]="!!busquedaErrors.salida"
+              placeholder="dd/mm/aaaa"
+              theme="dark"
+              (valueChange)="busqueda.salida = $event; validarBusqueda('salida')"
+            ></app-date-picker>
+          </div>
+          <small class="asb-field-error" *ngIf="busquedaErrors.salida">{{ busquedaErrors.salida }}</small>
+        </div>
+      </div>
+
+      <!-- ── FILA 2: Habitaciones + Adultos + Niños + Buscar ─────── -->
+      <div class="asb-row asb-row-guests">
+
+        <!-- Habitaciones -->
+        <div class="asb-field asb-field-num">
+          <label class="seg-label">Habitaciones</label>
+          <div class="asb-input-wrap" [class.asb-error-border]="busquedaErrors.habitaciones">
+            <span class="material-icons asb-ico">bed</span>
+            <input
+              type="number"
+              [(ngModel)]="busqueda.habitaciones"
+              min="1"
+              class="seg-input"
+              (input)="busquedaErrors.habitaciones = ''"
+              (blur)="validarBusqueda('habitaciones')"
+            />
+          </div>
+          <small class="asb-field-error" *ngIf="busquedaErrors.habitaciones">{{ busquedaErrors.habitaciones }}</small>
+        </div>
+
+        <!-- Adultos -->
+        <div class="asb-field asb-field-num">
+          <label class="seg-label">Adultos</label>
+          <div class="asb-input-wrap" [class.asb-error-border]="busquedaErrors.adultos">
+            <span class="material-icons asb-ico">person</span>
+            <input
+              type="number"
+              [(ngModel)]="busqueda.adultos"
+              min="1"
+              class="seg-input"
+              (input)="busquedaErrors.adultos = ''"
+              (blur)="validarBusqueda('adultos')"
+            />
+          </div>
+          <small class="asb-field-error" *ngIf="busquedaErrors.adultos">{{ busquedaErrors.adultos }}</small>
+        </div>
+
+        <!-- Niños -->
+        <div class="asb-field asb-field-num">
+          <label class="seg-label">Niños</label>
+          <div class="asb-input-wrap" [class.asb-error-border]="busquedaErrors.ninos">
+            <span class="material-icons asb-ico">child_care</span>
+            <input
+              type="number"
+              [(ngModel)]="busqueda.ninos"
+              min="0"
+              class="seg-input"
+              (input)="busquedaErrors.ninos = ''"
+              (blur)="validarBusqueda('ninos')"
+            />
+          </div>
+          <small class="asb-field-error" *ngIf="busquedaErrors.ninos">{{ busquedaErrors.ninos }}</small>
+        </div>
+
+        <!-- Botón Buscar -->
+        <div class="asb-btn-wrap">
+          <button class="btn-modify-search" (click)="buscarNuevaBusqueda()" aria-label="Buscar alojamientos">
+            <span class="material-icons">search</span>
+            <span>Buscar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+
+<!-- ══════════════════════════════════════
+     RESULTS BAR (CONTROLES Y FILTROS ACTIVOS)
+══════════════════════════════════════ -->
+<section class="results-bar" aria-label="Filtros y ordenación">
+  <div class="rb-left">
+    <div class="results-title">
+      <strong>{{ filteredLodgings.length }} alojamiento{{ filteredLodgings.length !== 1 ? 's' : '' }}</strong> disponible{{ filteredLodgings.length !== 1 ? 's' : '' }}
+      <span *ngIf="busqueda.destino"> en <em>{{ busqueda.destino }}</em></span>
+    </div>
+    
+    <!-- Filtros Activos (Tags) -->
+    <div class="active-filters" *ngIf="activeTags.length > 0">
+      <span class="af-tag" *ngFor="let tag of activeTags">
+        {{ tag.label }}
+        <button (click)="removerTag(tag)" [attr.aria-label]="'Quitar filtro ' + tag.label">✕</button>
+      </span>
+      <button class="af-clear" (click)="limpiarFiltros()">Limpiar filtros</button>
+    </div>
+  </div>
+  
+  <div class="rb-right">
+    <label class="sort-label" for="sort-sel">Ordenar por:</label>
+    <div class="sort-select-wrapper">
+      <select class="sort-sel" id="sort-sel" [value]="sortOption" (change)="onSortChange($event)" aria-label="Ordenar resultados de alojamientos">
+        <option value="recomendados">Recomendados</option>
+        <option value="valoracion">Mayor valoración</option>
+        <option value="precio_asc">Menor precio</option>
+        <option value="precio_desc">Mayor precio</option>
+        <option value="nombre">Nombre A–Z</option>
+      </select>
+      <span class="material-icons select-chevron">expand_more</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     BODY: SIDEBAR + RESULTS
+══════════════════════════════════════ -->
+<div class="page-body">
+
+  <!-- ── SIDEBAR DE FILTROS ── -->
+  <aside class="sidebar" aria-label="Filtros de búsqueda secundarios">
+    
+    <!-- SECCIÓN PRECIO -->
+    <section class="filter-section price-section">
+      <h3 class="section-title">Precio por noche</h3>
+      <div class="price-inputs">
+        <div class="price-input-field">
+          <span class="currency-prefix">$</span>
+          <input class="price-inp" type="number" [(ngModel)]="filtroPrecioMin" (change)="onPrecioMinChange()" min="0" max="300" aria-label="Precio mínimo en USD">
+        </div>
+        <div class="price-input-field">
+          <span class="currency-prefix">$</span>
+          <input class="price-inp" type="number" [(ngModel)]="filtroPrecioMax" (change)="onPrecioMaxChange()" min="0" max="300" aria-label="Precio máximo en USD">
+        </div>
+      </div>
+      <div class="dual-range-container">
+        <div class="range-track"></div>
+        <div class="range-fill" [style.left.%]="getMinPercent()" [style.width.%]="getMaxPercent() - getMinPercent()"></div>
+        <input type="range" min="0" max="300" [(ngModel)]="filtroPrecioMin" (input)="onMinPriceInput($event)" class="range-slider-dual" aria-label="Deslizador para precio mínimo">
+        <input type="range" min="0" max="300" [(ngModel)]="filtroPrecioMax" (input)="onMaxPriceInput($event)" class="range-slider-dual" aria-label="Deslizador para precio máximo">
+      </div>
+      <p class="price-hint">$0 USD — $300+ USD</p>
+    </section>
+
+    <!-- TIPO DE ALOJAMIENTO -->
+    <section class="filter-section filter-group">
+      <h3 class="section-title">Tipo de alojamiento</h3>
+      <label class="fcheck" *ngFor="let tipo of ['Hotel', 'Hostal', 'Motel', 'Apartamento']">
+        <input type="checkbox" [checked]="filtroTipos[tipo]" (change)="toggleTipo(tipo)" [attr.aria-label]="tipo">
+        <span class="fc-label">{{ tipo }}s</span>
+      </label>
+    </section>
+
+    <!-- INSTALACIONES / SERVICIOS -->
+    <section class="filter-section filter-group">
+      <h3 class="section-title">Instalaciones</h3>
+      <label class="fcheck" *ngFor="let serv of ['Piscina', 'Wifi', 'Spa', 'Gimnasio', 'Restaurante', 'Estacionamiento']">
+        <input type="checkbox" [checked]="filtroInstalaciones[serv]" (change)="toggleInstalacion(serv)" [attr.aria-label]="serv">
+        <span class="fc-label">{{ serv }}</span>
+      </label>
+    </section>
+
+    <!-- ESTRELLAS -->
+    <section class="filter-section filter-group">
+      <h3 class="section-title">Categoría</h3>
+      <label class="fcheck" *ngFor="let est of [5, 4, 3, 2, 1]">
+        <input type="checkbox" [checked]="filtroEstrellas[est]" (change)="toggleEstrella(est)" [attr.aria-label]="est + ' estrellas'">
+        <span class="fc-label">
+          <span class="stars-row">
+            <span class="st active" *ngFor="let s of getEstrellasArray(est)">★</span>
+            <span class="st" *ngFor="let s of getEstrellasVaciasArray(est)">★</span>
+          </span>
+        </span>
+      </label>
+    </section>
+
+    <!-- TIPO DE GRUPO -->
+    <section class="filter-section filter-group">
+      <h3 class="section-title">Políticas de Grupo</h3>
+      <label class="fcheck">
+        <input type="checkbox" [checked]="filtroNinos" (change)="toggleNinos()" aria-label="Acepta niños">
+        <span class="fc-label">Acepta niños</span>
+      </label>
+      <label class="fcheck">
+        <input type="checkbox" [checked]="filtroMascotas" (change)="toggleMascotas()" aria-label="Acepta mascotas">
+        <span class="fc-label">Acepta mascotas</span>
+      </label>
+    </section>
+
+    <!-- Filtros en tiempo real - sin botones al pie -->
+  </aside>
+
+  <!-- ── LISTADO DE RESULTADOS ── -->
+  <main class="results-area" aria-label="Resultados de la búsqueda">
+
+    <!-- Tarjetas de Alojamiento -->
+    <article class="hotel-card" *ngFor="let h of paginatedLodgings">
+      
+      <!-- Columna de Imagen -->
+      <div class="hc-img">
+        <img *ngIf="h.imagen; else placeholderImg" [src]="h.imagen" [alt]="h.nombre" loading="lazy">
+        <ng-template #placeholderImg>
+          <div class="hc-img-placeholder">
+            <span class="material-icons placeholder-icon">hotel</span>
+            <span>Sin imagen disponible</span>
+          </div>
+        </ng-template>
+
+        <span class="hc-badge-tipo">{{ h.tipo }}</span>
+
+        <div class="hc-stars" [attr.aria-label]="h.categoria + ' estrellas de valoración'">
+          <span class="s" *ngFor="let star of getEstrellasArray(h.categoria)">★</span>
+          <span class="s off" *ngFor="let star of getEstrellasVaciasArray(h.categoria)">★</span>
+        </div>
+        <span class="hc-img-count" *ngIf="h.fotosCount > 0">{{ h.fotosCount }} fotos</span>
+      </div>
+
+      <!-- Columna de Información -->
+      <div class="hc-info">
+        <div class="hc-top">
+          <h2 class="hc-name">{{ h.nombre }}</h2>
+          <span class="hc-cat">{{ h.calidad }}</span>
+        </div>
+        
+        <div class="hc-loc">
+          <span class="material-icons pin-icon">location_on</span>
+          <span>{{ h.direccion }}</span>
+        </div>
+        
+        <p class="hc-desc">{{ h.descripcion }}</p>
+
+        <!-- Ficha Técnica Rápida -->
+        <div class="hc-meta">
+          <div class="hc-meta-item">
+            <span class="material-icons meta-icon">login</span>
+            <span>Check-in <strong>{{ h.checkIn }}</strong></span>
+          </div>
+          <div class="hc-meta-item">
+            <span class="material-icons meta-icon">logout</span>
+            <span>Check-out <strong>{{ h.checkOut }}</strong></span>
+          </div>
+          <div class="hc-meta-item highlight">
+            <span class="material-icons meta-icon">bed</span>
+            <span><strong>{{ h.habitacionesDisponibles }}</strong> hab. disponibles</span>
+          </div>
+        </div>
+
+        <!-- Chips de Servicios y Características -->
+        <div class="hc-chips">
+          <span class="chip" *ngIf="h.servicios.includes('Wifi')">
+            <span class="material-icons chip-icon">wifi</span>
+            <span>Wifi</span>
+          </span>
+          <span class="chip" *ngIf="h.servicios.includes('Desayuno')">
+            <span class="material-icons chip-icon">free_breakfast</span>
+            <span>Desayuno</span>
+          </span>
+          <span class="chip" *ngIf="h.servicios.includes('Piscina')">
+            <span class="material-icons chip-icon">pool</span>
+            <span>Piscina</span>
+          </span>
+          <span class="chip" *ngIf="h.servicios.includes('Spa')">
+            <span class="material-icons chip-icon">spa</span>
+            <span>Spa</span>
+          </span>
+          <span class="chip" *ngIf="h.servicios.includes('Restaurante')">
+            <span class="material-icons chip-icon">restaurant</span>
+            <span>Restaurante</span>
+          </span>
+          <span class="chip" *ngIf="h.servicios.includes('Gimnasio')">
+            <span class="material-icons chip-icon">fitness_center</span>
+            <span>Gimnasio</span>
+          </span>
+          <span class="chip" *ngIf="h.servicios.includes('Estacionamiento')">
+            <span class="material-icons chip-icon">local_parking</span>
+            <span>Estacionamiento</span>
+          </span>
+          
+          <!-- Chips de Políticas Especiales -->
+          <span class="chip chip-ninos" *ngIf="h.aceptaNinos">
+            <span class="material-icons chip-icon">child_care</span>
+            <span>Acepta niños</span>
+          </span>
+          <span class="chip chip-mascotas" *ngIf="h.aceptaMascotas">
+            <span class="material-icons chip-icon">pets</span>
+            <span>Mascotas permitidas</span>
+          </span>
+        </div>
+
+        <!-- Fila de pie de tarjeta con valoración y precio -->
+        <div class="hc-footer">
+          <div class="hc-rating" *ngIf="h.reviewsCount > 0; else noReviews">
+            <span class="rating-num" [class.mid]="h.valoracion < 4.5" [class.low]="h.valoracion < 3.5">
+              {{ h.valoracion | number:'1.1-1' }}
+            </span>
+            <div class="rating-details">
+              <span class="rating-label">{{ h.ratingTexto }}</span>
+              <span class="rating-count">{{ h.reviewsCount }} valoraciones</span>
+            </div>
+          </div>
+          <ng-template #noReviews>
+            <div class="hc-rating-none">Sin valoraciones aún</div>
+          </ng-template>
+
+          <div class="hc-actions-block">
+            <div class="hc-price-block">
+              <span class="desde">desde</span>
+              <span class="price">
+                <span class="dollar-sign">$</span>
+                <span class="price-val">{{ h.precio }}</span>
+                <span class="currency">USD</span>
+              </span>
+              <span class="noche">por noche</span>
+            </div>
+            <button class="btn-ver" [routerLink]="['/buscar']" aria-label="Ver detalles y reservar este alojamiento">
+              <span>Ver alojamiento</span>
+              <span class="material-icons arrow-btn">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ESTADO VACÍO (NO RESULTS) -->
+    <div class="no-results" *ngIf="filteredLodgings.length === 0" role="alert">
+      <span class="material-icons no-results-icon">sentiment_dissatisfied</span>
+      <h3>No se encontraron alojamientos</h3>
+      <p>Hemos buscado en toda nuestra base de datos, pero ningún alojamiento coincide con la combinación de filtros seleccionada en este momento.</p>
+      <button class="btn-clear-filters-state" (click)="limpiarFiltros()">Restaurar filtros de búsqueda</button>
+    </div>
+
+    <!-- PAGINACIÓN -->
+    <nav class="pagination" *ngIf="filteredLodgings.length > 0" aria-label="Paginación de resultados">
+      <!-- Primera página -->
+      <button class="pag-btn arrow" [disabled]="currentPage === 1" (click)="firstPage()" aria-label="Primera página">
+        <span class="material-icons">first_page</span>
+      </button>
+      
+      <!-- Página anterior -->
+      <button class="pag-btn arrow" [disabled]="currentPage === 1" (click)="prevPage()" aria-label="Página anterior">
+        <span class="material-icons">chevron_left</span>
+      </button>
+      
+      <!-- Páginas numeradas -->
+      <button *ngFor="let page of pagesArray" 
+              class="pag-btn" 
+              [class.active]="currentPage === page" 
+              (click)="setPage(page)" 
+              [attr.aria-current]="currentPage === page ? 'page' : null"
+              [attr.aria-label]="'Ir a la página ' + page">
+        {{ page }}
+      </button>
+      
+      <!-- Página siguiente -->
+      <button class="pag-btn arrow" [disabled]="currentPage === totalPages" (click)="nextPage()" aria-label="Página siguiente">
+        <span class="material-icons">chevron_right</span>
+      </button>
+      
+      <!-- Última página -->
+      <button class="pag-btn arrow" [disabled]="currentPage === totalPages" (click)="lastPage()" aria-label="Última página">
+        <span class="material-icons">last_page</span>
+      </button>
+    </nav>
+
+  </main>
+</div>
+
+<app-footer></app-footer>
