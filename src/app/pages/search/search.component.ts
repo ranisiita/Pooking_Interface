@@ -37,7 +37,7 @@ export class SearchComponent implements OnInit {
   ];
 
   aloj = { destino: '', llegada: '', salida: '', habitaciones: 1, adultos: 2, ninos: 0 };
-  vuelos = { origen: '', destino: '', salida: '', regreso: '', pasajeros: 1, clase: 'Económica' };
+  vuelos = { origen: '', destino: '', salida: '', regreso: '', tipoViaje: 'roundtrip' as 'roundtrip' | 'oneway' };
   flightFormError = '';
   coches = { lugar: '', recogida: '', devolucion: '' };
   atracciones = { destino: '', fecha: '' };
@@ -60,32 +60,28 @@ export class SearchComponent implements OnInit {
   }
 
   buscarVuelos(): void {
-    const { origen, destino, salida, regreso, pasajeros, clase } = this.vuelos;
+    const { origen, destino, salida, regreso, tipoViaje } = this.vuelos;
     if (!origen.trim() || !destino.trim() || !salida) {
-      window.alert('Por favor completa origen, destino y fecha de salida.');
+      this.flightFormError = 'Por favor completa origen, destino y fecha de salida.';
       return;
     }
     if (!this.isCityTextOnly(origen) || !this.isCityTextOnly(destino)) {
       this.flightFormError = 'Origen y destino solo permiten letras y espacios.';
       return;
     }
-    if (regreso && regreso < salida) {
-      this.flightFormError = 'La fecha de regreso no puede ser anterior a la fecha de salida.';
+    if (tipoViaje === 'roundtrip' && regreso && regreso < salida) {
+      this.flightFormError = 'La fecha de regreso no puede ser anterior a la de salida.';
       return;
     }
     this.flightFormError = '';
-
-    const criterios: FlightSearchCriteria = {
-      origen: origen.trim(),
-      destino: destino.trim(),
-      fechaSalida: salida,
-      fechaRegreso: regreso,
-      pasajeros,
-      clase: clase as FlightClass,
-    };
-    sessionStorage.setItem('flight-search-criteria', JSON.stringify(criterios));
     this.router.navigate(['/vuelos/resultados'], {
-      queryParams: { origen: criterios.origen, destino: criterios.destino, fecha: criterios.fechaSalida, pasajeros, clase },
+      queryParams: {
+        origen: origen.trim(),
+        destino: destino.trim(),
+        fecha: salida,
+        fechaRegreso: tipoViaje === 'roundtrip' ? regreso : '',
+        tipoViaje,
+      },
     });
   }
 

@@ -1,138 +1,219 @@
 <app-navbar></app-navbar>
 
-<div class="page-bg results-page">
-  <div class="page-header">
-    <h1 class="page-title">Resultados de vuelos</h1>
-    <p class="page-subtitle">
-      {{ criterios().origen || 'Origen' }}
-      <span class="material-icons" style="font-size:1rem;vertical-align:middle">arrow_forward</span>
-      {{ criterios().destino || 'Destino' }}
-      &nbsp;·&nbsp;{{ criterios().fechaSalida || '' }}
-      &nbsp;·&nbsp;{{ criterios().pasajeros }} pasajero(s)
-    </p>
+<!-- Hero con imagen de avión -->
+<section class="hero">
+  <div class="hero-placeholder" aria-hidden="true">
+    <span class="material-icons hero-plane-icon">flight</span>
   </div>
 
-  <div class="results-layout">
-
-    <!-- Filtros lateral -->
-    <aside class="filters-panel panel-glass-light">
-      <p class="filters-title"><span class="material-icons">tune</span> Filtrar</p>
-
-      <div class="field" style="margin-top:1rem">
-        <label class="field-label">Buscar aerolínea</label>
-        <div class="input-icon-wrapper">
-          <span class="material-icons">search</span>
-          <input type="text" placeholder="Nombre de la aerolínea..."
-            [value]="filtroTermino()"
-            (input)="filtroTermino.set($any($event.target).value)" />
-        </div>
-      </div>
-
-      <div class="field" style="margin-top:1rem">
-        <label class="field-label">Ordenar por</label>
-        <div class="input-icon-wrapper">
-          <span class="material-icons">sort</span>
-          <select [value]="ordenamiento()" (change)="ordenamiento.set($any($event.target).value)">
-            <option value="nombre">Nombre</option>
-            <option value="precio_asc">Precio: Menor a Mayor</option>
-            <option value="precio_desc">Precio: Mayor a Menor</option>
-          </select>
-        </div>
-      </div>
-
-      <button class="btn-ghost" style="margin-top:1.5rem" (click)="volver()">
-        <span class="material-icons">arrow_back</span> Cambiar búsqueda
+  <!-- Barra de búsqueda flotante -->
+  <div class="search-bar-floating">
+    <div class="search-tabs">
+      <button class="search-tab" [class.active]="criterios().tipoViaje === 'roundtrip'"
+        (click)="criterios.set({...criterios(), tipoViaje: 'roundtrip'})">
+        IDA Y VUELTA
       </button>
-    </aside>
+      <button class="search-tab" [class.active]="criterios().tipoViaje === 'oneway'"
+        (click)="criterios.set({...criterios(), tipoViaje: 'oneway'})">
+        SOLO IDA
+      </button>
+    </div>
 
-    <!-- Lista de resultados -->
-    <section class="results-list">
-
-      @if (totalResultados() === 0) {
-        <div class="empty-state panel-glass-light">
-          <span class="material-icons" style="font-size:3rem;color:var(--color-extra2)">flight_off</span>
-          <p>No se encontraron vuelos disponibles para tu búsqueda.</p>
-          <button class="btn-secondary" (click)="volver()">Cambiar búsqueda</button>
+    <div class="search-bar-content">
+      <form class="search-form">
+        <div class="search-field">
+          <label class="search-label">ORIGEN</label>
+          <div class="search-input-wrapper">
+            <span class="material-icons" aria-hidden="true">flight_takeoff</span>
+            <input type="text" [value]="criterios().origen" placeholder="Ciudad de origen"
+              (input)="criterios.set({...criterios(), origen: $any($event.target).value})" />
+          </div>
         </div>
 
-      } @else {
+        <div class="search-field">
+          <label class="search-label">DESTINO</label>
+          <div class="search-input-wrapper">
+            <span class="material-icons" aria-hidden="true">flight_land</span>
+            <input type="text" [value]="criterios().destino" placeholder="Ciudad de destino"
+              (input)="criterios.set({...criterios(), destino: $any($event.target).value})" />
+          </div>
+        </div>
 
-        @for (vuelo of paginaResultados(); track vuelo.guidServicio) {
-          <div class="result-card flight-card" (click)="seleccionar(vuelo)" role="button"
-               [attr.aria-label]="'Ver detalles de ' + vuelo.nombreComercial">
+        <div class="search-field">
+          <label class="search-label">FECHA DE SALIDA</label>
+          <div class="search-input-wrapper">
+            <span class="material-icons" aria-hidden="true">event</span>
+            <input type="date" [value]="criterios().fechaSalida" style="color-scheme:light"
+              (change)="criterios.set({...criterios(), fechaSalida: $any($event.target).value})" />
+          </div>
+        </div>
 
-            <!-- Encabezado: aerolínea -->
-            <div class="flight-card-header">
-              <div class="flight-provider">
-                <span class="material-icons flight-icon">flight</span>
-                <div>
-                  <p class="flight-nombre">{{ vuelo.nombreComercial }}</p>
-                  <p class="flight-tipo">{{ vuelo.tipoServicioNombre }}</p>
+        <div class="search-field">
+          <label class="search-label">FECHA DE REGRESO</label>
+          <div class="search-input-wrapper" [class.disabled]="criterios().tipoViaje === 'oneway'">
+            <span class="material-icons" aria-hidden="true">event</span>
+            <input type="date" [value]="criterios().fechaRegreso" style="color-scheme:light"
+              [disabled]="criterios().tipoViaje === 'oneway'"
+              (change)="criterios.set({...criterios(), fechaRegreso: $any($event.target).value})" />
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Lista de resultados -->
+<main class="main-content">
+
+  @if (totalResultados() === 0) {
+    <div class="empty-state">
+      <span class="material-icons" style="font-size:3rem;color:var(--color-extra2)" aria-hidden="true">flight_off</span>
+      <p>No se encontraron vuelos disponibles para tu búsqueda.</p>
+    </div>
+  } @else {
+
+    <div class="results-container" role="list">
+      @for (vuelo of paginaResultados(); track vuelo.guidServicio) {
+        <article class="flight-card" role="listitem" aria-label="{{ vuelo.nombreComercial }}"
+          (click)="toggleDetalle(vuelo.guidServicio)">
+
+          <!-- Header: aerolínea -->
+          <div class="flight-card-header">
+            <div class="airline-section">
+              <div class="airline-icon" aria-hidden="true">
+                <span class="material-icons">flight</span>
+              </div>
+              <div class="airline-info">
+                <div class="airline-name">{{ vuelo.nombreComercial }}</div>
+                <div class="flight-code">
+                  {{ $any(vuelo)._codigo || 'AV0104' }} • {{ $any(vuelo)._avion || 'Boeing 787' }}
                 </div>
               </div>
-              <span class="badge badge-success" style="margin-left:auto">
-                <span class="material-icons" style="font-size:0.8rem">check_circle</span> Disponible
-              </span>
+            </div>
+            <div class="flight-status-badge">
+              {{ vuelo.escalas === 0 ? 'DIRECTO' : vuelo.escalas + ' ESCALA' + (vuelo.escalas > 1 ? 'S' : '') }}
+            </div>
+          </div>
+
+          <!-- Cuerpo: horario + duración -->
+          <div class="flight-card-body">
+
+            <div class="flight-time-info">
+              <div class="time">{{ vuelo.salida }}</div>
+              <div class="iata-code">{{ vuelo.origen }}</div>
+              <div class="airport-name">Aeropuerto</div>
             </div>
 
-            <!-- Ruta principal -->
-            <div class="flight-route" style="display:flex;align-items:center;gap:0.75rem;margin:1rem 0;flex-wrap:wrap">
-
-              <!-- Salida -->
-              <div style="text-align:center;min-width:70px">
-                <p style="font-size:1.5rem;font-weight:700;margin:0;color:var(--color-primary)">{{ vuelo.salida }}</p>
-                <p style="font-size:0.78rem;color:var(--color-text-muted);margin:0">{{ vuelo.origen }}</p>
-              </div>
-
-              <!-- Línea central -->
-              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:100px">
-                <p style="font-size:0.72rem;color:var(--color-text-muted);margin:0">{{ vuelo.duracion }}</p>
-                <div style="display:flex;align-items:center;width:100%;gap:4px">
-                  <div style="flex:1;height:1px;background:var(--color-border)"></div>
-                  @if (vuelo.escalas === 0) {
-                    <span class="material-icons" style="font-size:1rem;color:var(--color-primary);transform:rotate(90deg)">flight</span>
-                  } @else {
-                    <span class="material-icons" style="font-size:1rem;color:#f59e0b">connecting_airports</span>
-                  }
-                  <div style="flex:1;height:1px;background:var(--color-border)"></div>
+            <div class="flight-journey">
+              <div class="duration-text">{{ vuelo.duracion }}</div>
+              <div class="flight-path" aria-hidden="true">
+                <div class="flight-line"></div>
+                <div class="plane-icon">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#8E5A54"/>
+                  </svg>
                 </div>
-                <p style="font-size:0.72rem;margin:0"
-                   [style.color]="vuelo.escalas === 0 ? 'var(--color-success, #22c55e)' : '#f59e0b'">
-                  {{ vuelo.escalas === 0 ? 'Directo' : vuelo.escalas + ' escala' + (vuelo.escalas > 1 ? 's' : '') }}
-                </p>
               </div>
-
-              <!-- Llegada -->
-              <div style="text-align:center;min-width:70px">
-                <p style="font-size:1.5rem;font-weight:700;margin:0;color:var(--color-primary)">{{ vuelo.llegada }}</p>
-                <p style="font-size:0.78rem;color:var(--color-text-muted);margin:0">{{ vuelo.destino }}</p>
+              <div class="stops-info" [style.color]="vuelo.escalas === 0 ? '#27ae60' : '#f59e0b'"
+                [style.background]="vuelo.escalas === 0 ? 'rgba(39,174,96,0.1)' : 'rgba(245,158,11,0.1)'"
+                [style.borderColor]="vuelo.escalas === 0 ? 'rgba(39,174,96,0.25)' : 'rgba(245,158,11,0.25)'">
+                {{ vuelo.escalas === 0 ? 'Directo' : vuelo.escalas + ' escala' + (vuelo.escalas > 1 ? 's' : '') }}
               </div>
             </div>
 
-            <!-- Footer: precio + acción -->
-            <div class="flight-card-footer" style="align-items:center">
-              <div>
-                <p style="font-size:0.72rem;color:var(--color-text-muted);margin:0">Tarifa base por persona</p>
-                <p style="font-size:1.3rem;font-weight:700;color:var(--color-primary);margin:0">
-                  ${{ vuelo.precioBase | number:'1.2-2' }}
-                </p>
-              </div>
-              <button class="btn-primary" style="padding:0.55rem 1.4rem;font-size:0.85rem"
-                      (click)="seleccionar(vuelo);$event.stopPropagation()">
-                Ver detalle
-              </button>
+            <div class="flight-time-info right-align">
+              <div class="time">{{ vuelo.llegada }}</div>
+              <div class="iata-code">{{ vuelo.destino }}</div>
+              <div class="airport-name">Aeropuerto</div>
             </div>
 
           </div>
-        }
-        <div class="pager">
-          <button class="btn-ghost" [disabled]="paginaActual() === 1" (click)="cargar(paginaActual() - 1)">Anterior</button>
-          <span class="pager-text">Página {{ paginaActual() }} de {{ totalPaginas() }}</span>
-          <button class="btn-ghost" [disabled]="paginaActual() >= totalPaginas()" (click)="cargar(paginaActual() + 1)">Siguiente</button>
-        </div>
+
+          <!-- Footer: precio + acciones -->
+          <div class="flight-card-footer">
+            <div class="price-section">
+              <div class="price-label">DESDE</div>
+              <div class="price">${{ vuelo.precioBase | number:'1.2-2' }}</div>
+              <div class="price-per-person">por persona</div>
+            </div>
+            <div class="card-actions">
+              <button class="btn-details" [class.expanded]="estaExpandido(vuelo.guidServicio)"
+                (click)="toggleDetalle(vuelo.guidServicio); $event.stopPropagation()"
+                [attr.aria-expanded]="estaExpandido(vuelo.guidServicio)">
+                <span class="material-icons" aria-hidden="true">info</span>
+                Detalles
+                <span class="material-icons expand-arrow" aria-hidden="true">expand_more</span>
+              </button>
+              <button class="btn-reserve" (click)="reservar(vuelo, $event)" aria-label="Reservar {{ vuelo.nombreComercial }}">
+                Reservar
+              </button>
+            </div>
+          </div>
+
+          <!-- Detalles expandibles -->
+          @if (estaExpandido(vuelo.guidServicio)) {
+            <div class="flight-details">
+              <div class="details-grid">
+                <div class="detail-section">
+                  <h3>Servicios Incluidos</h3>
+                  <div class="detail-list">
+                    <div class="detail-item">- Equipaje de mano (10kg)</div>
+                    <div class="detail-item optional">- Equipaje de bodega (opcional)</div>
+                    <div class="detail-item">- Snack y bebida</div>
+                  </div>
+                </div>
+                <div class="detail-section">
+                  <h3>Información Adicional</h3>
+                  <div class="detail-list">
+                    <div class="detail-item highlight">Aeronave: {{ $any(vuelo)._avion || 'Boeing 787' }}</div>
+                    <div class="detail-item">Duración: {{ vuelo.duracion }}</div>
+                    <div class="detail-item">Clase: Económica</div>
+                  </div>
+                </div>
+                <div class="detail-section">
+                  <h3>Políticas</h3>
+                  <div class="detail-list">
+                    <div class="detail-item">Check-in: Online o aeropuerto</div>
+                    <div class="detail-item">3 horas antes en el aeropuerto</div>
+                    <div class="detail-item">Cambios: Según tarifa</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+
+        </article>
       }
-    </section>
-  </div>
-</div>
+    </div>
+
+    <!-- Paginación -->
+    @if (totalPaginas() > 1) {
+      <nav class="pagination" aria-label="Paginación de resultados">
+        <button class="pagination-btn" [disabled]="paginaActual() === 1"
+          (click)="cambiarPagina(paginaActual() - 1)" aria-label="Página anterior">
+          <span class="material-icons" aria-hidden="true">chevron_left</span>
+        </button>
+
+        @for (p of paginas(); track $index) {
+          @if (p === '...') {
+            <span class="pagination-ellipsis">...</span>
+          } @else {
+            <button class="pagination-btn" [class.active]="paginaActual() === p"
+              (click)="cambiarPagina(p)" [attr.aria-current]="paginaActual() === p ? 'page' : null"
+              [attr.aria-label]="'Página ' + p">
+              {{ p }}
+            </button>
+          }
+        }
+
+        <button class="pagination-btn" [disabled]="paginaActual() >= totalPaginas()"
+          (click)="cambiarPagina(paginaActual() + 1)" aria-label="Página siguiente">
+          <span class="material-icons" aria-hidden="true">chevron_right</span>
+        </button>
+      </nav>
+    }
+
+  }
+</main>
 
 <app-footer></app-footer>
