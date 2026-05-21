@@ -6,7 +6,7 @@
   align-items: center;
   position: relative;
   /* Mismo estilo de fondo que Login y Sign Up */
-  background-image: 
+  background-image:
     linear-gradient(to right, rgba(142, 90, 84, 0.2) 0%, rgba(251, 248, 234, 0.6) 60%, var(--color-bg) 100%),
     url('../../../assets/images/search_fondo.jpg');
   background-size: cover;
@@ -241,23 +241,37 @@ label {
   animation: dropDownBounce 1.2s cubic-bezier(0.28, 0.84, 0.42, 1) forwards;
 }
 
-.falling-icons .icon-plane { animation-delay: 0.1s; }
-.falling-icons .icon-car { animation-delay: 0.3s; }
-.falling-icons .icon-hotel { animation-delay: 0.5s; }
-.falling-icons .icon-luggage { animation-delay: 0.7s; }
+.falling-icons .icon-plane {
+  animation-delay: 0.1s;
+}
+
+.falling-icons .icon-car {
+  animation-delay: 0.3s;
+}
+
+.falling-icons .icon-hotel {
+  animation-delay: 0.5s;
+}
+
+.falling-icons .icon-luggage {
+  animation-delay: 0.7s;
+}
 
 @keyframes dropDownBounce {
   0% {
     opacity: 0;
     transform: translateY(-50vh) scale(0.5) rotate(-20deg);
   }
+
   60% {
     opacity: 1;
     transform: translateY(20px) scale(1.1) rotate(5deg);
   }
+
   80% {
     transform: translateY(-10px) scale(0.95) rotate(-2deg);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1) rotate(0deg);
@@ -285,5 +299,6 @@ label {
   margin-top: 0.3rem;
   display: block;
   font-weight: 500;
-  text-transform: none; /* No gritar en mayúsculas */
+  text-transform: none;
+  /* No gritar en mayúsculas */
 }

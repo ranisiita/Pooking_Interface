@@ -1,0 +1,449 @@
+<app-navbar></app-navbar>
+
+<!-- ══════════════════════════════════════
+     CAROUSEL DE IMÁGENES (reemplaza la galería estática)
+══════════════════════════════════════ -->
+<div class="hotel-carousel" *ngIf="lodging" (mouseenter)="stopAutoplay()" (mouseleave)="startAutoplay()">
+
+  <!-- Track deslizante -->
+  <div class="carousel-track" [style.transform]="'translateX(-' + activeSlide() * 100 + '%)'">
+    <div class="carousel-slide" *ngFor="let img of lodging.imagenes; let i = index">
+      <img [src]="img" [alt]="lodging.nombre + ' - foto ' + (i + 1)" loading="lazy">
+    </div>
+  </div>
+
+  <!-- Botón anterior -->
+  <button class="carousel-btn carousel-btn-prev" (click)="onPrevClick()" aria-label="Imagen anterior">
+    <span class="material-icons">chevron_left</span>
+  </button>
+
+  <!-- Botón siguiente -->
+  <button class="carousel-btn carousel-btn-next" (click)="onNextClick()" aria-label="Imagen siguiente">
+    <span class="material-icons">chevron_right</span>
+  </button>
+
+  <!-- Puntos indicadores -->
+  <div class="carousel-dots">
+    <button
+      *ngFor="let img of lodging.imagenes; let i = index"
+      class="carousel-dot"
+      [class.active]="activeSlide() === i"
+      (click)="goToSlide(i)"
+      [attr.aria-label]="'Ir a imagen ' + (i + 1)">
+    </button>
+  </div>
+
+  <!-- Contador de foto -->
+  <div class="carousel-counter">
+    <span class="material-icons" style="font-size:14px;">photo_camera</span>
+    {{ activeSlide() + 1 }} / {{ totalSlides }}
+  </div>
+
+  <!-- Nombre del hotel superpuesto en el carousel -->
+  <div class="carousel-hotel-badge">
+    <div class="chb-name">{{ lodging.nombre }}</div>
+    <div class="chb-stars">
+      <span class="s" *ngFor="let s of getEstrellasArray(lodging.categoria)">★</span>
+      <span class="s off" *ngFor="let s of getEstrellasVaciasArray(lodging.categoria)">★</span>
+      <span class="chb-tipo">{{ lodging.tipo }} · {{ lodging.categoria }} estrellas</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SUBNAV DE ANCLAS
+══════════════════════════════════════ -->
+<nav class="detail-subnav" aria-label="Navegación de secciones del hotel">
+  <a href="javascript:void(0)" [class.active]="activeSection() === 'info'" (click)="scrollToSection('info')">Información</a>
+  <a href="javascript:void(0)" [class.active]="activeSection() === 'habitaciones'" (click)="scrollToSection('habitaciones')">Habitaciones</a>
+  <a href="javascript:void(0)" [class.active]="activeSection() === 'servicios'" (click)="scrollToSection('servicios')">Servicios</a>
+  <a href="javascript:void(0)" [class.active]="activeSection() === 'reviews'" (click)="scrollToSection('reviews')">Valoraciones</a>
+  <a href="javascript:void(0)" [class.active]="activeSection() === 'ubicacion'" (click)="scrollToSection('ubicacion')">Ubicación</a>
+  <a href="javascript:void(0)" [class.active]="activeSection() === 'politicas'" (click)="scrollToSection('politicas')">Políticas</a>
+</nav>
+
+<!-- ══════════════════════════════════════
+     PAGE WRAP: CONTENIDO + SIDEBAR
+══════════════════════════════════════ -->
+<div class="detail-page-wrap" *ngIf="lodging">
+
+  <!-- ════════ COLUMNA PRINCIPAL ════════ -->
+  <div class="detail-main-col">
+
+    <!-- ── HEADER ── -->
+    <section id="info" class="detail-hotel-header">
+      <div class="dhh-top">
+        <div class="dhh-left">
+          <h1 class="detail-hotel-title">{{ lodging.nombre }}</h1>
+
+          <!-- Estrellas -->
+          <div class="detail-stars-row">
+            <span class="ds" *ngFor="let s of getEstrellasArray(lodging.categoria)">★</span>
+            <span class="ds off" *ngFor="let s of getEstrellasVaciasArray(lodging.categoria)">★</span>
+            <span class="ds-label">{{ lodging.tipo }} · {{ lodging.categoria }} estrellas</span>
+          </div>
+
+          <!-- Ubicación -->
+          <div class="detail-loc">
+            <span class="material-icons loc-icon">location_on</span>
+            {{ lodging.direccion }}
+          </div>
+
+          <!-- Badges -->
+          <div class="detail-badges">
+            <span class="dbadge dbadge-green" *ngIf="lodging.aceptaNinos">
+              <span class="material-icons">child_care</span>
+              Acepta niños
+            </span>
+            <span class="dbadge dbadge-amber">
+              <span class="material-icons">schedule</span>
+              Check-in {{ lodging.checkIn }}
+            </span>
+            <span class="dbadge dbadge-blue" *ngIf="lodging.servicios.includes('Wifi')">
+              <span class="material-icons">wifi</span>
+              Wifi gratis
+            </span>
+            <span class="dbadge dbadge-neutral" *ngIf="lodging.servicios.includes('Estacionamiento')">
+              <span class="material-icons">local_parking</span>
+              Estacionamiento
+            </span>
+            <span class="dbadge dbadge-neutral" *ngIf="lodging.servicios.includes('Desayuno')">
+              <span class="material-icons">free_breakfast</span>
+              Desayuno disponible
+            </span>
+            <span class="dbadge dbadge-red" *ngIf="!lodging.aceptaMascotas">
+              <span class="material-icons">pets</span>
+              No acepta mascotas
+            </span>
+          </div>
+        </div>
+
+        <!-- Rating pill -->
+        <div class="detail-rating">
+          <span class="drating-pill">{{ lodging.valoracion | number:'1.1-1' }}</span>
+          <div class="drating-info">
+            <span class="drating-word">
+              {{ lodging.ratingTexto }}
+              <span class="material-icons drating-verified-icon">verified</span>
+            </span>
+            <span class="drating-ct">{{ lodging.reviewsCount }} valoraciones</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── DESCRIPCIÓN + POLÍTICAS ── -->
+    <section class="detail-section">
+      <h3>Sobre este alojamiento</h3>
+      <p class="detail-desc-text">{{ lodging.descripcion }}</p>
+      <p class="detail-desc-text" *ngIf="showFullDesc()">{{ lodging.descripcionLarga }}</p>
+      <button class="detail-read-more" (click)="toggleDesc()">
+        {{ showFullDesc() ? 'Mostrar menos' : 'Leer más' }}
+        <span class="material-icons" [style.transform]="showFullDesc() ? 'rotate(180deg)' : 'rotate(0deg)'">expand_more</span>
+      </button>
+
+      <!-- Políticas rápidas -->
+      <div class="detail-policies-strip">
+        <div class="dpol-item">
+          <span class="dpol-label">Check-in</span>
+          <span class="dpol-val">Desde las {{ lodging.checkIn }}</span>
+          <span class="dpol-sub">Recepción 24 h</span>
+        </div>
+        <div class="dpol-item">
+          <span class="dpol-label">Check-out</span>
+          <span class="dpol-val">Hasta las {{ lodging.checkOut }}</span>
+          <span class="dpol-sub">Late check-out sujeto a disponibilidad</span>
+        </div>
+        <div class="dpol-item">
+          <span class="dpol-label">Política general</span>
+          <span class="dpol-val">{{ lodging.aceptaNinos ? 'Acepta niños ✓' : 'No acepta niños' }}</span>
+          <span class="dpol-sub">{{ lodging.aceptaMascotas ? 'Acepta mascotas ✓' : 'No acepta mascotas' }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SERVICIOS / AMENITIES ── -->
+    <section id="servicios" class="detail-section">
+      <h3>Servicios e instalaciones</h3>
+      <div class="detail-amenities-grid">
+        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Wifi')">
+          <span class="material-icons dam-icon">wifi</span>
+          Wifi gratuito en todo el hotel
+        </div>
+        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Desayuno')">
+          <span class="material-icons dam-icon">free_breakfast</span>
+          Desayuno buffet
+        </div>
+        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Piscina')">
+          <span class="material-icons dam-icon">pool</span>
+          Piscina exterior
+        </div>
+        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Restaurante')">
+          <span class="material-icons dam-icon">restaurant</span>
+          Restaurante en el lugar
+        </div>
+        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Estacionamiento')">
+          <span class="material-icons dam-icon">local_parking</span>
+          Estacionamiento privado
+        </div>
+        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Sala de conferencias')">
+          <span class="material-icons dam-icon">meeting_room</span>
+          Sala de conferencias
+        </div>
+        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Spa')">
+          <span class="material-icons dam-icon">spa</span>
+          Spa y bienestar
+        </div>
+        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Gimnasio')">
+          <span class="material-icons dam-icon">fitness_center</span>
+          Gimnasio equipado
+        </div>
+        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Servicio al cliente 24h')">
+          <span class="material-icons dam-icon">support_agent</span>
+          Servicio al cliente 24 h
+        </div>
+        <div class="detail-amenity inactive">
+          <span class="material-icons dam-icon">pets</span>
+          <span style="text-decoration:line-through">No acepta mascotas</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── HABITACIONES ── -->
+    <section id="habitaciones" class="detail-section">
+      <h3>Habitaciones disponibles</h3>
+      <div class="detail-rooms-list">
+
+        <div
+          class="detail-room-card"
+          *ngFor="let room of lodging.habitaciones"
+          [class.selected]="isRoomSelected(room.id)"
+          (click)="selectRoom(room.id)">
+
+          <!-- Imagen -->
+          <div class="drc-img">
+            <img *ngIf="room.imagen; else roomPh" [src]="room.imagen" [alt]="room.nombre" loading="lazy">
+            <ng-template #roomPh>
+              <div class="drc-img-ph">
+                <span class="material-icons">hotel</span>
+              </div>
+            </ng-template>
+          </div>
+
+          <!-- Info -->
+          <div class="drc-info">
+            <div class="drc-name">{{ room.nombre }}</div>
+            <div class="drc-meta">
+              <span class="drm">
+                <span class="material-icons">bed</span> {{ room.cama }}
+              </span>
+              <span class="drm">
+                <span class="material-icons">group</span> {{ room.capacidad }}
+              </span>
+              <span class="drm">
+                <span class="material-icons">square_foot</span> {{ room.metros }} m²
+              </span>
+              <span class="drm">
+                <span class="material-icons">apartment</span> {{ room.piso }}
+              </span>
+            </div>
+            <div class="drc-bottom">
+              <div>
+                <div class="drc-price">
+                  <span class="drp-desde">desde</span>
+                  <span class="drp-val">${{ room.precio }} <span class="drp-currency">USD</span></span>
+                  <span class="drp-noche">/ noche</span>
+                </div>
+                <span class="drc-avail" [class.ok]="room.disponibles > 2" [class.low]="room.disponibles <= 2">
+                  ● {{ room.disponibles === 1 ? 'Solo 1 disponible' : room.disponibles + ' disponibles' }}
+                </span>
+              </div>
+              <button class="btn-select-room" [class.selected]="isRoomSelected(room.id)" (click)="selectRoom(room.id); $event.stopPropagation()">
+                <span class="material-icons" *ngIf="isRoomSelected(room.id)">check_circle</span>
+                {{ isRoomSelected(room.id) ? 'Seleccionada' : 'Seleccionar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── VALORACIONES ── -->
+    <!-- ── UBICACIÓN ── -->
+    <section id="ubicacion" class="detail-section">
+      <h3>Ubicación</h3>
+      <div class="detail-location-block">
+        <div class="detail-map-placeholder">
+          <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=900&q=60" alt="Mapa de referencia">
+          <div class="map-pin-overlay">
+            <span class="material-icons">location_on</span>
+            {{ lodging.nombre }}
+          </div>
+        </div>
+        <div class="detail-location-card-single">
+          <span class="material-icons dloc-icon-single">location_on</span>
+          <div class="dloc-content-single">
+            <strong>Dirección</strong>
+            <span>{{ lodging.direccion }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── POLÍTICAS ── -->
+    <section id="politicas" class="detail-section">
+      <h3>Políticas del alojamiento</h3>
+      <ul class="detail-policy-list">
+        <li>
+          <span class="material-icons policy-icon">info</span>
+          <span>Aplican políticas generales de la propiedad.</span>
+        </li>
+        <li>
+          <span class="material-icons policy-icon">security</span>
+          <span>El hotel se reserva el derecho de solicitar un depósito de garantía al momento del check-in.</span>
+        </li>
+        <li>
+          <span class="material-icons policy-icon">cancel</span>
+          <span>Las cancelaciones deben realizarse con al menos 24 horas de anticipación para evitar cargos adicionales.</span>
+        </li>
+        <li>
+          <span class="material-icons policy-icon">family_restroom</span>
+          <span>Los menores de edad deben estar acompañados por un adulto responsable en todo momento.</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ── VALORACIONES ── -->
+    <section id="reviews" class="detail-section">
+      <h3>Valoraciones de huéspedes</h3>
+
+      <!-- Resumen Estilizado de Clasificación -->
+      <div class="detail-reviews-summary-single">
+        <div class="drs-big-single">
+          <div class="drs-rating-badge">
+            <span class="drs-num-val">{{ lodging.valoracion | number:'1.1-1' }}</span>
+          </div>
+          <div class="drs-info-single">
+            <div class="drs-badge-row">
+              <span class="material-icons drs-badge-icon">verified_user</span>
+              <span class="drs-word-single">{{ lodging.ratingTexto }}</span>
+            </div>
+            <span class="drs-total-single">Basado en {{ lodging.reviewsCount }} opiniones reales de huéspedes</span>
+            <div class="drs-scale-track">
+              <div class="drs-scale-bar" [style.width.%]="lodging.valoracion <= 5 ? lodging.valoracion * 20 : lodging.valoracion * 10"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+
+      <!-- Lista de reviews (scrollable, lista para recibir muchos comentarios) -->
+      <h4 class="reviews-list-title">Comentarios de huéspedes</h4>
+      <div class="detail-reviews-list-scroll">
+        <div class="drv-item" *ngFor="let rv of lodging.reviews">
+          <div class="drv-header">
+            <div class="drv-user">
+              <div class="drv-avatar" [style.background]="rv.avatarColor || 'var(--color-titulo)'">{{ rv.iniciales }}</div>
+              <div>
+                <div class="drv-name">{{ rv.nombre }}</div>
+                <div class="drv-meta">{{ rv.tipo }} · {{ rv.fecha }}</div>
+              </div>
+            </div>
+            <span class="drv-score">{{ rv.score | number:'1.1-1' }}</span>
+          </div>
+          <div class="drv-body">
+            <div class="drv-pos" *ngIf="rv.positivo">
+              <span class="material-icons drv-icon-pos">thumb_up</span>
+              <span class="drv-pos-text">{{ rv.positivo }}</span>
+            </div>
+            <div class="drv-neg" *ngIf="rv.negativo">
+              <span class="material-icons drv-icon-neg">thumb_down</span>
+              <span class="drv-neg-text">{{ rv.negativo }}</span>
+            </div>
+            <div class="drv-resp" *ngIf="rv.respuesta">
+              <div class="drv-resp-label">Respuesta del hotel</div>
+              <div class="drv-resp-text">{{ rv.respuesta }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /main-col -->
+
+  <!-- ════════ BOOKING SIDEBAR ════════ -->
+  <aside class="detail-sidebar">
+    <div class="dbc-card">
+
+      <!-- Precio base -->
+      <div>
+        <span class="dbc-desde">desde</span>
+        <div class="dbc-price-line">
+          <span class="dbc-price">${{ precioNoche }}</span>
+          <span class="dbc-noche">USD / noche</span>
+        </div>
+      </div>
+
+      <!-- Fechas -->
+      <div class="dbc-date-grid">
+        <div class="dbc-date-cell">
+          <div class="dbc-dc-label">Llegada</div>
+          <div class="dbc-dc-val">{{ fechaLlegada }}</div>
+        </div>
+        <div class="dbc-date-cell">
+          <div class="dbc-dc-label">Salida</div>
+          <div class="dbc-dc-val">{{ fechaSalida }}</div>
+        </div>
+      </div>
+
+      <!-- Huéspedes -->
+      <div class="dbc-guests-row">
+        <div>
+          <div class="dbc-gr-label">Huéspedes</div>
+          <div class="dbc-gr-val">{{ adultos }} adultos · {{ ninos }} niño · {{ habitacionesSel }} hab.</div>
+        </div>
+        <span class="material-icons" style="color:var(--color-subtitulo)">expand_more</span>
+      </div>
+
+      <!-- Desglose de precio -->
+      <div class="dbc-breakdown">
+        <div class="dbr-row">
+          <span class="dbr-label">${{ precioNoche }} × {{ noches }} noches</span>
+          <span class="dbr-val">${{ precioBase | number:'1.2-2' }}</span>
+        </div>
+        <div class="dbr-row">
+          <span class="dbr-label">IVA (15%)</span>
+          <span class="dbr-val">${{ iva | number:'1.2-2' }}</span>
+        </div>
+        <div class="dbr-row">
+          <span class="dbr-label">Descuento aplicado</span>
+          <span class="dbr-val green">−$0.00</span>
+        </div>
+        <hr class="dbr-divider">
+        <div class="dbr-row dbr-total">
+          <span class="dbr-label">Total reserva</span>
+          <span class="dbr-val">${{ total | number:'1.2-2' }}</span>
+        </div>
+        <p class="dbr-note">Saldo pendiente: ${{ total | number:'1.2-2' }} USD</p>
+      </div>
+
+      <!-- CTA Reservar -->
+      <button class="dbc-btn-reservar" [routerLink]="['/alojamiento', lodging.id, 'reservar']">
+        <span class="material-icons">favorite</span>
+        Reservar ahora
+      </button>
+      <p class="dbc-disclaimer">No se cobra hasta el momento del check-in</p>
+      <div class="dbc-security">
+        <span class="material-icons" style="color:var(--green-tx);font-size:14px">shield</span>
+        Reserva segura · sin cargos ocultos
+      </div>
+
+
+    </div>
+  </aside>
+
+</div><!-- /page-wrap -->
+
+<app-footer></app-footer>

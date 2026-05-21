@@ -18,6 +18,24 @@ export const routes: Routes = [
       ),
   },
 
+  // Detalle de alojamiento
+  {
+    path: 'alojamiento/:id',
+    loadComponent: () =>
+      import('./pages/lodging-detail/lodging-detail.component').then(
+        (m) => m.LodgingDetailComponent
+      ),
+  },
+
+  // Reserva de alojamiento
+  {
+    path: 'alojamiento/:id/reservar',
+    loadComponent: () =>
+      import('./pages/booking/booking.component').then(
+        (m) => m.BookingComponent
+      ),
+  },
+
   // Resultados de vuelos (integración real con servicios/guidTipo)
   {
     path: 'vuelos/resultados',
