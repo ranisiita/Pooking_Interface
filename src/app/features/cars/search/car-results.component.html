@@ -1,0 +1,286 @@
+<app-navbar></app-navbar>
+
+<!-- Hero -->
+<section class="hero" aria-label="Buscador de vehículos">
+  <div class="hero-bg" aria-hidden="true">
+    <img src="https://image.winudf.com/v2/image1/Y29tLndhbGxwYXBlci5zdXBlcmNhcnN3YWxscGFwZXIyMDIwX3NjcmVlbl8wXzE2OTQxNDUxNjNfMDQz/screen-0.jpg?h=500&fakeurl=1&type=.jpg" alt="Coches de alquiler" class="hero-bg-img" />
+    <div class="hero-bg-overlay"></div>
+  </div>
+
+  <!-- Barra de búsqueda flotante -->
+  <div class="search-bar-floating">
+    <div class="search-tabs">
+      <button class="search-tab active" aria-current="true">ALQUILER DE AUTOS</button>
+    </div>
+
+    <div class="search-bar-content">
+      <form class="search-form" (ngSubmit)="buscar()">
+
+        <!-- Recogida -->
+        <div class="search-field">
+          <label class="search-label" for="loc-recogida">LUGAR DE RECOGIDA</label>
+          <div class="search-input-wrapper">
+            <span class="material-icons" aria-hidden="true">location_on</span>
+            <select id="loc-recogida"
+              [value]="criterios().idLocalizacionRecogida ?? ''"
+              (change)="setCriterio('idLocalizacionRecogida', $any($event.target).value ? +$any($event.target).value : null)">
+              <option value="">Selecciona sucursal</option>
+              @for (loc of localizaciones; track loc.idLocalizacion) {
+                <option [value]="loc.idLocalizacion">{{ loc.nombre }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!-- Devolución -->
+        <div class="search-field">
+          <label class="search-label" for="loc-devolucion">LUGAR DE DEVOLUCIÓN</label>
+          <div class="search-input-wrapper">
+            <span class="material-icons" aria-hidden="true">location_off</span>
+            <select id="loc-devolucion"
+              [value]="criterios().idLocalizacionDevolucion ?? ''"
+              (change)="setCriterio('idLocalizacionDevolucion', $any($event.target).value ? +$any($event.target).value : null)">
+              <option value="">Misma de recogida</option>
+              @for (loc of localizaciones; track loc.idLocalizacion) {
+                <option [value]="loc.idLocalizacion">{{ loc.nombre }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!-- Fecha recogida -->
+        <div class="search-field">
+          <label class="search-label" for="fecha-recogida">FECHA DE RECOGIDA</label>
+          <div class="search-input-wrapper">
+            <span class="material-icons" aria-hidden="true">event</span>
+            <input id="fecha-recogida" type="date" style="color-scheme:light"
+              [value]="criterios().fechaRecogida"
+              (change)="setCriterio('fechaRecogida', $any($event.target).value)" />
+          </div>
+        </div>
+
+        <!-- Fecha devolución -->
+        <div class="search-field">
+          <label class="search-label" for="fecha-devolucion">FECHA DE DEVOLUCIÓN</label>
+          <div class="search-input-wrapper">
+            <span class="material-icons" aria-hidden="true">event_available</span>
+            <input id="fecha-devolucion" type="date" style="color-scheme:light"
+              [value]="criterios().fechaDevolucion"
+              (change)="setCriterio('fechaDevolucion', $any($event.target).value)" />
+          </div>
+        </div>
+
+        <!-- Categoría -->
+        <div class="search-field">
+          <label class="search-label" for="categoria">CATEGORÍA</label>
+          <div class="search-input-wrapper">
+            <span class="material-icons" aria-hidden="true">category</span>
+            <select id="categoria"
+              [value]="criterios().nombreCategoria"
+              (change)="setCriterio('nombreCategoria', $any($event.target).value)">
+              <option value="">Todas las categorías</option>
+              @for (cat of categorias; track cat.idCategoria) {
+                <option [value]="cat.nombre">{{ cat.nombre }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!-- Transmisión + Botón -->
+        <div class="search-field search-field-last">
+          <label class="search-label" for="transmision">TRANSMISIÓN</label>
+          <div class="search-row-last">
+            <div class="search-input-wrapper flex-1">
+              <span class="material-icons" aria-hidden="true">settings</span>
+              <select id="transmision"
+                [value]="criterios().transmision"
+                (change)="setCriterio('transmision', $any($event.target).value)">
+                <option value="">Cualquiera</option>
+                <option value="AUTOMATICA">Automática</option>
+                <option value="MANUAL">Manual</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-buscar" aria-label="Buscar vehículos">
+              <span class="material-icons" aria-hidden="true">search</span>
+            </button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Contenido principal -->
+<main class="main-content">
+
+  <!-- Encabezado de resultados -->
+  <div class="results-header">
+    <div class="results-info">
+      <h1 class="results-title">
+        @if (totalResultados() === 0) {
+          Sin resultados
+        } @else {
+          {{ totalResultados() }} vehículo{{ totalResultados() !== 1 ? 's' : '' }} disponible{{ totalResultados() !== 1 ? 's' : '' }}
+        }
+      </h1>
+      @if (criterios().idLocalizacionRecogida) {
+        <p class="results-subtitle">
+          <span class="material-icons" aria-hidden="true">location_on</span>
+          {{ nombreLocalizacion(criterios().idLocalizacionRecogida) }}
+          @if (criterios().idLocalizacionDevolucion && criterios().idLocalizacionDevolucion !== criterios().idLocalizacionRecogida) {
+            <span class="route-arrow">→</span>
+            {{ nombreLocalizacion(criterios().idLocalizacionDevolucion) }}
+          }
+        </p>
+      }
+    </div>
+
+    @if (totalResultados() > 0) {
+      <div class="results-badge">
+        <span class="material-icons" aria-hidden="true">check_circle</span>
+        Disponibles ahora
+      </div>
+    }
+  </div>
+
+  <!-- Estado vacío -->
+  @if (totalResultados() === 0) {
+    <div class="empty-state" role="status">
+      <div class="empty-icon">
+        <span class="material-icons" aria-hidden="true">directions_car_filled</span>
+      </div>
+      <h2>No encontramos vehículos</h2>
+      <p>Intenta cambiar los filtros de búsqueda o la sucursal seleccionada.</p>
+    </div>
+  } @else {
+
+    <!-- Grid de tarjetas -->
+    <div class="cars-grid" role="list">
+      @for (vehiculo of paginaResultados(); track vehiculo.idVehiculo) {
+        <article class="car-card" role="listitem"
+          [attr.aria-label]="vehiculo.marca + ' ' + vehiculo.modelo">
+
+          <!-- Header: categoría + badge -->
+          <div class="car-card-header">
+            <div class="car-brand-section">
+              <div class="car-brand-icon" aria-hidden="true">
+                <span class="material-icons">directions_car</span>
+              </div>
+              <div class="car-brand-info">
+                <div class="car-brand-name">{{ vehiculo.marca }}</div>
+                <div class="car-model-year">{{ vehiculo.modelo }} · {{ vehiculo.anio }}</div>
+              </div>
+            </div>
+            <div class="car-category-badge">{{ vehiculo.categoria.nombre }}</div>
+          </div>
+
+          <!-- Imagen -->
+          <div class="car-image-wrapper" aria-hidden="true">
+            <img [src]="vehiculo.imagenUrl"
+              [alt]="vehiculo.marca + ' ' + vehiculo.modelo"
+              class="car-image"
+              loading="lazy"
+              onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80'" />
+            <div class="car-image-overlay">
+              <div class="car-location-tag">
+                <span class="material-icons" aria-hidden="true">location_on</span>
+                {{ vehiculo.localizacion.nombre }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Specs rápidas -->
+          <div class="car-specs">
+            <div class="spec-item">
+              <span class="material-icons spec-icon" aria-hidden="true">people</span>
+              <span class="spec-text">{{ vehiculo.capacidadPasajeros }} pax</span>
+            </div>
+            <div class="spec-item">
+              <span class="material-icons spec-icon" aria-hidden="true">work</span>
+              <span class="spec-text">{{ vehiculo.capacidadMaletas }} maletas</span>
+            </div>
+            <div class="spec-item">
+              <span class="material-icons spec-icon" aria-hidden="true">settings</span>
+              <span class="spec-text">{{ vehiculo.transmision === 'AUTOMATICA' ? 'Auto' : 'Manual' }}</span>
+            </div>
+            <div class="spec-item">
+              <span class="material-icons spec-icon" aria-hidden="true">{{ getFuelIcon(vehiculo.combustible) }}</span>
+              <span class="spec-text">{{ vehiculo.combustible | titlecase }}</span>
+            </div>
+            @if (vehiculo.aireAcondicionado) {
+              <div class="spec-item spec-ac">
+                <span class="material-icons spec-icon" aria-hidden="true">ac_unit</span>
+                <span class="spec-text">A/C</span>
+              </div>
+            }
+          </div>
+
+          <!-- Separador perforado -->
+          <div class="car-divider" aria-hidden="true">
+            <div class="divider-notch divider-notch-left"></div>
+            <div class="divider-line"></div>
+            <div class="divider-notch divider-notch-right"></div>
+          </div>
+
+          <!-- Footer: precio + acciones -->
+          <div class="car-card-footer">
+            <div class="price-section">
+              <div class="price-label">DESDE</div>
+              <div class="price">
+                ${{ vehiculo.precio.precioBaseDia | number:'1.2-2' }}
+              </div>
+              <div class="price-per-day">por día · Total ${{ vehiculo.precio.total | number:'1.2-2' }}</div>
+            </div>
+            <div class="card-actions">
+              <button class="btn-details"
+                [class.expanded]="estaExpandido(vehiculo.idVehiculo)"
+                (click)="verDetalle(vehiculo, $event)"
+                [attr.aria-label]="'Ver detalle de ' + vehiculo.marca + ' ' + vehiculo.modelo">
+                <span class="material-icons" aria-hidden="true">visibility</span>
+                Detalle
+              </button>
+              <button class="btn-reserve"
+                (click)="reservar(vehiculo, $event)"
+                [attr.aria-label]="'Reservar ' + vehiculo.marca + ' ' + vehiculo.modelo">
+                Reservar
+              </button>
+            </div>
+          </div>
+
+        </article>
+      }
+    </div>
+
+    <!-- Paginación -->
+    @if (totalPaginas() > 1) {
+      <nav class="pagination" aria-label="Paginación de resultados">
+        <button class="pagination-btn" [disabled]="paginaActual() === 1"
+          (click)="cambiarPagina(paginaActual() - 1)" aria-label="Página anterior">
+          <span class="material-icons" aria-hidden="true">chevron_left</span>
+        </button>
+
+        @for (p of paginas(); track $index) {
+          @if (p === '...') {
+            <span class="pagination-ellipsis">...</span>
+          } @else {
+            <button class="pagination-btn" [class.active]="paginaActual() === p"
+              (click)="cambiarPagina(p)"
+              [attr.aria-current]="paginaActual() === p ? 'page' : null"
+              [attr.aria-label]="'Página ' + p">
+              {{ p }}
+            </button>
+          }
+        }
+
+        <button class="pagination-btn" [disabled]="paginaActual() >= totalPaginas()"
+          (click)="cambiarPagina(paginaActual() + 1)" aria-label="Página siguiente">
+          <span class="material-icons" aria-hidden="true">chevron_right</span>
+        </button>
+      </nav>
+    }
+
+  }
+</main>
+
+<app-footer></app-footer>
