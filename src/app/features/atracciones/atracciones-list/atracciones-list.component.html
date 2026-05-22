@@ -1,0 +1,404 @@
+<app-navbar></app-navbar>
+
+<!-- ══════════════════════════════════════
+     HERO BANNER CON BUSCADOR
+══════════════════════════════════════ -->
+<header class="search-hero-banner" role="banner">
+  <div class="search-hero-overlay"></div>
+  <div class="search-hero-container">
+    <span class="hero-eyebrow">
+      <span class="material-icons">explore</span> Experiencias Pooking
+    </span>
+    <h1 class="search-hero-title">Explora experiencias inolvidables</h1>
+    <p class="search-hero-subtitle">
+      Tours, museos y aventuras para tu próximo viaje.
+    </p>
+
+    <div class="active-search-bar" role="form" aria-label="Buscar atracciones">
+      <div class="asb-row asb-row-main">
+
+        <!-- Destino / ciudad -->
+        <div class="asb-field asb-field-destino">
+          <label class="seg-label" for="atr-destino">Destino o ciudad</label>
+          <div class="asb-input-wrap">
+            <span class="material-icons asb-ico">place</span>
+            <input
+              type="text"
+              id="atr-destino"
+              class="seg-input"
+              [(ngModel)]="busqueda.ciudad"
+              placeholder="¿Dónde quieres explorar?"
+            />
+          </div>
+        </div>
+
+        <!-- Fecha -->
+        <div class="asb-field asb-field-date">
+          <label class="seg-label" for="atr-fecha">Fecha de la experiencia</label>
+          <div class="asb-input-wrap" [class.asb-input-error]="errorFecha">
+            <span class="material-icons asb-ico">calendar_today</span>
+            <input
+              type="date"
+              id="atr-fecha"
+              class="seg-input"
+              [(ngModel)]="busqueda.fecha"
+              [min]="today"
+              (ngModelChange)="onFechaChange()"
+            />
+          </div>
+          @if (errorFecha) {
+            <small class="asb-field-error">{{ errorFecha }}</small>
+          }
+        </div>
+
+        <!-- Tipo de atracción -->
+        <div class="asb-field asb-field-tipo">
+          <label class="seg-label" for="atr-tipo">Tipo de atracción</label>
+          <div class="asb-input-wrap">
+            <span class="material-icons asb-ico">category</span>
+            <select id="atr-tipo" class="seg-input seg-select" [(ngModel)]="busqueda.tipo">
+              <option value="">Todas las experiencias</option>
+              @for (c of categoriasFiltro; track c.tagname) {
+                <option [value]="c.tagname">{{ c.nombre }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!-- Botón Buscar -->
+        <div class="asb-btn-wrap">
+          <button class="btn-modify-search" (click)="buscar()" aria-label="Buscar atracciones">
+            <span class="material-icons">search</span>
+            <span>Buscar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════
+     BARRA DE RESUMEN Y ORDENAMIENTO
+══════════════════════════════════════ -->
+<section class="results-bar" aria-label="Resumen y ordenación">
+  <div class="rb-left">
+    <div class="results-title">
+      <strong>{{ totalResultados() }} atracci{{ totalResultados() === 1 ? 'ón' : 'ones' }}</strong>
+      disponible{{ totalResultados() === 1 ? '' : 's' }}
+      <span *ngIf="criterioCiudad()"> en <em>{{ criterioCiudad() }}</em></span>
+    </div>
+    <p class="rb-subtitle">
+      <span class="material-icons">local_activity</span>
+      Tours, museos y actividades seleccionadas para ti
+    </p>
+  </div>
+
+  <div class="rb-right">
+    <label class="sort-label" for="atr-sort">Ordenar por:</label>
+    <div class="sort-select-wrapper">
+      <select
+        class="sort-sel"
+        id="atr-sort"
+        [ngModel]="ordenamiento()"
+        (ngModelChange)="ordenamiento.set($event)"
+        aria-label="Ordenar atracciones"
+      >
+        <option value="recomendados">Recomendados</option>
+        <option value="trending">Más populares</option>
+        <option value="lowest_price">Menor precio</option>
+        <option value="highest_weighted_rating">Mejor calificación</option>
+      </select>
+      <span class="material-icons select-chevron">expand_more</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     BODY: SIDEBAR + RESULTADOS
+══════════════════════════════════════ -->
+<div class="page-body">
+
+  <!-- ── PANEL LATERAL DE FILTROS ── -->
+  <aside class="sidebar" aria-label="Filtros de atracciones">
+
+    <div class="sidebar-head">
+      <span class="material-icons">tune</span>
+      <span>Afina tu experiencia</span>
+    </div>
+
+    <!-- Categoría / tipo -->
+    <section class="filter-section filter-group">
+      <h3 class="section-title">
+        <span class="material-icons sec-ico">category</span> Categoría
+      </h3>
+      @for (c of categoriasFiltro; track c.tagname) {
+        <label class="fcheck">
+          <input
+            type="checkbox"
+            [checked]="filtroCategorias()[c.tagname]"
+            (change)="toggleCategoria(c.tagname)"
+            [attr.aria-label]="c.nombre"
+          />
+          <span class="fc-label">
+            <span class="material-icons fc-ico">{{ c.icon }}</span>
+            {{ c.nombre }}
+          </span>
+        </label>
+      }
+    </section>
+
+    <!-- Etiquetas -->
+    <section class="filter-section filter-group">
+      <h3 class="section-title">
+        <span class="material-icons sec-ico">sell</span> Etiquetas
+      </h3>
+      @for (et of etiquetasFiltro; track et.tagname) {
+        <label class="fcheck">
+          <input
+            type="checkbox"
+            [checked]="filtroEtiquetas()[et.tagname]"
+            (change)="toggleEtiqueta(et.tagname)"
+            [attr.aria-label]="et.label"
+          />
+          <span class="fc-label">
+            <span class="material-icons fc-ico">{{ et.icon }}</span>
+            {{ et.label }}
+          </span>
+        </label>
+      }
+    </section>
+
+    <!-- Calificación mínima -->
+    <section class="filter-section filter-group">
+      <h3 class="section-title">
+        <span class="material-icons sec-ico">star</span> Calificación mínima
+      </h3>
+      @for (cal of calificacionesFiltro; track cal) {
+        <label class="fcheck">
+          <input
+            type="checkbox"
+            [checked]="filtroCalificacionMin() === cal"
+            (change)="setCalificacionMin(cal)"
+            [attr.aria-label]="cal + ' o más'"
+          />
+          <span class="fc-label">
+            <span class="material-icons star-ico">star</span>
+            {{ cal }} o más
+          </span>
+        </label>
+      }
+    </section>
+
+    <!-- Horario -->
+    <section class="filter-section filter-group">
+      <h3 class="section-title">
+        <span class="material-icons sec-ico">schedule</span> Horario
+      </h3>
+      @for (h of horariosFiltro; track h.tag) {
+        <label class="fcheck">
+          <input
+            type="checkbox"
+            [checked]="filtroHorarios()[h.tag]"
+            (change)="toggleHorario(h.tag)"
+            [attr.aria-label]="h.label"
+          />
+          <span class="fc-label">
+            <span class="material-icons fc-ico">{{ h.icon }}</span>
+            {{ h.label }}
+            <span class="fc-hint">{{ h.tag }}</span>
+          </span>
+        </label>
+      }
+    </section>
+
+    <!-- Idiomas -->
+    <section class="filter-section filter-group">
+      <h3 class="section-title">
+        <span class="material-icons sec-ico">translate</span> Idiomas
+      </h3>
+      @for (idi of idiomasDisponibles(); track idi) {
+        <label class="fcheck">
+          <input
+            type="checkbox"
+            [checked]="filtroIdiomas()[idi]"
+            (change)="toggleIdioma(idi)"
+            [attr.aria-label]="idiomaLabel(idi)"
+          />
+          <span class="fc-label">
+            <span class="material-icons fc-ico">language</span>
+            {{ idiomaLabel(idi) }}
+          </span>
+        </label>
+      }
+    </section>
+
+    <!-- Disponibilidad -->
+    <section class="filter-section filter-group">
+      <h3 class="section-title">
+        <span class="material-icons sec-ico">event_available</span> Disponibilidad
+      </h3>
+      <label class="fcheck">
+        <input
+          type="checkbox"
+          [checked]="soloDisponibles()"
+          (change)="soloDisponibles.set(!soloDisponibles())"
+          aria-label="Solo disponibles"
+        />
+        <span class="fc-label">
+          <span class="material-icons fc-ico">check_circle</span>
+          Solo disponibles
+        </span>
+      </label>
+    </section>
+
+    @if (hayFiltrosActivos) {
+      <button class="btn-clear" (click)="limpiarFiltros()">Limpiar filtros</button>
+    }
+  </aside>
+
+  <!-- ── LISTADO DE ATRACCIONES ── -->
+  <main class="results-area" aria-label="Resultados de atracciones">
+
+    @if (totalResultados() === 0) {
+      <div class="no-results" role="alert">
+        <span class="material-icons no-results-icon">travel_explore</span>
+        <h3>No encontramos experiencias</h3>
+        <p>
+          Ninguna atracción coincide con la combinación de búsqueda y filtros
+          seleccionada. Prueba ampliando la categoría, el horario o el destino.
+        </p>
+        <button class="btn-clear-filters-state" (click)="limpiarFiltros()">
+          Restaurar filtros
+        </button>
+      </div>
+    } @else {
+
+      @for (atr of atraccionesFiltradas(); track atr.id) {
+        <article class="atraccion-card">
+
+          <!-- Columna de imagen -->
+          <div class="ac-img">
+            <img [src]="atr.imagen_principal" [alt]="atr.nombre" loading="lazy" />
+            <span class="ac-badge-tipo">
+              <span class="material-icons">local_activity</span>
+              {{ atr.tipo_nombre }}
+            </span>
+            @if (atr.disponibilidad.disponible) {
+              <span class="ac-badge-disp disponible">
+                <span class="material-icons">check_circle</span> Disponible
+              </span>
+            } @else {
+              <span class="ac-badge-disp no-disponible">
+                <span class="material-icons">event_busy</span> Sin cupos
+              </span>
+            }
+          </div>
+
+          <!-- Columna de información -->
+          <div class="ac-info">
+            <div class="ac-top">
+              <h2 class="ac-name">{{ atr.nombre }}</h2>
+              <span class="ac-cat">{{ atr.subtipo_nombre }}</span>
+            </div>
+
+            <div class="ac-loc">
+              <span class="material-icons pin-icon">location_on</span>
+              <span>{{ atr.ciudad }}, {{ atr.pais }}</span>
+            </div>
+
+            <p class="ac-desc">{{ atr.descripcion_corta }}</p>
+
+            <!-- Ficha rápida de la experiencia -->
+            <div class="ac-meta">
+              <div class="ac-meta-item">
+                <span class="material-icons meta-icon">schedule</span>
+                <span>{{ formatearDuracion(atr.duracion_minutos) }}</span>
+              </div>
+              <div class="ac-meta-item">
+                <span class="material-icons meta-icon">star</span>
+                <span><strong>{{ atr.calificacion }}</strong> ({{ atr.total_resenas }} reseñas)</span>
+              </div>
+              <div class="ac-meta-item">
+                <span class="material-icons meta-icon">confirmation_number</span>
+                <span><strong>{{ atr.disponibilidad.cupos_disponibles }}</strong> cupos</span>
+              </div>
+              <div class="ac-meta-item">
+                <span class="material-icons meta-icon">translate</span>
+                <span>{{ atr.idiomas_disponibles.length }} idioma(s)</span>
+              </div>
+            </div>
+
+            <!-- Chips: etiquetas + idiomas -->
+            <div class="ac-chips">
+              @for (et of atr.etiquetas; track et) {
+                <span class="chip chip-etiqueta">
+                  <span class="material-icons chip-icon">sell</span>
+                  {{ etiquetaLabel(et) }}
+                </span>
+              }
+              @for (idi of atr.idiomas_disponibles; track idi) {
+                <span class="chip chip-idioma">
+                  <span class="material-icons chip-icon">translate</span>
+                  {{ idiomaLabel(idi) }}
+                </span>
+              }
+            </div>
+
+            <!-- Estado de disponibilidad -->
+            <p class="ac-disp-info" [class.no-disponible]="!atr.disponibilidad.disponible">
+              @if (atr.disponibilidad.disponible_hoy) {
+                <span class="material-icons">today</span>
+                Disponible hoy · {{ atr.disponibilidad.cupos_disponibles }} cupos restantes
+              } @else if (atr.disponibilidad.disponible) {
+                <span class="material-icons">event_available</span>
+                Próxima fecha disponible: {{ atr.disponibilidad.proxima_fecha_disponible }}
+              } @else {
+                <span class="material-icons">event_busy</span>
+                Sin disponibilidad por el momento
+              }
+            </p>
+
+            <!-- Pie de tarjeta -->
+            <div class="ac-footer">
+              <div class="ac-rating">
+                <span class="rating-num">{{ atr.calificacion | number: '1.1-1' }}</span>
+                <div class="rating-details">
+                  <span class="rating-label">Calificación</span>
+                  <span class="rating-count">{{ atr.total_resenas }} reseñas</span>
+                </div>
+              </div>
+
+              <div class="ac-actions-block">
+                <div class="ac-price-block">
+                  <span class="desde">desde</span>
+                  <span class="price">
+                    <span class="dollar-sign">$</span>
+                    <span class="price-val">{{ atr.precio_desde | number: '1.2-2' }}</span>
+                    <span class="currency">{{ atr.moneda }}</span>
+                  </span>
+                  <span class="por-persona">por persona</span>
+                </div>
+
+                <div class="ac-buttons">
+                  <button class="btn-detalle" (click)="verDetalle(atr)">
+                    Ver detalle
+                  </button>
+                  <button
+                    class="btn-ver"
+                    [disabled]="!atr.disponibilidad.disponible"
+                    (click)="seleccionar(atr)"
+                  >
+                    <span>Seleccionar</span>
+                    <span class="material-icons arrow-btn">arrow_forward</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      }
+    }
+  </main>
+</div>
+
+<app-footer></app-footer>
