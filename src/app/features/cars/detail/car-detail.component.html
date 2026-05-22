@@ -1,0 +1,194 @@
+<app-navbar></app-navbar>
+
+@if (!vehiculo()) {
+  <div class="loading-state">
+    <div class="spinner"></div>
+  </div>
+} @else {
+
+<section class="detail-hero" aria-label="Detalle del vehículo">
+  <!-- Imagen de fondo -->
+  <div class="detail-hero-bg">
+    <img [src]="vehiculo()!.imagenUrl"
+      [alt]="vehiculo()!.marca + ' ' + vehiculo()!.modelo"
+      class="hero-bg-img"
+      onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=1200&q=80'" />
+    <div class="hero-bg-overlay"></div>
+  </div>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-wrap">
+    <button class="back-btn" (click)="goBack()" aria-label="Volver al listado">
+      <span class="material-icons" aria-hidden="true">arrow_back</span>
+      Volver
+    </button>
+    <nav class="breadcrumb" aria-label="Ruta de navegación">
+      <span>Autos</span>
+      <span class="material-icons" aria-hidden="true">chevron_right</span>
+      <span>{{ vehiculo()!.categoria.nombre }}</span>
+      <span class="material-icons" aria-hidden="true">chevron_right</span>
+      <span class="breadcrumb-current">{{ vehiculo()!.marca }} {{ vehiculo()!.modelo }}</span>
+    </nav>
+  </div>
+
+  <!-- Info superpuesta -->
+  <div class="hero-info">
+    <div class="hero-badges">
+      <span class="badge-cat">{{ vehiculo()!.categoria.nombre }}</span>
+      <span class="badge-trans">{{ vehiculo()!.transmision === 'AUTOMATICA' ? 'Automática' : 'Manual' }}</span>
+      <span class="badge-fuel">{{ vehiculo()!.combustible | titlecase }}</span>
+    </div>
+    <h1 class="hero-car-title">
+      {{ vehiculo()!.marca }} <span class="hero-car-model">{{ vehiculo()!.modelo }}</span>
+    </h1>
+    <p class="hero-car-year">{{ vehiculo()!.anio }} · {{ vehiculo()!.color }}</p>
+  </div>
+</section>
+
+<!-- Layout principal -->
+<div class="detail-layout">
+
+  <!-- Columna izquierda: specs + extras -->
+  <div class="detail-main">
+
+    <!-- Localización -->
+    <div class="info-card location-card">
+      <div class="info-card-header">
+        <span class="material-icons" aria-hidden="true">storefront</span>
+        <h2>Punto de recogida</h2>
+      </div>
+      <div class="location-grid">
+        <div class="location-item">
+          <span class="material-icons" aria-hidden="true">location_on</span>
+          <div>
+            <div class="location-name">{{ vehiculo()!.localizacion.nombre }}</div>
+            <div class="location-address">{{ vehiculo()!.localizacion.direccion }}</div>
+          </div>
+        </div>
+        <div class="location-item">
+          <span class="material-icons" aria-hidden="true">schedule</span>
+          <div>
+            <div class="location-name">Horario</div>
+            <div class="location-address">{{ vehiculo()!.localizacion.horarioAtencion }}</div>
+          </div>
+        </div>
+        <div class="location-item">
+          <span class="material-icons" aria-hidden="true">phone</span>
+          <div>
+            <div class="location-name">Teléfono</div>
+            <div class="location-address">{{ vehiculo()!.localizacion.telefono }}</div>
+          </div>
+        </div>
+        <div class="location-item">
+          <span class="material-icons" aria-hidden="true">email</span>
+          <div>
+            <div class="location-name">Correo</div>
+            <div class="location-address">{{ vehiculo()!.localizacion.correo }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Especificaciones técnicas -->
+    <div class="info-card">
+      <div class="info-card-header">
+        <span class="material-icons" aria-hidden="true">tune</span>
+        <h2>Especificaciones técnicas</h2>
+      </div>
+      <div class="specs-grid">
+        @for (spec of specs(); track spec.label) {
+          <div class="spec-card">
+            <div class="spec-card-icon">
+              <span class="material-icons" aria-hidden="true">{{ spec.icon }}</span>
+            </div>
+            <div class="spec-card-info">
+              <div class="spec-card-label">{{ spec.label }}</div>
+              <div class="spec-card-value">{{ spec.value }}</div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Extras disponibles -->
+    <div class="info-card">
+      <div class="info-card-header">
+        <span class="material-icons" aria-hidden="true">add_circle</span>
+        <h2>Extras disponibles</h2>
+      </div>
+      <p class="extras-hint">Los extras se seleccionan al momento de la reserva.</p>
+      <div class="extras-preview-grid">
+        @for (extra of extras; track extra.idExtra) {
+          <div class="extra-preview-card">
+            <div class="extra-preview-icon">
+              <span class="material-icons" aria-hidden="true">{{ extra.icono }}</span>
+            </div>
+            <div class="extra-preview-info">
+              <div class="extra-preview-name">{{ extra.nombre }}</div>
+              <div class="extra-preview-desc">{{ extra.descripcion }}</div>
+            </div>
+            <div class="extra-preview-price">${{ extra.valorFijo | number:'1.2-2' }}/día</div>
+          </div>
+        }
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Columna derecha: precio sticky -->
+  <aside class="detail-sidebar">
+    <div class="price-sticky-card">
+      <div class="price-sticky-header">
+        <span class="material-icons" aria-hidden="true">sell</span>
+        <span>Precio estimado</span>
+      </div>
+
+      <div class="price-breakdown">
+        <div class="price-row">
+          <span class="price-row-label">Precio por día</span>
+          <span class="price-row-value">${{ vehiculo()!.precio.precioBaseDia | number:'1.2-2' }}</span>
+        </div>
+        <div class="price-row">
+          <span class="price-row-label">Días estimados</span>
+          <span class="price-row-value">{{ vehiculo()!.disponibilidad.cantidadDias }}</span>
+        </div>
+        <div class="price-row">
+          <span class="price-row-label">Subtotal vehículo</span>
+          <span class="price-row-value">${{ vehiculo()!.precio.subtotalVehiculo | number:'1.2-2' }}</span>
+        </div>
+        <div class="price-row price-row-iva">
+          <span class="price-row-label">IVA (15%)</span>
+          <span class="price-row-value">${{ vehiculo()!.precio.iva | number:'1.2-2' }}</span>
+        </div>
+        <div class="price-divider"></div>
+        <div class="price-row price-row-total">
+          <span class="price-row-label-total">Total estimado</span>
+          <span class="price-row-value-total">${{ vehiculo()!.precio.total | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="avail-badge">
+        <span class="material-icons" aria-hidden="true">check_circle</span>
+        Disponible ahora
+      </div>
+
+      <button class="btn-reserve-main" (click)="reservar()" aria-label="Reservar este vehículo">
+        <span class="material-icons" aria-hidden="true">directions_car</span>
+        Reservar ahora
+      </button>
+
+      <p class="reserve-note">Sin cargos por cancelación hasta 48h antes.</p>
+
+      <!-- Código interno -->
+      <div class="vehicle-code">
+        <span class="material-icons" aria-hidden="true">tag</span>
+        {{ vehiculo()!.codigoInterno }}
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+}
+
+<app-footer></app-footer>
