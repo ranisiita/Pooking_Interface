@@ -1,0 +1,530 @@
+<app-navbar></app-navbar>
+
+<div class="checkout-page-bg" aria-hidden="true"></div>
+
+<!-- Loading -->
+@if (loading()) {
+  <div class="overlay-center">
+    <div class="spinner"></div>
+  </div>
+}
+
+<!-- Error -->
+@if (!loading() && error()) {
+  <div class="overlay-center">
+    <div class="error-card">
+      <span class="material-icons error-icon" aria-hidden="true">error_outline</span>
+      <h2>Error</h2>
+      <p>{{ error() }}</p>
+      <button class="btn btn-primary" (click)="cancelar()">
+        <span class="material-icons" aria-hidden="true">search</span>
+        Volver a buscar
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Checkout -->
+@if (!loading() && !error() && vehiculo()) {
+  <div class="checkout-wrapper">
+
+    <!-- ── Stepper ── -->
+    <div class="stepper-rail" aria-label="Progreso de la reserva" role="navigation">
+      <div class="stepper-inner">
+        <!-- Paso 1 -->
+        <div class="step" [class.active]="paso() === 1" [class.done]="paso() > 1">
+          <div class="step-circle" aria-hidden="true">
+            @if (paso() > 1) {
+              <span class="material-icons">check</span>
+            } @else {
+              <span>1</span>
+            }
+          </div>
+          <div class="step-label">Extras</div>
+        </div>
+        <div class="step-line" [class.done]="paso() > 1" aria-hidden="true"></div>
+        <!-- Paso 2 -->
+        <div class="step" [class.active]="paso() === 2" [class.done]="paso() > 2">
+          <div class="step-circle" aria-hidden="true">
+            @if (paso() > 2) {
+              <span class="material-icons">check</span>
+            } @else {
+              <span>2</span>
+            }
+          </div>
+          <div class="step-label">Conductor</div>
+        </div>
+        <div class="step-line" [class.done]="paso() > 2" aria-hidden="true"></div>
+        <!-- Paso 3 -->
+        <div class="step" [class.active]="paso() === 3">
+          <div class="step-circle" aria-hidden="true"><span>3</span></div>
+          <div class="step-label">Confirmación</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layout: main + sidebar -->
+    <div class="checkout-layout">
+
+      <!-- ════════════ PASO 1: EXTRAS ════════════ -->
+      @if (paso() === 1) {
+        <div class="checkout-main" role="main">
+
+          <!-- Resumen del auto -->
+          <div class="vehicle-summary-card">
+            <img [src]="vehiculo()!.imagenUrl"
+              [alt]="vehiculo()!.marca + ' ' + vehiculo()!.modelo"
+              class="vehicle-summary-img"
+              onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&q=80'" />
+            <div class="vehicle-summary-info">
+              <div class="vehicle-summary-cat">{{ vehiculo()!.categoria.nombre }}</div>
+              <div class="vehicle-summary-name">{{ vehiculo()!.marca }} {{ vehiculo()!.modelo }}</div>
+              <div class="vehicle-summary-meta">
+                <span><span class="material-icons" aria-hidden="true">location_on</span> {{ vehiculo()!.localizacion.nombre }}</span>
+                <span><span class="material-icons" aria-hidden="true">calendar_today</span> {{ cantidadDias() }} días</span>
+              </div>
+            </div>
+          </div>
+
+          <h1 class="step-title">Elige tus extras</h1>
+          <p class="step-description">Personaliza tu experiencia agregando servicios adicionales.</p>
+
+          <div class="extras-list">
+            @for (item of extrasSeleccionados(); track item.extra.idExtra; let idx = $index) {
+              <div class="extra-item" [class.selected]="item.cantidad > 0">
+                <div class="extra-item-icon">
+                  <span class="material-icons" aria-hidden="true">{{ item.extra.icono }}</span>
+                </div>
+                <div class="extra-item-info">
+                  <div class="extra-item-name">{{ item.extra.nombre }}</div>
+                  <div class="extra-item-desc">{{ item.extra.descripcion }}</div>
+                  <div class="extra-item-price">${{ item.extra.valorFijo | number:'1.2-2' }} por día</div>
+                </div>
+                <div class="extra-item-qty">
+                  <button class="qty-btn" (click)="setCantidad(idx, -1)"
+                    [disabled]="item.cantidad === 0"
+                    [attr.aria-label]="'Quitar ' + item.extra.nombre">
+                    <span class="material-icons" aria-hidden="true">remove</span>
+                  </button>
+                  <span class="qty-value" [class.qty-active]="item.cantidad > 0">
+                    {{ item.cantidad }}
+                  </span>
+                  <button class="qty-btn" (click)="setCantidad(idx, 1)"
+                    [attr.aria-label]="'Agregar ' + item.extra.nombre">
+                    <span class="material-icons" aria-hidden="true">add</span>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="step-actions">
+            <button class="btn btn-secondary" (click)="cancelar()">Cancelar</button>
+            <button class="btn btn-primary" (click)="continuarAPaso2()">
+              Continuar
+              <span class="material-icons" aria-hidden="true">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- ════════════ PASO 2: CONDUCTOR ════════════ -->
+      @if (paso() === 2) {
+        <div class="checkout-main" role="main">
+
+          <h1 class="step-title">Datos del conductor</h1>
+          <p class="step-description">Ingresa los datos del conductor principal del vehículo.</p>
+
+          <form class="conductor-form" (ngSubmit)="continuarAPaso3()" novalidate>
+
+            <!-- Nombre + Apellidos -->
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label" for="nombres">NOMBRES <span class="required">*</span></label>
+                <div class="input-wrap" [class.input-error]="erroresConductor['nombres']">
+                  <span class="material-icons" aria-hidden="true">person</span>
+                  <input id="nombres" type="text" [(ngModel)]="conductor.nombres" name="nombres"
+                    placeholder="Nombres completos" />
+                </div>
+                @if (erroresConductor['nombres']) {
+                  <div class="field-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error_outline</span>
+                    {{ erroresConductor['nombres'] }}
+                  </div>
+                }
+              </div>
+
+              <div class="form-field">
+                <label class="field-label" for="apellidos">APELLIDOS <span class="required">*</span></label>
+                <div class="input-wrap" [class.input-error]="erroresConductor['apellidos']">
+                  <span class="material-icons" aria-hidden="true">badge</span>
+                  <input id="apellidos" type="text" [(ngModel)]="conductor.apellidos" name="apellidos"
+                    placeholder="Apellidos completos" />
+                </div>
+                @if (erroresConductor['apellidos']) {
+                  <div class="field-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error_outline</span>
+                    {{ erroresConductor['apellidos'] }}
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Tipo + Número ID -->
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label" for="tipo-id">TIPO DE IDENTIFICACIÓN <span class="required">*</span></label>
+                <div class="input-wrap">
+                  <span class="material-icons" aria-hidden="true">perm_identity</span>
+                  <select id="tipo-id" [(ngModel)]="conductor.tipoIdentificacion" name="tipoIdentificacion">
+                    <option value="CEDULA">Cédula</option>
+                    <option value="PASAPORTE">Pasaporte</option>
+                    <option value="RUC">RUC</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label class="field-label" for="num-id">NÚMERO DE IDENTIFICACIÓN <span class="required">*</span></label>
+                <div class="input-wrap" [class.input-error]="erroresConductor['numeroIdentificacion']">
+                  <span class="material-icons" aria-hidden="true">tag</span>
+                  <input id="num-id" type="text" [(ngModel)]="conductor.numeroIdentificacion" name="numeroIdentificacion"
+                    placeholder="Ej: 1712345678" />
+                </div>
+                @if (erroresConductor['numeroIdentificacion']) {
+                  <div class="field-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error_outline</span>
+                    {{ erroresConductor['numeroIdentificacion'] }}
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Fecha licencia + Edad -->
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label" for="venc-licencia">VENCIMIENTO LICENCIA <span class="required">*</span></label>
+                <div class="input-wrap" [class.input-error]="erroresConductor['fechaVencimientoLicencia']">
+                  <span class="material-icons" aria-hidden="true">credit_card</span>
+                  <input id="venc-licencia" type="date" style="color-scheme:light"
+                    [(ngModel)]="conductor.fechaVencimientoLicencia" name="fechaVencimientoLicencia" />
+                </div>
+                @if (erroresConductor['fechaVencimientoLicencia']) {
+                  <div class="field-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error_outline</span>
+                    {{ erroresConductor['fechaVencimientoLicencia'] }}
+                  </div>
+                }
+              </div>
+
+              <div class="form-field">
+                <label class="field-label" for="edad">EDAD <span class="required">*</span></label>
+                <div class="input-wrap" [class.input-error]="erroresConductor['edadConductor']">
+                  <span class="material-icons" aria-hidden="true">cake</span>
+                  <input id="edad" type="number" min="18" max="100"
+                    [(ngModel)]="conductor.edadConductor" name="edadConductor"
+                    placeholder="Ej: 28" />
+                </div>
+                @if (erroresConductor['edadConductor']) {
+                  <div class="field-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error_outline</span>
+                    {{ erroresConductor['edadConductor'] }}
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Correo + Teléfono -->
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label" for="correo">CORREO <span class="required">*</span></label>
+                <div class="input-wrap" [class.input-error]="erroresConductor['correo']">
+                  <span class="material-icons" aria-hidden="true">email</span>
+                  <input id="correo" type="email" [(ngModel)]="conductor.correo" name="correo"
+                    placeholder="correo@ejemplo.com" />
+                </div>
+                @if (erroresConductor['correo']) {
+                  <div class="field-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error_outline</span>
+                    {{ erroresConductor['correo'] }}
+                  </div>
+                }
+              </div>
+
+              <div class="form-field">
+                <label class="field-label" for="telefono">TELÉFONO <span class="required">*</span></label>
+                <div class="input-wrap" [class.input-error]="erroresConductor['telefono']">
+                  <span class="material-icons" aria-hidden="true">phone</span>
+                  <input id="telefono" type="tel" [(ngModel)]="conductor.telefono" name="telefono"
+                    placeholder="0991234567" />
+                </div>
+                @if (erroresConductor['telefono']) {
+                  <div class="field-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error_outline</span>
+                    {{ erroresConductor['telefono'] }}
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Devolución -->
+            <div class="form-field form-field-full">
+              <label class="field-label" for="loc-dev-chk">LUGAR DE DEVOLUCIÓN</label>
+              <div class="input-wrap">
+                <span class="material-icons" aria-hidden="true">location_off</span>
+                <select id="loc-dev-chk"
+                  [value]="idLocalizacionDevolucion()"
+                  (change)="idLocalizacionDevolucion.set($any($event.target).value ? +$any($event.target).value : null)">
+                  <option [value]="vehiculo()!.localizacion.idLocalizacion">
+                    Misma de recogida ({{ vehiculo()!.localizacion.nombre }})
+                  </option>
+                  @for (loc of localizaciones; track loc.idLocalizacion) {
+                    @if (loc.idLocalizacion !== vehiculo()!.localizacion.idLocalizacion) {
+                      <option [value]="loc.idLocalizacion">{{ loc.nombre }}</option>
+                    }
+                  }
+                </select>
+              </div>
+            </div>
+
+            <!-- Horas -->
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label" for="hora-rec">HORA DE RECOGIDA</label>
+                <div class="input-wrap">
+                  <span class="material-icons" aria-hidden="true">schedule</span>
+                  <input id="hora-rec" type="time"
+                    [value]="horaRecogida()"
+                    (change)="horaRecogida.set($any($event.target).value)" />
+                </div>
+              </div>
+              <div class="form-field">
+                <label class="field-label" for="hora-dev">HORA DE DEVOLUCIÓN</label>
+                <div class="input-wrap">
+                  <span class="material-icons" aria-hidden="true">schedule</span>
+                  <input id="hora-dev" type="time"
+                    [value]="horaDevolucion()"
+                    (change)="horaDevolucion.set($any($event.target).value)" />
+                </div>
+              </div>
+            </div>
+
+            <div class="step-actions">
+              <button type="button" class="btn btn-secondary" (click)="volver(1)">
+                <span class="material-icons" aria-hidden="true">arrow_back</span>
+                Volver
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Revisar reserva
+                <span class="material-icons" aria-hidden="true">arrow_forward</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      <!-- ════════════ PASO 3: CONFIRMACIÓN ════════════ -->
+      @if (paso() === 3) {
+        <div class="checkout-main" role="main">
+
+          <!-- Código generado -->
+          @if (codigoReserva()) {
+            <div class="success-banner" aria-live="polite">
+              <div class="success-icon-wrap">
+                <span class="material-icons" aria-hidden="true">check_circle</span>
+              </div>
+              <div class="success-text">
+                <h1 class="success-title">¡Reserva confirmada!</h1>
+                <p class="success-subtitle">Tu código de reserva es:</p>
+                <div class="reservation-code">{{ codigoReserva() }}</div>
+                <p class="success-note">Recibirás un correo con los detalles en {{ conductor.correo || 'tu correo' }}.</p>
+              </div>
+            </div>
+
+            <div class="step-actions success-actions">
+              <button class="btn btn-secondary" (click)="cancelar()">Buscar otro auto</button>
+              <button class="btn btn-primary" (click)="irAInicio()">
+                <span class="material-icons" aria-hidden="true">home</span>
+                Ir al inicio
+              </button>
+            </div>
+          }
+
+          <!-- Resumen para confirmar (antes de procesar) -->
+          @if (!codigoReserva()) {
+            <h1 class="step-title">Revisa tu reserva</h1>
+            <p class="step-description">Confirma todos los detalles antes de finalizar.</p>
+
+            <!-- Auto -->
+            <div class="confirm-section">
+              <div class="confirm-section-header">
+                <span class="material-icons" aria-hidden="true">directions_car</span>
+                <h2>Vehículo</h2>
+                <button class="edit-link" (click)="volver(1)" aria-label="Editar vehículo">
+                  <span class="material-icons" aria-hidden="true">edit</span> Editar
+                </button>
+              </div>
+              <div class="confirm-vehicle">
+                <img [src]="vehiculo()!.imagenUrl"
+                  [alt]="vehiculo()!.marca + ' ' + vehiculo()!.modelo"
+                  class="confirm-vehicle-img"
+                  onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=300&q=80'" />
+                <div class="confirm-vehicle-info">
+                  <div class="confirm-vehicle-name">{{ vehiculo()!.marca }} {{ vehiculo()!.modelo }} {{ vehiculo()!.anio }}</div>
+                  <div class="confirm-vehicle-cat">{{ vehiculo()!.categoria.nombre }} · {{ vehiculo()!.transmision === 'AUTOMATICA' ? 'Automática' : 'Manual' }}</div>
+                  <div class="confirm-detail-row">
+                    <span class="material-icons" aria-hidden="true">location_on</span>
+                    Recogida: {{ vehiculo()!.localizacion.nombre }} — {{ horaRecogida() }}
+                  </div>
+                  @if (localizacionDevolucion()) {
+                    <div class="confirm-detail-row">
+                      <span class="material-icons" aria-hidden="true">location_off</span>
+                      Devolución: {{ localizacionDevolucion()!.nombre }} — {{ horaDevolucion() }}
+                    </div>
+                  } @else {
+                    <div class="confirm-detail-row">
+                      <span class="material-icons" aria-hidden="true">location_off</span>
+                      Devolución en misma sucursal — {{ horaDevolucion() }}
+                    </div>
+                  }
+                  <div class="confirm-detail-row">
+                    <span class="material-icons" aria-hidden="true">calendar_today</span>
+                    {{ cantidadDias() }} día{{ cantidadDias() !== 1 ? 's' : '' }} de alquiler
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Extras -->
+            @if (extrasResumen().length > 0) {
+              <div class="confirm-section">
+                <div class="confirm-section-header">
+                  <span class="material-icons" aria-hidden="true">add_circle</span>
+                  <h2>Extras seleccionados</h2>
+                  <button class="edit-link" (click)="volver(1)" aria-label="Editar extras">
+                    <span class="material-icons" aria-hidden="true">edit</span> Editar
+                  </button>
+                </div>
+                <div class="extras-confirm-list">
+                  @for (item of extrasResumen(); track item.extra.idExtra) {
+                    <div class="extra-confirm-row">
+                      <span class="material-icons extra-confirm-icon" aria-hidden="true">{{ item.extra.icono }}</span>
+                      <span class="extra-confirm-name">{{ item.extra.nombre }}</span>
+                      <span class="extra-confirm-qty">× {{ item.cantidad }}</span>
+                      <span class="extra-confirm-price">${{ (item.extra.valorFijo * item.cantidad) | number:'1.2-2' }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Conductor -->
+            <div class="confirm-section">
+              <div class="confirm-section-header">
+                <span class="material-icons" aria-hidden="true">person</span>
+                <h2>Conductor principal</h2>
+                <button class="edit-link" (click)="volver(2)" aria-label="Editar conductor">
+                  <span class="material-icons" aria-hidden="true">edit</span> Editar
+                </button>
+              </div>
+              <div class="confirm-data-grid">
+                <div class="confirm-data-item">
+                  <span class="confirm-data-label">NOMBRE</span>
+                  <span class="confirm-data-value">{{ conductor.nombres }} {{ conductor.apellidos }}</span>
+                </div>
+                <div class="confirm-data-item">
+                  <span class="confirm-data-label">IDENTIFICACIÓN</span>
+                  <span class="confirm-data-value">{{ conductor.tipoIdentificacion }} · {{ conductor.numeroIdentificacion }}</span>
+                </div>
+                <div class="confirm-data-item">
+                  <span class="confirm-data-label">LIC. VENCE</span>
+                  <span class="confirm-data-value">{{ conductor.fechaVencimientoLicencia }}</span>
+                </div>
+                <div class="confirm-data-item">
+                  <span class="confirm-data-label">EDAD</span>
+                  <span class="confirm-data-value">{{ conductor.edadConductor }} años</span>
+                </div>
+                <div class="confirm-data-item">
+                  <span class="confirm-data-label">CORREO</span>
+                  <span class="confirm-data-value">{{ conductor.correo }}</span>
+                </div>
+                <div class="confirm-data-item">
+                  <span class="confirm-data-label">TELÉFONO</span>
+                  <span class="confirm-data-value">{{ conductor.telefono }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="step-actions">
+              <button class="btn btn-secondary" (click)="volver(2)">
+                <span class="material-icons" aria-hidden="true">arrow_back</span>
+                Volver
+              </button>
+              <button class="btn btn-primary" (click)="confirmarReserva()" [disabled]="procesando()">
+                @if (procesando()) {
+                  <div class="spinner-inline"></div>
+                  Procesando...
+                } @else {
+                  <span class="material-icons" aria-hidden="true">check_circle</span>
+                  Confirmar reserva
+                }
+              </button>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ── Sidebar de precios ── -->
+      @if (!codigoReserva()) {
+        <aside class="checkout-sidebar">
+          <div class="price-card">
+            <div class="price-card-header">
+              <span class="material-icons" aria-hidden="true">receipt</span>
+              <h2>Resumen</h2>
+            </div>
+
+            <div class="price-rows">
+              <div class="price-row">
+                <span class="price-row-label">Vehículo ({{ cantidadDias() }} días)</span>
+                <span class="price-row-val">${{ subtotalVehiculo() | number:'1.2-2' }}</span>
+              </div>
+
+              @if (subtotalExtras() > 0) {
+                <div class="price-row">
+                  <span class="price-row-label">Extras</span>
+                  <span class="price-row-val">${{ subtotalExtras() | number:'1.2-2' }}</span>
+                </div>
+                @for (item of extrasResumen(); track item.extra.idExtra) {
+                  <div class="price-row price-row-sub">
+                    <span>{{ item.extra.nombre }} ×{{ item.cantidad }}</span>
+                    <span>${{ (item.extra.valorFijo * item.cantidad) | number:'1.2-2' }}</span>
+                  </div>
+                }
+              }
+
+              <div class="price-row price-row-iva">
+                <span class="price-row-label">IVA (15%)</span>
+                <span class="price-row-val">${{ iva() | number:'1.2-2' }}</span>
+              </div>
+
+              <div class="price-divider"></div>
+
+              <div class="price-row price-row-total">
+                <span class="price-total-label">Total</span>
+                <span class="price-total-val">${{ total() | number:'1.2-2' }}</span>
+              </div>
+            </div>
+
+            <div class="price-note">
+              <span class="material-icons" aria-hidden="true">info</span>
+              Precio estimado basado en {{ cantidadDias() }} día{{ cantidadDias() !== 1 ? 's' : '' }}.
+            </div>
+          </div>
+        </aside>
+      }
+
+    </div>
+  </div>
+}
+
+<app-footer></app-footer>
