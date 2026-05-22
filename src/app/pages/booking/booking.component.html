@@ -1,0 +1,328 @@
+<!-- ══ TOPNAV ══ -->
+<nav class="topnav" *ngIf="lodging">
+  <a [routerLink]="['/']" class="logo">Pooking<span>.</span></a>
+  <div class="nav-bc">
+    <a [routerLink]="['/alojamiento/resultados']">Resultados</a>
+    <span class="sep">›</span>
+    <a [routerLink]="['/alojamiento', lodging.id]">{{ lodging.nombre }}</a>
+    <span class="sep">›</span>
+    <span>Completar reserva</span>
+  </div>
+  <div class="nav-secure">
+    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Pago seguro garantizado
+  </div>
+</nav>
+
+<!-- ══ STEPS ══ -->
+<div class="steps-bar">
+  <div class="step-item done" [routerLink]="['/alojamiento/resultados']">
+    <div class="step-num">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <div class="step-label">Alojamiento</div>
+  </div>
+  <div class="step-sep"></div>
+  <div class="step-item done" [routerLink]="['/alojamiento', lodging?.id]">
+    <div class="step-num">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <div class="step-label">Habitación</div>
+  </div>
+  <div class="step-sep"></div>
+  <div class="step-item active">
+    <div class="step-num">3</div>
+    <div class="step-label">Tus datos</div>
+  </div>
+</div>
+
+<!-- ══ PAGE WRAP ══ -->
+<div class="page-wrap" *ngIf="lodging">
+
+  <!-- ════ MAIN COLUMN ════ -->
+  <div class="main-col">
+
+    <!-- ── 1. DATOS DEL HUÉSPED ── -->
+    <section class="section">
+      <h3>Datos del huésped</h3>
+
+      <div class="field-grid cols-2">
+        <div class="field">
+          <label>Tipo de identificación<span class="req">*</span></label>
+          <select class="fi" [class.error]="isFieldError('tipoIdentificacion')" [(ngModel)]="tipoIdentificacion" (blur)="onTouch('tipoIdentificacion')" required>
+            <option value="" disabled selected>Selecciona…</option>
+            <option value="CED">Cédula (CED)</option>
+            <option value="RUC">RUC</option>
+            <option value="PAS">Pasaporte (PAS)</option>
+          </select>
+          <span class="field-error" *ngIf="isFieldError('tipoIdentificacion')">{{ getFieldErrorMsg('tipoIdentificacion') }}</span>
+        </div>
+        <div class="field">
+          <label>Número de identificación<span class="req">*</span></label>
+          <input class="fi" [class.error]="isFieldError('numeroIdentificacion')" type="text" [(ngModel)]="numeroIdentificacion" (blur)="onTouch('numeroIdentificacion')" placeholder="Ej. 1723456789" required>
+          <span class="field-error" *ngIf="isFieldError('numeroIdentificacion')">{{ getFieldErrorMsg('numeroIdentificacion') }}</span>
+        </div>
+        <div class="field">
+          <label>Nombres<span class="req">*</span></label>
+          <input class="fi" [class.error]="isFieldError('nombres')" type="text" [(ngModel)]="nombres" (blur)="onTouch('nombres')" placeholder="Ej. Juan Carlos" required>
+          <span class="field-error" *ngIf="isFieldError('nombres')">{{ getFieldErrorMsg('nombres') }}</span>
+        </div>
+        <div class="field">
+          <label>Apellidos <span class="opt">(opcional)</span></label>
+          <input class="fi" type="text" [(ngModel)]="apellidos" placeholder="Ej. Pérez García">
+        </div>
+        <div class="field">
+          <label>Correo electrónico<span class="req">*</span></label>
+          <input class="fi" [class.error]="isFieldError('correo')" type="email" [(ngModel)]="correo" (blur)="onTouch('correo')" placeholder="correo@ejemplo.com" required>
+          <span class="field-hint" *ngIf="!isFieldError('correo')">Te enviaremos la confirmación aquí</span>
+          <span class="field-error" *ngIf="isFieldError('correo')">{{ getFieldErrorMsg('correo') }}</span>
+        </div>
+        <div class="field">
+          <label>Teléfono<span class="req">*</span></label>
+          <input class="fi" [class.error]="isFieldError('telefono')" type="tel" [(ngModel)]="telefono" (blur)="onTouch('telefono')" placeholder="Ej. 0999999999" required>
+          <span class="field-error" *ngIf="isFieldError('telefono')">{{ getFieldErrorMsg('telefono') }}</span>
+        </div>
+        <div class="field field-span2">
+          <label>Dirección <span class="opt">(opcional)</span></label>
+          <input class="fi" type="text" [(ngModel)]="direccion" placeholder="Ej. Quito, Pichincha">
+        </div>
+      </div>
+    </section>
+
+
+
+    <!-- ── 3. HABITACIONES ── -->
+    <section class="section">
+      <h3>Habitaciones</h3>
+
+      <div id="hab-list">
+        <div *ngFor="let room of lodging.habitaciones; let i = index" class="hab-card" [class.selected]="roomSelections[i]?.selected">
+          <div class="hab-head" (click)="toggleRoom(i)">
+            <div class="hab-head-left">
+              <div class="hab-check">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div>
+                <div class="hab-name">{{ room.nombre }}</div>
+                <div class="hab-meta">{{ room.cama }} · {{ room.metros }} m² · {{ room.capacidad }}</div>
+              </div>
+            </div>
+            <div class="hab-price-head">
+              <strong>${{ room.precio }}</strong>
+              <span> USD/noche</span>
+            </div>
+          </div>
+          <div class="hab-body" *ngIf="roomSelections[i]?.selected">
+            <div class="field-grid cols-2">
+              <div class="field">
+                <label>Habitaciones<span class="req">*</span></label>
+                <div class="counter-wrap">
+                  <div class="counter">
+                    <button class="counter-btn" [disabled]="roomSelections[i].roomsCount <= 1" (click)="count(i, 'roomsCount', 1, -1)">−</button>
+                    <div class="counter-val">{{ roomSelections[i].roomsCount }}</div>
+                    <button class="counter-btn" (click)="count(i, 'roomsCount', 1, 1)">+</button>
+                  </div>
+                  <span class="counter-label">Disponibles: {{ room.disponibles }}</span>
+                </div>
+              </div>
+              <div class="field guests-col-group">
+                <div class="sub-field">
+                  <label>Adultos<span class="req">*</span></label>
+                  <div class="counter-wrap">
+                    <div class="counter">
+                      <button class="counter-btn" [disabled]="roomSelections[i].adultsCount <= 1" (click)="count(i, 'adultsCount', 1, -1)">−</button>
+                      <div class="counter-val">{{ roomSelections[i].adultsCount }}</div>
+                      <button class="counter-btn" (click)="count(i, 'adultsCount', 1, 1)">+</button>
+                    </div>
+                    <span class="counter-label">mín. 1</span>
+                  </div>
+                </div>
+                <div class="sub-field">
+                  <label>Niños<span class="req">*</span></label>
+                  <div class="counter-wrap">
+                    <div class="counter">
+                      <button class="counter-btn" [disabled]="roomSelections[i].kidsCount <= 0" (click)="count(i, 'kidsCount', 0, -1)">−</button>
+                      <div class="counter-val">{{ roomSelections[i].kidsCount }}</div>
+                      <button class="counter-btn" (click)="count(i, 'kidsCount', 0, 1)">+</button>
+                    </div>
+                    <span class="counter-label">mín. 0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+    </section>
+
+    <!-- ── 4. PETICIONES ESPECIALES (CONFIGURACIÓN) — ALTAMENTE ESTILIZADO ── -->
+    <section class="section premium-requests">
+      <div class="premium-header">
+        <svg class="premium-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        <h3>Peticiones especiales</h3>
+      </div>
+      <p class="premium-sub">¿Tienes alguna necesidad particular? Házselo saber al hotel (preferencia de cama, horario de check-in, etc.).</p>
+      
+      <div class="field" style="margin-top: 16px;">
+        <label class="premium-label">Observaciones <span class="opt">(opcional)</span></label>
+        <div class="premium-textarea-wrap">
+          <textarea class="fi premium-textarea" [(ngModel)]="observaciones" placeholder="Ej. Llegamos después de las 20:00, preferimos habitación en piso alto, cama doble o cuna para el bebé..."></textarea>
+          <div class="premium-textarea-badge">
+            <svg viewBox="0 0 24 24" class="info-badge-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            El hotel intentará satisfacer tus peticiones especiales sujeto a disponibilidad.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /main-col -->
+
+  <!-- ════ BOOKING SIDEBAR ════ -->
+  <aside class="booking-sidebar">
+    <div class="booking-card">
+
+      <!-- hotel mini -->
+      <div class="bc-hotel">
+        <img [src]="lodging.imagenes[0]" [alt]="lodging.nombre">
+        <div class="bc-hotel-info">
+          <div class="bc-hotel-name">{{ lodging.nombre }}</div>
+          <div class="bc-stars">
+            <span class="s" *ngFor="let s of [1,2,3,4,5].slice(0, lodging.categoria)">★</span>
+          </div>
+          <div class="bc-hotel-loc">{{ lodging.direccion }}</div>
+        </div>
+      </div>
+
+      <!-- precio desde -->
+      <div>
+        <span class="bc-desde">desde</span>
+        <div class="bc-price-line">
+          <span class="bc-price">${{ lodging.precio }}</span>
+          <span class="bc-noche">USD / noche</span>
+        </div>
+      </div>
+
+      <!-- fechas -->
+      <div class="date-grid">
+        <div class="date-cell">
+          <div class="dc-label">Check-in</div>
+          <div class="dc-val" id="rc-in">{{ fmtDate(fechaInicio) }}</div>
+          <div class="dc-sub">desde {{ lodging.checkIn }}</div>
+        </div>
+        <div class="date-cell">
+          <div class="dc-label">Check-out</div>
+          <div class="dc-val" id="rc-out">{{ fmtDate(fechaFin) }}</div>
+          <div class="dc-sub">hasta {{ lodging.checkOut }}</div>
+        </div>
+      </div>
+
+      <!-- huéspedes -->
+      <div class="guests-row">
+        <div>
+          <div class="gr-label">Huéspedes y habitaciones</div>
+          <div class="gr-val" id="rc-guests">{{ guestText }}</div>
+        </div>
+        <svg class="gr-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+      </div>
+
+      <!-- desglose -->
+      <div class="price-breakdown">
+        <div class="pb-title">Desglose del precio</div>
+        <div id="rc-lineas">
+          <div class="pb-row" style="margin-bottom:5px;" *ngFor="let line of selectedLines">
+            <span class="pb-label">{{ line.name }} ×{{ line.rooms }} × {{ nights }}n</span>
+            <span class="pb-val">${{ line.lineTotal | number:'1.2-2' }}</span>
+          </div>
+        </div>
+        <div class="pb-row">
+          <span class="pb-label">Descuento global</span>
+          <span class="pb-val green" id="rc-desc">−$0.00</span>
+        </div>
+        <div class="pb-row">
+          <span class="pb-label">IVA (15%)</span>
+          <span class="pb-val" id="rc-iva">${{ iva | number:'1.2-2' }}</span>
+        </div>
+        <hr class="pb-divider">
+        <div class="pb-row pb-total">
+          <span class="pb-label">Total reserva</span>
+          <span class="pb-val" id="rc-total">${{ total | number:'1.2-2' }}</span>
+        </div>
+        <div class="pb-saldo" id="rc-saldo">Saldo pendiente: ${{ total | number:'1.2-2' }} USD</div>
+        <div class="pb-estado">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Estado inicial: <strong>PEN</strong> (pendiente)
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <button class="btn-reservar" (click)="submitReserva()">
+        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        Confirmar reserva
+      </button>
+      <a [routerLink]="['/alojamiento', lodging.id]" class="btn-volver">← Volver al hotel</a>
+
+      <div class="bc-security">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Reserva segura · sin cargos ocultos
+      </div>
+
+    </div>
+  </aside>
+
+</div><!-- /page-wrap -->
+
+<!-- ══ SUCCESS ══ -->
+<div class="success-overlay" [class.show]="showSuccess" *ngIf="lodging">
+  <div class="success-card">
+    <div class="success-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <h2>¡Reserva confirmada!</h2>
+    <p>Tu solicitud fue enviada exitosamente. El hotel procesará tu reserva y recibirás la confirmación en tu correo.</p>
+    <div class="success-code">
+      <div class="sc-label">Código de reserva</div>
+      <div class="sc-val" id="sc-code">{{ successCode }}</div>
+    </div>
+    <div class="success-meta">
+      <div class="sm-item">
+        <div class="smi-label">Alojamiento</div>
+        <div class="smi-val">{{ lodging.nombre }}</div>
+      </div>
+      <div class="sm-item">
+        <div class="smi-label">Estado</div>
+        <div class="smi-val"><span class="sm-estado">● PEN</span></div>
+      </div>
+      <div class="sm-item">
+        <div class="smi-label">Check-in</div>
+        <div class="smi-val" id="sc-in">{{ fmtDateLong(fechaInicio) }}</div>
+      </div>
+      <div class="sm-item">
+        <div class="smi-label">Check-out</div>
+        <div class="smi-val" id="sc-out">{{ fmtDateLong(fechaFin) }}</div>
+      </div>
+      <div class="sm-item">
+        <div class="smi-label">Total reserva</div>
+        <div class="smi-val" id="sc-total">${{ mockTotal | number:'1.2-2' }} USD</div>
+      </div>
+      <div class="sm-item">
+        <div class="smi-label">Saldo pendiente</div>
+        <div class="smi-val" id="sc-saldo">${{ mockTotal | number:'1.2-2' }} USD</div>
+      </div>
+    </div>
+    <button class="btn-success" (click)="closeSuccess()">Ver mis reservas →</button>
+  </div>
+</div>
+
+<!-- ══ FOOTER ══ -->
+<footer *ngIf="lodging">
+  <span class="f-logo">Pooking<span>.</span></span>
+  <span>© 2026 Pooking · POST /api/v1/accommodations/reservas</span>
+  <span>Accommodations API v1</span>
+</footer>
