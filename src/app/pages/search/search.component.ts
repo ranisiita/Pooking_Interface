@@ -36,7 +36,7 @@ export class SearchComponent implements OnInit {
   tabs = [
     { key: 'alojamiento',  icon: 'hotel',              label: 'Alojamiento' },
     { key: 'vuelos',       icon: 'flight',             label: 'Vuelos' },
-    { key: 'coches',       icon: 'directions_car',     label: 'Alquiler de Coches' },
+    { key: 'coches',       icon: 'directions_car',     label: 'Coches' },
     { key: 'atracciones',  icon: 'confirmation_number', label: 'Atracciones' },
   ];
 
@@ -312,6 +312,10 @@ export class SearchComponent implements OnInit {
         tipoViaje,
       },
     });
+  }
+
+  buscarCoches(): void {
+    this.router.navigate(['/autos/resultados']);
   }
 
   buscarAtracciones(): void {

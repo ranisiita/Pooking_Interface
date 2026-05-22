@@ -36,6 +36,29 @@ export const routes: Routes = [
       ),
   },
 
+  // ── Autos (RedCar) ──
+  {
+    path: 'autos/resultados',
+    loadComponent: () =>
+      import('./features/cars/search/car-results.component').then(
+        (m) => m.CarResultsComponent,
+      ),
+  },
+  {
+    path: 'autos/detalle/:id',
+    loadComponent: () =>
+      import('./features/cars/detail/car-detail.component').then(
+        (m) => m.CarDetailComponent,
+      ),
+  },
+  {
+    path: 'autos/checkout/:id',
+    loadComponent: () =>
+      import('./features/cars/checkout/car-checkout.component').then(
+        (m) => m.CarCheckoutComponent,
+      ),
+  },
+
   // Resultados de vuelos
   {
     path: 'vuelos/resultados',
