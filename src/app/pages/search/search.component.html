@@ -31,48 +31,62 @@
       <div *ngIf="activeTab === 'alojamiento'" class="form-grid">
         <div class="field full-width">
           <label>Destino</label>
-          <div class="input-icon-wrapper">
+          <div class="input-icon-wrapper" [class.input-error]="alojErrors.destino">
             <span class="material-icons">location_on</span>
-            <input type="text" [(ngModel)]="aloj.destino" placeholder="¿A dónde vas?" />
+            <input type="text" [(ngModel)]="aloj.destino" placeholder="¿A dónde vas?" (input)="alojErrors.destino = ''" (blur)="validarAloj('destino')" />
           </div>
+          <small class="field-error" *ngIf="alojErrors.destino">{{ alojErrors.destino }}</small>
         </div>
         <div class="field">
           <label>Fecha de llegada</label>
-          <div class="input-icon-wrapper">
-            <span class="material-icons">calendar_today</span>
-            <input type="date" [(ngModel)]="aloj.llegada" />
-          </div>
+          <app-date-picker
+            [value]="aloj.llegada"
+            [min]="fechaHoy"
+            [hasError]="!!alojErrors.llegada"
+            placeholder="dd/mm/aaaa"
+            theme="light"
+            (valueChange)="aloj.llegada = $event; validarAloj('llegada')"
+          ></app-date-picker>
+          <small class="field-error" *ngIf="alojErrors.llegada">{{ alojErrors.llegada }}</small>
         </div>
         <div class="field">
           <label>Fecha de salida</label>
-          <div class="input-icon-wrapper">
-            <span class="material-icons">calendar_today</span>
-            <input type="date" [(ngModel)]="aloj.salida" />
-          </div>
+          <app-date-picker
+            [value]="aloj.salida"
+            [min]="aloj.llegada || fechaHoy"
+            [hasError]="!!alojErrors.salida"
+            placeholder="dd/mm/aaaa"
+            theme="light"
+            (valueChange)="aloj.salida = $event; validarAloj('salida')"
+          ></app-date-picker>
+          <small class="field-error" *ngIf="alojErrors.salida">{{ alojErrors.salida }}</small>
         </div>
         <div class="field">
           <label>Habitaciones</label>
-          <div class="input-icon-wrapper">
+          <div class="input-icon-wrapper" [class.input-error]="alojErrors.habitaciones">
             <span class="material-icons">bed</span>
-            <input type="number" [(ngModel)]="aloj.habitaciones" min="1" />
+            <input type="number" [(ngModel)]="aloj.habitaciones" min="1" (input)="alojErrors.habitaciones = ''" (blur)="validarAloj('habitaciones')" />
           </div>
+          <small class="field-error" *ngIf="alojErrors.habitaciones">{{ alojErrors.habitaciones }}</small>
         </div>
         <div class="field">
           <label>Adultos</label>
-          <div class="input-icon-wrapper">
+          <div class="input-icon-wrapper" [class.input-error]="alojErrors.adultos">
             <span class="material-icons">person</span>
-            <input type="number" [(ngModel)]="aloj.adultos" min="1" />
+            <input type="number" [(ngModel)]="aloj.adultos" min="1" (input)="alojErrors.adultos = ''" (blur)="validarAloj('adultos')" />
           </div>
+          <small class="field-error" *ngIf="alojErrors.adultos">{{ alojErrors.adultos }}</small>
         </div>
         <div class="field">
           <label>Niños</label>
-          <div class="input-icon-wrapper">
+          <div class="input-icon-wrapper" [class.input-error]="alojErrors.ninos">
             <span class="material-icons">child_care</span>
-            <input type="number" [(ngModel)]="aloj.ninos" min="0" />
+            <input type="number" [(ngModel)]="aloj.ninos" min="0" (input)="alojErrors.ninos = ''" (blur)="validarAloj('ninos')" />
           </div>
+          <small class="field-error" *ngIf="alojErrors.ninos">{{ alojErrors.ninos }}</small>
         </div>
         <div class="field full-width center">
-          <button class="search-btn">
+          <button class="search-btn" (click)="buscarAlojamiento()">
             <span class="material-icons">search</span>
             Buscar alojamiento
           </button>

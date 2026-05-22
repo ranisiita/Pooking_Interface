@@ -10,6 +10,31 @@ export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'admin', component: AdminComponent },
   { path: 'buscar', component: SearchComponent },
+  {
+    path: 'alojamiento/resultados',
+    loadComponent: () =>
+      import('./pages/lodging-results/lodging-results.component').then(
+        (m) => m.LodgingResultsComponent
+      ),
+  },
+
+  // Detalle de alojamiento
+  {
+    path: 'alojamiento/:id',
+    loadComponent: () =>
+      import('./pages/lodging-detail/lodging-detail.component').then(
+        (m) => m.LodgingDetailComponent
+      ),
+  },
+
+  // Reserva de alojamiento
+  {
+    path: 'alojamiento/:id/reservar',
+    loadComponent: () =>
+      import('./pages/booking/booking.component').then(
+        (m) => m.BookingComponent
+      ),
+  },
 
   // Resultados de vuelos
   {
