@@ -14,6 +14,7 @@ interface FlightSearchCriteria {
   fechaRegreso: string;
   pasajeros: number;
   clase: FlightClass;
+  tipoViaje: 'roundtrip' | 'oneway';
 }
 
 @Component({
@@ -49,7 +50,8 @@ export class SearchComponent implements OnInit {
     ninos: ''
   };
 
-  vuelos = { origen: '', destino: '', salida: '', regreso: '', pasajeros: 1, clase: 'Económica' };
+  vuelos = { origen: '', destino: '', salida: '', regreso: '', pasajeros: 1, clase: 'Económica', tipoViaje: 'roundtrip' as 'roundtrip' | 'oneway' };
+  flightFormError = '';
   vueloErrors = {
     origen: '',
     destino: '',
@@ -290,14 +292,15 @@ export class SearchComponent implements OnInit {
       return;
     }
 
-    const { origen, destino, salida, regreso, pasajeros, clase } = this.vuelos;
+    const { origen, destino, salida, regreso, pasajeros, clase, tipoViaje } = this.vuelos;
     const criterios: FlightSearchCriteria = {
       origen: origen.trim(),
       destino: destino.trim(),
       fechaSalida: salida,
-      fechaRegreso: regreso,
+      fechaRegreso: tipoViaje === 'roundtrip' ? regreso : '',
       pasajeros,
       clase: clase as FlightClass,
+      tipoViaje,
     };
     sessionStorage.setItem('flight-search-criteria', JSON.stringify(criterios));
     this.router.navigate(['/vuelos/resultados'], {
