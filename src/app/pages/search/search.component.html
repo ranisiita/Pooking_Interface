@@ -94,83 +94,80 @@
       </div>
 
       <!-- VUELOS -->
-      <div *ngIf="activeTab === 'vuelos'" class="form-grid">
-        <div class="field">
-          <label>Origen</label>
-          <div class="input-icon-wrapper" [class.input-error]="vueloErrors.origen">
-            <span class="material-icons">flight_takeoff</span>
-            <input
-              type="text"
-              [value]="vuelos.origen"
-              (input)="onCityInput('origen', $event)"
-              (blur)="validarVuelo('origen')"
-              placeholder="Ciudad de origen"
-            />
+      <div *ngIf="activeTab === 'vuelos'" class="vuelos-form">
+
+        <!-- Radio: tipo de viaje -->
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="tipoViaje" value="roundtrip"
+              [checked]="vuelos.tipoViaje === 'roundtrip'"
+              (change)="vuelos.tipoViaje = 'roundtrip'" />
+            <span class="radio-label">IDA Y VUELTA</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="tipoViaje" value="oneway"
+              [checked]="vuelos.tipoViaje === 'oneway'"
+              (change)="vuelos.tipoViaje = 'oneway'; vuelos.regreso = ''" />
+            <span class="radio-label">SOLO IDA</span>
+          </label>
+        </div>
+
+        <!-- Grid de campos -->
+        <div class="form-grid">
+          <div class="field">
+            <label for="vOrigen">ORIGEN</label>
+            <div class="input-icon-wrapper">
+              <span class="material-icons">flight_takeoff</span>
+              <input id="vOrigen" type="text"
+                [value]="vuelos.origen"
+                (input)="onCityInput('origen', $event)"
+                placeholder="Ciudad de origen" />
+            </div>
           </div>
-          <small class="field-error" *ngIf="vueloErrors.origen">{{ vueloErrors.origen }}</small>
-        </div>
-        <div class="field">
-          <label>Destino</label>
-          <div class="input-icon-wrapper" [class.input-error]="vueloErrors.destino">
-            <span class="material-icons">flight_land</span>
-            <input
-              type="text"
-              [value]="vuelos.destino"
-              (input)="onCityInput('destino', $event)"
-              (blur)="validarVuelo('destino')"
-              placeholder="Ciudad de destino"
-            />
+
+          <div class="field">
+            <label for="vDestino">DESTINO</label>
+            <div class="input-icon-wrapper">
+              <span class="material-icons">flight_land</span>
+              <input id="vDestino" type="text"
+                [value]="vuelos.destino"
+                (input)="onCityInput('destino', $event)"
+                placeholder="Ciudad de destino" />
+            </div>
           </div>
-          <small class="field-error" *ngIf="vueloErrors.destino">{{ vueloErrors.destino }}</small>
-        </div>
-        <div class="field">
-          <label>Fecha de salida</label>
-          <app-date-picker
-            [value]="vuelos.salida"
-            [min]="fechaHoy"
-            [hasError]="!!vueloErrors.salida"
-            placeholder="dd/mm/aaaa"
-            theme="light"
-            (valueChange)="vuelos.salida = $event; validarVuelo('salida')"
-          ></app-date-picker>
-          <small class="field-error" *ngIf="vueloErrors.salida">{{ vueloErrors.salida }}</small>
-        </div>
-        <div class="field">
-          <label>Fecha de regreso</label>
-          <app-date-picker
-            [value]="vuelos.regreso"
-            [min]="vuelos.salida || fechaHoy"
-            [hasError]="!!vueloErrors.regreso"
-            placeholder="dd/mm/aaaa (opcional)"
-            theme="light"
-            (valueChange)="vuelos.regreso = $event; validarVuelo('regreso')"
-          ></app-date-picker>
-          <small class="field-error" *ngIf="vueloErrors.regreso">{{ vueloErrors.regreso }}</small>
-        </div>
-        <div class="field">
-          <label>Pasajeros</label>
-          <div class="input-icon-wrapper" [class.input-error]="vueloErrors.pasajeros">
-            <span class="material-icons">person</span>
-            <input type="number" [(ngModel)]="vuelos.pasajeros" min="1" max="9" (input)="vueloErrors.pasajeros = ''" (blur)="validarVuelo('pasajeros')" />
+
+          <div class="field">
+            <label for="vSalida">FECHA DE SALIDA</label>
+            <div class="input-icon-wrapper">
+              <span class="material-icons">event</span>
+              <input id="vSalida" type="date" [(ngModel)]="vuelos.salida"
+                style="color-scheme:light" />
+            </div>
           </div>
-          <small class="field-error" *ngIf="vueloErrors.pasajeros">{{ vueloErrors.pasajeros }}</small>
-        </div>
-        <div class="field">
-          <label>Clase</label>
-          <div class="input-icon-wrapper">
-            <span class="material-icons">airline_seat_recline_normal</span>
-            <select [(ngModel)]="vuelos.clase">
-              <option>Económica</option>
-              <option>Ejecutiva</option>
-              <option>Primera clase</option>
-            </select>
+
+          <div class="field">
+            <label for="vRegreso">FECHA DE REGRESO</label>
+            <div class="input-icon-wrapper" [class.input-disabled]="vuelos.tipoViaje === 'oneway'">
+              <span class="material-icons">event</span>
+              <input id="vRegreso" type="date" [(ngModel)]="vuelos.regreso"
+                [disabled]="vuelos.tipoViaje === 'oneway'"
+                style="color-scheme:light" />
+            </div>
           </div>
-        </div>
-        <div class="field full-width center">
-          <button class="search-btn" (click)="buscarVuelos()">
-            <span class="material-icons">search</span>
-            Buscar vuelos
-          </button>
+
+          <div class="field full-width" *ngIf="flightFormError">
+            <p class="flight-error">
+              <span class="material-icons" style="font-size:0.9rem;vertical-align:middle">error_outline</span>
+              {{ flightFormError }}
+            </p>
+          </div>
+
+          <div class="field full-width">
+            <button class="search-btn search-btn-full" (click)="buscarVuelos()">
+              <span class="material-icons">search</span>
+              Buscar vuelos
+            </button>
+          </div>
         </div>
       </div>
 

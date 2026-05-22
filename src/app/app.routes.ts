@@ -36,7 +36,7 @@ export const routes: Routes = [
       ),
   },
 
-  // Resultados de vuelos (integración real con servicios/guidTipo)
+  // Resultados de vuelos
   {
     path: 'vuelos/resultados',
     loadComponent: () =>
@@ -45,21 +45,19 @@ export const routes: Routes = [
       ),
   },
 
-  // Detalle de vuelo / servicio
+  // Hall de pagos (2 pasos en un mismo componente)
   {
-    path: 'vuelos/:guid',
+    path: 'checkout/:guid',
     loadComponent: () =>
-      import('./features/flights/detail/flight-detail.component').then(
-        (m) => m.FlightDetailComponent,
+      import('./features/checkout/payment/payment.component').then(
+        (m) => m.PaymentComponent,
       ),
   },
-
-  // Mapa de asientos (Fase 2)
   {
-    path: 'vuelos/:guid/asientos',
+    path: 'checkout/:guid/confirmacion',
     loadComponent: () =>
-      import('./features/flights/seat-map/seat-map.component').then(
-        (m) => m.SeatMapComponent,
+      import('./features/checkout/confirmation/confirmation.component').then(
+        (m) => m.ConfirmationComponent,
       ),
   },
 
@@ -67,6 +65,5 @@ export const routes: Routes = [
   { path: 'login', component: Login },
   { path: 'signup', component: Signup },
   { path: 'profile', component: ProfileComponent },
-  { path: '**', redirectTo: '' }
-
+  { path: '**', redirectTo: '' },
 ];

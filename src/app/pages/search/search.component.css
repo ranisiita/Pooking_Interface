@@ -212,6 +212,76 @@ label {
 }
 
 /* ------------------------------------------------
+   VUELOS TAB
+   ------------------------------------------------ */
+.vuelos-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.radio-group {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-subtitulo);
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.radio-option input[type="radio"] {
+  accent-color: var(--color-titulo);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.radio-option:has(input:checked) {
+  color: var(--color-titulo);
+}
+
+.radio-label {
+  user-select: none;
+}
+
+.input-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+  background: rgba(198, 177, 125, 0.08) !important;
+}
+
+.flight-error {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: #c0392b;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(192, 57, 43, 0.06);
+  border-radius: 8px;
+  border-left: 3px solid #c0392b;
+}
+
+.search-btn-full {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ------------------------------------------------
    TRANSICIÓN INICIAL
    ------------------------------------------------ */
 .transition-overlay {

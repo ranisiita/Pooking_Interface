@@ -1,0 +1,315 @@
+<app-navbar></app-navbar>
+
+<!-- Fondo de página (blurred detrás del modal) -->
+<div class="page-bg" aria-hidden="true"></div>
+
+@if (loading()) {
+  <div class="modal-overlay">
+    <div class="spinner-wrap">
+      <div class="spinner"></div>
+    </div>
+  </div>
+}
+
+@if (!loading() && error()) {
+  <div class="modal-overlay">
+    <div class="modal error-modal">
+      <span class="material-icons error-icon" aria-hidden="true">error_outline</span>
+      <h2 class="modal-title">Error al cargar</h2>
+      <p class="modal-description">{{ error() }}</p>
+      <button class="btn btn-primary" (click)="cancelar()">
+        <span class="material-icons" aria-hidden="true">search</span>
+        Volver a buscar
+      </button>
+    </div>
+  </div>
+}
+
+<!-- ===================== PASO 1: Modal "Tus datos" ===================== -->
+@if (!loading() && !error() && paso() === 1) {
+  <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-datos-title">
+    <div class="modal modal-datos">
+
+      <h1 class="modal-title" id="modal-datos-title">Tus datos</h1>
+      <p class="modal-description">
+        Revisa tus datos antes de continuar al pago. Modifícalos si es necesario.
+      </p>
+
+      <form class="form-grid" (ngSubmit)="continuarAlPago()" novalidate>
+        <!-- Nombre y Apellidos -->
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label" for="nombre">NOMBRE <span class="required">*</span></label>
+            <div class="input-icon-wrapper" [class.input-error]="erroresDatos['nombre']">
+              <span class="material-icons" aria-hidden="true">person</span>
+              <input id="nombre" type="text" [(ngModel)]="datosPersonales.nombre" name="nombre"
+                placeholder="Ingresa tu nombre"
+                [attr.aria-invalid]="erroresDatos['nombre'] ? 'true' : null" />
+            </div>
+            @if (erroresDatos['nombre']) {
+              <div class="field-error" role="alert">
+                <span class="material-icons" aria-hidden="true">error_outline</span>
+                {{ erroresDatos['nombre'] }}
+              </div>
+            }
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="apellidos">APELLIDOS <span class="required">*</span></label>
+            <div class="input-icon-wrapper" [class.input-error]="erroresDatos['apellidos']">
+              <span class="material-icons" aria-hidden="true">badge</span>
+              <input id="apellidos" type="text" [(ngModel)]="datosPersonales.apellidos" name="apellidos"
+                placeholder="Ingresa tus apellidos"
+                [attr.aria-invalid]="erroresDatos['apellidos'] ? 'true' : null" />
+            </div>
+            @if (erroresDatos['apellidos']) {
+              <div class="field-error" role="alert">
+                <span class="material-icons" aria-hidden="true">error_outline</span>
+                {{ erroresDatos['apellidos'] }}
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-field form-field-full">
+          <label class="field-label" for="email">EMAIL <span class="required">*</span></label>
+          <div class="input-icon-wrapper" [class.input-error]="erroresDatos['email']">
+            <span class="material-icons" aria-hidden="true">email</span>
+            <input id="email" type="email" [(ngModel)]="datosPersonales.email" name="email"
+              placeholder="correo@ejemplo.com"
+              [attr.aria-invalid]="erroresDatos['email'] ? 'true' : null" />
+          </div>
+          @if (erroresDatos['email']) {
+            <div class="field-error" role="alert">
+              <span class="material-icons" aria-hidden="true">error_outline</span>
+              {{ erroresDatos['email'] }}
+            </div>
+          }
+        </div>
+
+        <!-- Teléfono -->
+        <div class="form-field form-field-full">
+          <label class="field-label" for="telefono">TELÉFONO <span class="required">*</span></label>
+          <div class="input-icon-wrapper" [class.input-error]="erroresDatos['telefono']">
+            <span class="material-icons" aria-hidden="true">phone</span>
+            <input id="telefono" type="tel" [(ngModel)]="datosPersonales.telefono" name="telefono"
+              placeholder="600123456"
+              [attr.aria-invalid]="erroresDatos['telefono'] ? 'true' : null" />
+          </div>
+          @if (erroresDatos['telefono']) {
+            <div class="field-error" role="alert">
+              <span class="material-icons" aria-hidden="true">error_outline</span>
+              {{ erroresDatos['telefono'] }}
+            </div>
+          }
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancelar()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            Continuar al pago
+            <span class="material-icons" aria-hidden="true">arrow_forward</span>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+}
+
+<!-- ===================== PASO 2: Hall de Pagos ===================== -->
+@if (!loading() && !error() && paso() === 2) {
+  <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-pago-title">
+    <div class="modal modal-pago">
+
+      <div class="modal-header">
+        <h1 class="modal-title" id="modal-pago-title">Hall de pagos</h1>
+        <button type="button" class="close-btn" (click)="cancelar()" aria-label="Cerrar y volver a resultados">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </div>
+      <p class="modal-description">
+        Revisa tus datos y completa la información de tu tarjeta para finalizar la reserva.
+      </p>
+
+      <div class="modal-content">
+
+        <!-- Columna izquierda: datos personales + resumen -->
+        <div class="modal-section">
+
+          <div>
+            <div class="section-header">
+              <h2 class="section-title">Datos personales</h2>
+              <button type="button" class="edit-btn" (click)="volverAlPaso1()">
+                <span class="material-icons" aria-hidden="true">edit</span>
+                Editar
+              </button>
+            </div>
+
+            <div class="personal-data">
+              <div class="data-item">
+                <span class="data-label">NOMBRE</span>
+                <span class="data-value">{{ datosPersonales.nombre }} {{ datosPersonales.apellidos }}</span>
+              </div>
+              <div class="data-item">
+                <span class="data-label">EMAIL</span>
+                <span class="data-value">{{ datosPersonales.email }}</span>
+              </div>
+              <div class="data-item data-item-full">
+                <span class="data-label">TELÉFONO</span>
+                <span class="data-value">{{ datosPersonales.telefono }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen de pago -->
+          <div class="payment-summary">
+            <div class="summary-row summary-subtotal" (click)="detallesExpandidos.set(!detallesExpandidos())">
+              <span class="summary-label">
+                <span class="material-icons" aria-hidden="true">
+                  {{ detallesExpandidos() ? 'expand_less' : 'expand_more' }}
+                </span>
+                Subtotal
+              </span>
+              <span class="summary-value">${{ subtotal() | number:'1.2-2' }}</span>
+            </div>
+
+            @if (detallesExpandidos()) {
+              <div class="details-expandidos">
+                <div class="detail-row">
+                  <span>Reserva vuelo</span>
+                  <span>${{ subtotal() | number:'1.2-2' }}</span>
+                </div>
+                <div class="detail-row">
+                  <span>IVA (9,4%)</span>
+                  <span>${{ iva() | number:'1.2-2' }}</span>
+                </div>
+              </div>
+            }
+
+            <div class="summary-row summary-total">
+              <span class="summary-label-total">Total</span>
+              <span class="summary-value-total">${{ total() | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Columna derecha: método de pago -->
+        <div class="modal-section">
+          <div class="payment-method-header">
+            <h2 class="section-title">Método de pago — Tarjeta</h2>
+            <div class="secure-badge">
+              <span class="material-icons" aria-hidden="true">lock</span>
+              Pago seguro
+            </div>
+          </div>
+
+          <form class="form-grid" (ngSubmit)="pagar()" novalidate aria-live="polite">
+
+            <!-- Titular -->
+            <div class="form-field form-field-full">
+              <label class="field-label" for="titular">
+                NOMBRE DEL TITULAR DE LA TARJETA <span class="required">*</span>
+              </label>
+              <div class="input-icon-wrapper" [class.input-error]="erroresTarjeta['titular']">
+                <span class="material-icons" aria-hidden="true">person</span>
+                <input id="titular" type="text" [(ngModel)]="datosTarjeta.titular" name="titular"
+                  placeholder="Como aparece en la tarjeta"
+                  [attr.aria-invalid]="erroresTarjeta['titular'] ? 'true' : null" />
+              </div>
+              @if (erroresTarjeta['titular']) {
+                <div class="field-error" role="alert">
+                  <span class="material-icons" aria-hidden="true">error_outline</span>
+                  {{ erroresTarjeta['titular'] }}
+                </div>
+              }
+            </div>
+
+            <!-- Número tarjeta -->
+            <div class="form-field form-field-full">
+              <label class="field-label" for="numero-tarjeta">
+                NÚMERO DE LA TARJETA <span class="required">*</span>
+              </label>
+              <div class="input-icon-wrapper" [class.input-error]="erroresTarjeta['numero']">
+                <span class="material-icons" aria-hidden="true">credit_card</span>
+                <input id="numero-tarjeta" type="text" [value]="datosTarjeta.numero"
+                  (input)="formatearNumero($event)" name="numero"
+                  placeholder="0000 0000 0000 0000" maxlength="19" inputmode="numeric"
+                  autocomplete="cc-number"
+                  [attr.aria-invalid]="erroresTarjeta['numero'] ? 'true' : null" />
+              </div>
+              @if (erroresTarjeta['numero']) {
+                <div class="field-error" role="alert">
+                  <span class="material-icons" aria-hidden="true">error_outline</span>
+                  {{ erroresTarjeta['numero'] }}
+                </div>
+              }
+            </div>
+
+            <!-- Caducidad + CVC -->
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label" for="expiracion">
+                  FECHA DE CADUCIDAD <span class="required">*</span>
+                </label>
+                <div class="input-icon-wrapper" [class.input-error]="erroresTarjeta['expiracion']">
+                  <span class="material-icons" aria-hidden="true">event</span>
+                  <input id="expiracion" type="text" [value]="datosTarjeta.expiracion"
+                    (input)="formatearExpiracion($event)" name="expiracion"
+                    placeholder="MM / AA" maxlength="7" inputmode="numeric"
+                    autocomplete="cc-exp"
+                    [attr.aria-invalid]="erroresTarjeta['expiracion'] ? 'true' : null" />
+                </div>
+                @if (erroresTarjeta['expiracion']) {
+                  <div class="field-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error_outline</span>
+                    {{ erroresTarjeta['expiracion'] }}
+                  </div>
+                }
+              </div>
+
+              <div class="form-field">
+                <label class="field-label" for="cvc">
+                  CVC <span class="required">*</span>
+                </label>
+                <div class="input-icon-wrapper" [class.input-error]="erroresTarjeta['cvc']">
+                  <span class="material-icons" aria-hidden="true">lock</span>
+                  <input id="cvc" type="password" [value]="datosTarjeta.cvc"
+                    (input)="soloDigitosCvc($event)" name="cvc"
+                    placeholder="123" maxlength="3" inputmode="numeric"
+                    autocomplete="cc-csc"
+                    [attr.aria-invalid]="erroresTarjeta['cvc'] ? 'true' : null" />
+                </div>
+                @if (erroresTarjeta['cvc']) {
+                  <div class="field-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error_outline</span>
+                    {{ erroresTarjeta['cvc'] }}
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="btn btn-secondary" (click)="cancelar()">Cancelar</button>
+              <button type="submit" class="btn btn-primary" [disabled]="procesando()" aria-label="Pagar de forma segura">
+                @if (procesando()) {
+                  <div class="spinner-inline" role="status" aria-label="Procesando"></div>
+                  Procesando...
+                } @else {
+                  <span class="material-icons" aria-hidden="true">lock</span>
+                  Pagar de forma segura
+                }
+              </button>
+            </div>
+
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}
+
+<app-footer></app-footer>

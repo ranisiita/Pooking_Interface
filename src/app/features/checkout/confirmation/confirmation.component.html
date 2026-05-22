@@ -1,0 +1,65 @@
+<app-navbar></app-navbar>
+
+<div class="confirmation-page">
+  <div class="confirmation-card">
+
+    <!-- Ícono animado -->
+    <div class="check-icon-wrapper" role="img" aria-label="Reserva confirmada">
+      <span class="material-icons" aria-hidden="true">check_circle</span>
+    </div>
+
+    <h1 class="confirmation-title">¡Reserva confirmada!</h1>
+    <p class="confirmation-subtitle">
+      Tu pago fue procesado exitosamente. Recibirás los detalles por correo electrónico.
+    </p>
+
+    <!-- Número de reserva -->
+    <div class="booking-ref">
+      Número de reserva
+      <strong>{{ guid() }}</strong>
+    </div>
+
+    <!-- Resumen breve del vuelo -->
+    @if (vuelo(); as v) {
+      <div class="resumen-vuelo-mini">
+        <div class="ruta">
+          <span>{{ v.origen }}</span>
+          <span class="material-icons" style="font-size:1rem;color:var(--color-extra2)" aria-hidden="true">flight</span>
+          <span>{{ v.destino }}</span>
+        </div>
+        <div class="detalles">
+          <span>
+            <span class="material-icons" style="font-size:.9rem;vertical-align:middle" aria-hidden="true">event</span>
+            {{ v.fecha }}
+          </span>
+          <span>
+            <span class="material-icons" style="font-size:.9rem;vertical-align:middle" aria-hidden="true">schedule</span>
+            {{ v.salida }} → {{ v.llegada }}
+          </span>
+          <span>{{ v.nombreComercial }}</span>
+          @if (asiento(); as a) {
+            <span>
+              <span class="material-icons" style="font-size:.9rem;vertical-align:middle" aria-hidden="true">event_seat</span>
+              Asiento {{ a.numero_asiento }} · {{ a.clase }}
+            </span>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Acciones -->
+    <div class="confirmation-actions">
+      <button class="btn-action-primary" (click)="irAlPerfil()">
+        <span class="material-icons" aria-hidden="true">person</span>
+        Mis reservas
+      </button>
+      <button class="btn-action-ghost" (click)="irAlInicio()">
+        <span class="material-icons" aria-hidden="true">home</span>
+        Volver al inicio
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<app-footer></app-footer>
