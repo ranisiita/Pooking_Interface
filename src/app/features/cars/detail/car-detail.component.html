@@ -12,7 +12,7 @@
     <img [src]="vehiculo()!.imagenUrl"
       [alt]="vehiculo()!.marca + ' ' + vehiculo()!.modelo"
       class="hero-bg-img"
-      onerror="this.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=1200&q=80'" />
+      />
     <div class="hero-bg-overlay"></div>
   </div>
 
@@ -25,7 +25,7 @@
     <nav class="breadcrumb" aria-label="Ruta de navegación">
       <span>Autos</span>
       <span class="material-icons" aria-hidden="true">chevron_right</span>
-      <span>{{ vehiculo()!.categoria.nombre }}</span>
+      <span>{{ vehiculo()?.categoria?.nombre || 'General' }}</span>
       <span class="material-icons" aria-hidden="true">chevron_right</span>
       <span class="breadcrumb-current">{{ vehiculo()!.marca }} {{ vehiculo()!.modelo }}</span>
     </nav>
@@ -34,7 +34,7 @@
   <!-- Info superpuesta -->
   <div class="hero-info">
     <div class="hero-badges">
-      <span class="badge-cat">{{ vehiculo()!.categoria.nombre }}</span>
+      <span class="badge-cat">{{ vehiculo()?.categoria?.nombre || 'General' }}</span>
       <span class="badge-trans">{{ vehiculo()!.transmision === 'AUTOMATICA' ? 'Automática' : 'Manual' }}</span>
       <span class="badge-fuel">{{ vehiculo()!.combustible | titlecase }}</span>
     </div>
@@ -61,29 +61,29 @@
         <div class="location-item">
           <span class="material-icons" aria-hidden="true">location_on</span>
           <div>
-            <div class="location-name">{{ vehiculo()!.localizacion.nombre }}</div>
-            <div class="location-address">{{ vehiculo()!.localizacion.direccion }}</div>
+            <div class="location-name">{{ vehiculo()?.localizacion?.nombre || 'Sucursal' }}</div>
+            <div class="location-address">{{ vehiculo()?.localizacion?.direccion || 'Dirección no disponible' }}</div>
           </div>
         </div>
         <div class="location-item">
           <span class="material-icons" aria-hidden="true">schedule</span>
           <div>
             <div class="location-name">Horario</div>
-            <div class="location-address">{{ vehiculo()!.localizacion.horarioAtencion }}</div>
+            <div class="location-address">{{ vehiculo()?.localizacion?.horarioAtencion || 'No disponible' }}</div>
           </div>
         </div>
         <div class="location-item">
           <span class="material-icons" aria-hidden="true">phone</span>
           <div>
             <div class="location-name">Teléfono</div>
-            <div class="location-address">{{ vehiculo()!.localizacion.telefono }}</div>
+            <div class="location-address">{{ vehiculo()?.localizacion?.telefono || 'No disponible' }}</div>
           </div>
         </div>
         <div class="location-item">
           <span class="material-icons" aria-hidden="true">email</span>
           <div>
             <div class="location-name">Correo</div>
-            <div class="location-address">{{ vehiculo()!.localizacion.correo }}</div>
+            <div class="location-address">{{ vehiculo()?.localizacion?.correo || 'No disponible' }}</div>
           </div>
         </div>
       </div>
@@ -146,24 +146,24 @@
       <div class="price-breakdown">
         <div class="price-row">
           <span class="price-row-label">Precio por día</span>
-          <span class="price-row-value">${{ vehiculo()!.precio.precioBaseDia | number:'1.2-2' }}</span>
+          <span class="price-row-value">${{ (vehiculo()?.precio?.precioBaseDia || 0) | number:'1.2-2' }}</span>
         </div>
         <div class="price-row">
           <span class="price-row-label">Días estimados</span>
-          <span class="price-row-value">{{ vehiculo()!.disponibilidad.cantidadDias }}</span>
+          <span class="price-row-value">{{ vehiculo()?.disponibilidad?.cantidadDias || 0 }}</span>
         </div>
         <div class="price-row">
           <span class="price-row-label">Subtotal vehículo</span>
-          <span class="price-row-value">${{ vehiculo()!.precio.subtotalVehiculo | number:'1.2-2' }}</span>
+          <span class="price-row-value">${{ (vehiculo()?.precio?.subtotalVehiculo || 0) | number:'1.2-2' }}</span>
         </div>
         <div class="price-row price-row-iva">
           <span class="price-row-label">IVA (15%)</span>
-          <span class="price-row-value">${{ vehiculo()!.precio.iva | number:'1.2-2' }}</span>
+          <span class="price-row-value">${{ (vehiculo()?.precio?.iva || 0) | number:'1.2-2' }}</span>
         </div>
         <div class="price-divider"></div>
         <div class="price-row price-row-total">
           <span class="price-row-label-total">Total estimado</span>
-          <span class="price-row-value-total">${{ vehiculo()!.precio.total | number:'1.2-2' }}</span>
+          <span class="price-row-value-total">${{ (vehiculo()?.precio?.total || 0) | number:'1.2-2' }}</span>
         </div>
       </div>
 

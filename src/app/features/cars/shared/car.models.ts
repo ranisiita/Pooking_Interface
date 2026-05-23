@@ -68,6 +68,7 @@ export interface VehicleItem {
   categoria: Categoria;
   disponibilidad: DisponibilidadVehiculo;
   precio: PrecioVehiculo;
+  provider?: string;
 }
 
 export interface ExtraSeleccionado {
@@ -103,6 +104,11 @@ export interface CriteriosBusquedaAutos {
   fechaDevolucion: string;
   nombreCategoria: string;
   transmision: '' | 'AUTOMATICA' | 'MANUAL';
+  nombreMarca?: string;
+  proveedor?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface ResumenReservaAuto {

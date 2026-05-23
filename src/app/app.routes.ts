@@ -58,6 +58,20 @@ export const routes: Routes = [
         (m) => m.CarCheckoutComponent,
       ),
   },
+  {
+    path: 'autos/pago/:id',
+    loadComponent: () =>
+      import('./features/cars/payment/car-payment.component').then(
+        (m) => m.CarPaymentComponent,
+      ),
+  },
+  {
+    path: 'autos/confirmacion/:id',
+    loadComponent: () =>
+      import('./features/cars/confirmation/car-confirmation.component').then(
+        (m) => m.CarConfirmationComponent,
+      ),
+  },
 
   // Resultados de vuelos
   {
@@ -72,14 +86,14 @@ export const routes: Routes = [
   {
     path: 'checkout/:guid',
     loadComponent: () =>
-      import('./features/checkout/payment/payment.component').then(
+      import('./components/checkout/payment/payment.component').then(
         (m) => m.PaymentComponent,
       ),
   },
   {
     path: 'checkout/:guid/confirmacion',
     loadComponent: () =>
-      import('./features/checkout/confirmation/confirmation.component').then(
+      import('./components/checkout/confirmation/confirmation.component').then(
         (m) => m.ConfirmationComponent,
       ),
   },

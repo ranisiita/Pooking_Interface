@@ -4,7 +4,8 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
 import { FooterComponent } from '../../../components/navbar/footer.component';
 import { VehicleItem } from '../shared/car.models';
-import { VEHICULOS_MOCK, EXTRAS_MOCK } from '../shared/car-mock.data';
+import { EXTRAS_MOCK } from '../shared/car-mock.data';
+import { CarService } from '../services/car.service';
 
 @Component({
   selector: 'app-car-detail',
@@ -16,9 +17,11 @@ import { VEHICULOS_MOCK, EXTRAS_MOCK } from '../shared/car-mock.data';
 export class CarDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private carService = inject(CarService);
 
   vehiculo = signal<VehicleItem | null>(null);
   readonly extras = EXTRAS_MOCK;
+  isLoading = signal(true);
 
   readonly specs = computed(() => {
     const v = this.vehiculo();
@@ -39,10 +42,18 @@ export class CarDetailComponent implements OnInit {
     const idParam = this.route.snapshot.paramMap.get('id');
     if (!idParam) { this.goBack(); return; }
     const id = +idParam;
-    const raw = sessionStorage.getItem('car-results');
-    const lista: VehicleItem[] = raw ? JSON.parse(raw) : VEHICULOS_MOCK;
-    const v = lista.find((x) => x.idVehiculo === id) ?? VEHICULOS_MOCK.find((x) => x.idVehiculo === id) ?? null;
-    this.vehiculo.set(v);
+    
+    const provider = sessionStorage.getItem('car-provider');
+    if (!provider) {
+      console.warn('No se encontró el proveedor en sesión. Volviendo atrás.');
+      this.goBack();
+      return;
+    }
+
+    this.carService.getVehiculoById(id, provider).subscribe(v => {
+      this.vehiculo.set(v);
+      this.isLoading.set(false);
+    });
   }
 
   reservar(): void {
