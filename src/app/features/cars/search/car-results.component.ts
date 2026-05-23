@@ -6,13 +6,11 @@ import { NavbarComponent } from '../../../components/navbar/navbar.component';
 import { FooterComponent } from '../../../components/navbar/footer.component';
 import {
   VehicleItem,
+  Localizacion,
+  Categoria,
   CriteriosBusquedaAutos,
 } from '../shared/car.models';
-import {
-  VEHICULOS_MOCK,
-  LOCALIZACIONES_MOCK,
-  CATEGORIAS_MOCK,
-} from '../shared/car-mock.data';
+import { CarService } from '../services/car.service';
 
 @Component({
   selector: 'app-car-results',
@@ -24,9 +22,10 @@ import {
 export class CarResultsComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private carService = inject(CarService);
 
-  readonly localizaciones = LOCALIZACIONES_MOCK;
-  readonly categorias = CATEGORIAS_MOCK;
+  localizaciones: Localizacion[] = [];
+  categorias: Categoria[] = [];
 
   criterios = signal<CriteriosBusquedaAutos>({
     idLocalizacionRecogida: null,
@@ -35,24 +34,23 @@ export class CarResultsComponent implements OnInit {
     fechaDevolucion: '',
     nombreCategoria: '',
     transmision: '',
+    nombreMarca: '',
+    proveedor: 'todos',
+    sort: '',
+    page: 1,
+    limit: 20
   });
 
-  private readonly todosVehiculos = signal<VehicleItem[]>(VEHICULOS_MOCK);
+  private readonly todosVehiculos = signal<VehicleItem[]>([]);
   expandidos = signal<Set<number>>(new Set());
 
   paginaActual = signal(1);
   readonly tamanoPagina = 6;
+  isLoading = signal(false);
 
   readonly resultadosFiltrados = computed<VehicleItem[]>(() => {
-    const c = this.criterios();
-    return this.todosVehiculos().filter((v) => {
-      if (c.idLocalizacionRecogida && v.localizacion.idLocalizacion !== c.idLocalizacionRecogida)
-        return false;
-      if (c.nombreCategoria && v.categoria.nombre !== c.nombreCategoria)
-        return false;
-      if (c.transmision && v.transmision !== c.transmision) return false;
-      return true;
-    });
+    // La API ya filtró, pero mantenemos el computed por si acaso
+    return this.todosVehiculos();
   });
 
   readonly totalResultados = computed(() => this.resultadosFiltrados().length);
@@ -86,6 +84,26 @@ export class CarResultsComponent implements OnInit {
       fechaDevolucion: params.get('fechaDevolucion') ?? '',
       nombreCategoria: params.get('nombreCategoria') ?? '',
       transmision: (params.get('transmision') as '' | 'AUTOMATICA' | 'MANUAL') ?? '',
+      nombreMarca: params.get('nombreMarca') ?? '',
+      proveedor: params.get('proveedor') ?? 'todos',
+      sort: params.get('sort') ?? '',
+    });
+
+    this.cargarDatosFiltros();
+    this.buscarResultados();
+  }
+
+  cargarDatosFiltros() {
+    const prov = this.criterios().proveedor;
+    this.carService.getLocalizaciones(prov).subscribe(locs => this.localizaciones = locs);
+    this.carService.getCategorias(prov).subscribe(cats => this.categorias = cats);
+  }
+
+  buscarResultados() {
+    this.isLoading.set(true);
+    this.carService.buscarVehiculos(this.criterios(), 1, 100).subscribe(vehiculos => {
+      this.todosVehiculos.set(vehiculos);
+      this.isLoading.set(false);
     });
   }
 
@@ -99,13 +117,19 @@ export class CarResultsComponent implements OnInit {
     if (c.fechaDevolucion) qp['fechaDevolucion'] = c.fechaDevolucion;
     if (c.nombreCategoria) qp['nombreCategoria'] = c.nombreCategoria;
     if (c.transmision) qp['transmision'] = c.transmision;
+    if (c.nombreMarca) qp['nombreMarca'] = c.nombreMarca;
+    if (c.proveedor && c.proveedor !== 'todos') qp['proveedor'] = c.proveedor;
+    if (c.sort) qp['sort'] = c.sort;
     this.router.navigate([], { queryParams: qp, replaceUrl: true });
+    
+    this.buscarResultados();
   }
 
   verDetalle(vehiculo: VehicleItem, event: Event): void {
     event.stopPropagation();
     sessionStorage.setItem('car-results', JSON.stringify(this.resultadosFiltrados()));
     sessionStorage.setItem('car-criterios', JSON.stringify(this.criterios()));
+    if (vehiculo.provider) sessionStorage.setItem('car-provider', vehiculo.provider);
     this.router.navigate(['/autos/detalle', vehiculo.idVehiculo]);
   }
 
@@ -114,6 +138,7 @@ export class CarResultsComponent implements OnInit {
     sessionStorage.setItem('car-results', JSON.stringify(this.resultadosFiltrados()));
     sessionStorage.setItem('car-criterios', JSON.stringify(this.criterios()));
     sessionStorage.setItem('car-selected', JSON.stringify(vehiculo));
+    if (vehiculo.provider) sessionStorage.setItem('car-provider', vehiculo.provider);
     this.router.navigate(['/autos/checkout', vehiculo.idVehiculo]);
   }
 
@@ -152,3 +177,4 @@ export class CarResultsComponent implements OnInit {
     return map[fuel] ?? 'local_gas_station';
   }
 }
+

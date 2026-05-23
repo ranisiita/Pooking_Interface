@@ -174,26 +174,97 @@
       <!-- ALQUILER DE COCHES -->
       <div *ngIf="activeTab === 'coches'" class="form-grid">
         <div class="field full-width">
-          <label>Lugar de recogida</label>
+          <label>Proveedor</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">cloud</span>
+            <select [(ngModel)]="coches.proveedor" (change)="onProveedorChange()">
+              <option value="">Selecciona un proveedor</option>
+              <option value="todos">Todos</option>
+              <option value="martin">Martin</option>
+              <option value="ana">Ana</option>
+              <option value="dylan">Dylan</option>
+              <option value="kath">Katherine</option>
+            </select>
+          </div>
+        </div>
+        <div class="field full-width">
+          <label>Sucursal de Recogida</label>
           <div class="input-icon-wrapper">
             <span class="material-icons">location_on</span>
-            <input type="text" [(ngModel)]="coches.lugar" placeholder="Ciudad o aeropuerto" />
+            <select [(ngModel)]="coches.idLocalizacion">
+              <option [ngValue]="null">Selecciona una sucursal</option>
+              <option *ngFor="let loc of localizacionesCoches" [ngValue]="loc.idLocalizacion">{{ loc.nombre }}</option>
+            </select>
           </div>
         </div>
         <div class="field">
           <label>Fecha de recogida</label>
-          <div class="input-icon-wrapper">
-            <span class="material-icons">calendar_today</span>
-            <input type="date" [(ngModel)]="coches.recogida" />
-          </div>
+          <app-date-picker
+            [value]="coches.recogida"
+            [min]="fechaHoy"
+            [hasError]="!!cocheErrors.recogida"
+            placeholder="dd/mm/aaaa"
+            theme="light"
+            (valueChange)="coches.recogida = $event; validarCoches('recogida')"
+          ></app-date-picker>
+          <small class="field-error" *ngIf="cocheErrors.recogida">{{ cocheErrors.recogida }}</small>
         </div>
         <div class="field">
           <label>Fecha de devolución</label>
+          <app-date-picker
+            [value]="coches.devolucion"
+            [min]="coches.recogida || fechaHoy"
+            [hasError]="!!cocheErrors.devolucion"
+            placeholder="dd/mm/aaaa"
+            theme="light"
+            (valueChange)="coches.devolucion = $event; validarCoches('devolucion')"
+          ></app-date-picker>
+          <small class="field-error" *ngIf="cocheErrors.devolucion">{{ cocheErrors.devolucion }}</small>
+        </div>
+
+        <div class="field">
+          <label>Categoría</label>
           <div class="input-icon-wrapper">
-            <span class="material-icons">calendar_today</span>
-            <input type="date" [(ngModel)]="coches.devolucion" />
+            <span class="material-icons">category</span>
+            <select [(ngModel)]="coches.categoria">
+              <option value="">Cualquiera</option>
+              <option *ngFor="let cat of categoriasCoches" [value]="cat.nombre">{{ cat.nombre }}</option>
+            </select>
           </div>
         </div>
+
+        <div class="field">
+          <label>Transmisión</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">settings</span>
+            <select [(ngModel)]="coches.transmision">
+              <option value="">Cualquiera</option>
+              <option value="AUTOMATICA">Automática</option>
+              <option value="MANUAL">Manual</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Marca</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">directions_car</span>
+            <input type="text" [(ngModel)]="coches.marca" placeholder="Ej: Toyota" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Ordenar Por</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">sort</span>
+            <select [(ngModel)]="coches.sort">
+              <option value="">Relevancia</option>
+              <option value="price_asc">Precio: Menor a Mayor</option>
+              <option value="price_desc">Precio: Mayor a Menor</option>
+            </select>
+          </div>
+        </div>
+
         <div class="field full-width center">
           <button class="search-btn" (click)="buscarCoches()">
             <span class="material-icons">search</span>

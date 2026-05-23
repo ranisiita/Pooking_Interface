@@ -86,6 +86,33 @@
           </div>
         </div>
 
+        <!-- Marca -->
+        <div class="search-field">
+          <label class="search-label" for="marca">MARCA</label>
+          <div class="search-input-wrapper">
+            <span class="material-icons" aria-hidden="true">directions_car</span>
+            <input id="marca" type="text"
+              [value]="criterios().nombreMarca || ''"
+              (input)="setCriterio('nombreMarca', $any($event.target).value)"
+              placeholder="Ej: Toyota" />
+          </div>
+        </div>
+
+        <!-- Sort -->
+        <div class="search-field">
+          <label class="search-label" for="sort">ORDENAR POR</label>
+          <div class="search-input-wrapper">
+            <span class="material-icons" aria-hidden="true">sort</span>
+            <select id="sort"
+              [value]="criterios().sort || ''"
+              (change)="setCriterio('sort', $any($event.target).value)">
+              <option value="">Relevancia</option>
+              <option value="price_asc">Precio: Menor a Mayor</option>
+              <option value="price_desc">Precio: Mayor a Menor</option>
+            </select>
+          </div>
+        </div>
+
         <!-- Transmisión + Botón -->
         <div class="search-field search-field-last">
           <label class="search-label" for="transmision">TRANSMISIÓN</label>
@@ -172,7 +199,7 @@
                 <div class="car-model-year">{{ vehiculo.modelo }} · {{ vehiculo.anio }}</div>
               </div>
             </div>
-            <div class="car-category-badge">{{ vehiculo.categoria.nombre }}</div>
+            <div class="car-category-badge">{{ vehiculo.categoria?.nombre || 'General' }}</div>
           </div>
 
           <!-- Imagen -->
@@ -185,7 +212,7 @@
             <div class="car-image-overlay">
               <div class="car-location-tag">
                 <span class="material-icons" aria-hidden="true">location_on</span>
-                {{ vehiculo.localizacion.nombre }}
+                {{ vehiculo.localizacion?.nombre || 'Sucursal' }}
               </div>
             </div>
           </div>
