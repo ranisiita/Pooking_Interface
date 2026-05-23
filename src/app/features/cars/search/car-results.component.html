@@ -199,7 +199,7 @@
                 <div class="car-model-year">{{ vehiculo.modelo }} · {{ vehiculo.anio }}</div>
               </div>
             </div>
-            <div class="car-category-badge">{{ vehiculo.categoria?.nombre || 'General' }}</div>
+            <div class="car-category-badge">{{ vehiculo.categoria.nombre || 'General' }}</div>
           </div>
 
           <!-- Imagen -->
@@ -212,7 +212,7 @@
             <div class="car-image-overlay">
               <div class="car-location-tag">
                 <span class="material-icons" aria-hidden="true">location_on</span>
-                {{ vehiculo.localizacion?.nombre || 'Sucursal' }}
+                {{ vehiculo.localizacion.nombre || 'Sucursal' }}
               </div>
             </div>
           </div>

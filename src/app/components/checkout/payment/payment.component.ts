@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
 import { FooterComponent } from '../../../components/navbar/footer.component';
-import { FlightItem } from '../../flights/search/flight-results.component';
+import { FlightItem } from '../../../features/flights/search/flight-results.component';
 
 @Component({
   selector: 'app-payment',

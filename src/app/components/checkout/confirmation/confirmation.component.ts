@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
 import { FooterComponent } from '../../../components/navbar/footer.component';
-import { FlightItem } from '../../flights/search/flight-results.component';
+import { FlightItem } from '../../../features/flights/search/flight-results.component';
 
 interface Asiento {
   numero_asiento: string;

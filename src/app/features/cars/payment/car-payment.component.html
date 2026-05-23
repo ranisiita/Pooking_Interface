@@ -57,9 +57,9 @@
               />
             <div class="vehicle-mini-info">
               <div class="vehicle-mini-name">
-                {{ reserva()!.vehiculo?.marca }} {{ reserva()!.vehiculo?.modelo }} {{ reserva()!.vehiculo?.anio }}
+                {{ reserva()!.vehiculo.marca }} {{ reserva()!.vehiculo.modelo }} {{ reserva()!.vehiculo.anio }}
               </div>
-              <div class="vehicle-mini-sub">{{ reserva()!.conductor?.nombres }} {{ reserva()!.conductor?.apellidos }}</div>
+              <div class="vehicle-mini-sub">{{ reserva()!.conductor.nombres }} {{ reserva()!.conductor.apellidos }}</div>
             </div>
           </div>
 
@@ -79,14 +79,14 @@
               <div class="details-expandidos">
                 <div class="detail-row">
                   <span>Vehículo</span>
-                  <span>${{ (reserva()!.subtotalVehiculo ?? 0) | number:'1.2-2' }}</span>
+                  <span>${{ reserva()!.subtotalVehiculo | number:'1.2-2' }}</span>
                 </div>
-                @if ((reserva()!.subtotalExtras ?? 0) > 0) {
+                @if (reserva()!.subtotalExtras > 0) {
                   <div class="detail-row">
                     <span>Extras</span>
-                    <span>${{ (reserva()!.subtotalExtras ?? 0) | number:'1.2-2' }}</span>
+                    <span>${{ reserva()!.subtotalExtras | number:'1.2-2' }}</span>
                   </div>
-                  @for (e of (reserva()!.extras ?? []); track $index) {
+                  @for (e of reserva()!.extras; track $index) {
                     @if (e.cantidad > 0) {
                       <div class="detail-row detail-row-sub">
                         <span>{{ e.extra.nombre }} ×{{ e.cantidad }}</span>
