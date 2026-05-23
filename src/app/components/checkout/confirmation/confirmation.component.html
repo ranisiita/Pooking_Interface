@@ -1,6 +1,8 @@
-<app-navbar></app-navbar>
+@if (isStandalone) {
+  <app-navbar></app-navbar>
+}
 
-<div class="confirmation-page">
+<div class="confirmation-page" [class.embedded]="!isStandalone">
   <div class="confirmation-card">
 
     <!-- Ícono animado -->
@@ -8,9 +10,9 @@
       <span class="material-icons" aria-hidden="true">check_circle</span>
     </div>
 
-    <h1 class="confirmation-title">¡Reserva confirmada!</h1>
+    <h1 class="confirmation-title">{{ overrideTitle }}</h1>
     <p class="confirmation-subtitle">
-      Tu pago fue procesado exitosamente. Recibirás los detalles por correo electrónico.
+      {{ overrideSubtitle }}
     </p>
 
     <!-- Número de reserva -->
@@ -62,4 +64,6 @@
   </div>
 </div>
 
-<app-footer></app-footer>
+@if (isStandalone) {
+  <app-footer></app-footer>
+}
