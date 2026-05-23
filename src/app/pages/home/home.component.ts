@@ -16,7 +16,7 @@ export class HomeComponent implements AfterViewInit {
   categories = [
     { icon: 'hotel',               label: 'Alojamiento',       tab: 'alojamiento' },
     { icon: 'flight',              label: 'Vuelos',             tab: 'vuelos' },
-    { icon: 'directions_car',      label: 'Alquiler de Coches', tab: 'coches' },
+    { icon: 'directions_car',      label: 'Coches',             tab: 'coches' },
     { icon: 'confirmation_number', label: 'Atracciones',        tab: 'atracciones' }
   ];
 

@@ -1,0 +1,240 @@
+<app-navbar></app-navbar>
+
+<div class="page-bg" aria-hidden="true"></div>
+
+@if (loading()) {
+  <div class="modal-overlay">
+    <div class="spinner-wrap"><div class="spinner"></div></div>
+  </div>
+}
+
+@if (!loading() && error()) {
+  <div class="modal-overlay">
+    <div class="modal error-modal">
+      <span class="material-icons error-icon" aria-hidden="true">error_outline</span>
+      <h2 class="modal-title">Error</h2>
+      <p class="modal-description">{{ error() }}</p>
+      <button class="btn btn-primary" (click)="cancelar()">
+        <span class="material-icons" aria-hidden="true">search</span>
+        Volver a buscar
+      </button>
+    </div>
+  </div>
+}
+
+@if (!loading() && !error() && reserva()) {
+  <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pago-title">
+    <div class="modal modal-pago">
+
+      <!-- Header -->
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <span class="material-icons lock-icon" aria-hidden="true">lock</span>
+          <div>
+            <h1 class="modal-title" id="pago-title">Hall de Pagos</h1>
+            <p class="modal-subtitle">Reserva #{{ reserva()!.codigoReserva }}</p>
+          </div>
+        </div>
+        <button type="button" class="close-btn" (click)="cancelar()" aria-label="Cancelar y volver">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </div>
+
+      <p class="modal-description">
+        Tu reserva fue registrada exitosamente. Completa el pago para confirmarla.
+      </p>
+
+      <div class="modal-content">
+
+        <!-- Columna izquierda: resumen de reserva -->
+        <div class="modal-section">
+
+          <!-- Auto reservado -->
+          <div class="vehicle-mini-card">
+            <img [src]="reserva()!.vehiculo.imagenUrl"
+              [alt]="reserva()!.vehiculo.marca + ' ' + reserva()!.vehiculo.modelo"
+              class="vehicle-mini-img"
+              />
+            <div class="vehicle-mini-info">
+              <div class="vehicle-mini-name">
+                {{ reserva()!.vehiculo.marca }} {{ reserva()!.vehiculo.modelo }} {{ reserva()!.vehiculo.anio }}
+              </div>
+              <div class="vehicle-mini-sub">{{ reserva()!.conductor.nombres }} {{ reserva()!.conductor.apellidos }}</div>
+            </div>
+          </div>
+
+          <!-- Desglose de precios -->
+          <div class="payment-summary">
+            <div class="summary-row summary-subtotal" (click)="detallesExpandidos.set(!detallesExpandidos())" style="cursor:pointer;">
+              <span class="summary-label">
+                <span class="material-icons" aria-hidden="true">
+                  {{ detallesExpandidos() ? 'expand_less' : 'expand_more' }}
+                </span>
+                Subtotal
+              </span>
+              <span class="summary-value">${{ subtotal() | number:'1.2-2' }}</span>
+            </div>
+
+            @if (detallesExpandidos()) {
+              <div class="details-expandidos">
+                <div class="detail-row">
+                  <span>Vehículo</span>
+                  <span>${{ reserva()!.subtotalVehiculo | number:'1.2-2' }}</span>
+                </div>
+                @if (reserva()!.subtotalExtras > 0) {
+                  <div class="detail-row">
+                    <span>Extras</span>
+                    <span>${{ reserva()!.subtotalExtras | number:'1.2-2' }}</span>
+                  </div>
+                  @for (e of reserva()!.extras; track $index) {
+                    @if (e.cantidad > 0) {
+                      <div class="detail-row detail-row-sub">
+                        <span>{{ e.extra.nombre }} ×{{ e.cantidad }}</span>
+                        <span>${{ (e.extra.valorFijo * e.cantidad) | number:'1.2-2' }}</span>
+                      </div>
+                    }
+                  }
+                }
+                <div class="detail-row">
+                  <span>IVA (15%)</span>
+                  <span>${{ iva() | number:'1.2-2' }}</span>
+                </div>
+              </div>
+            }
+
+            <div class="summary-row summary-total">
+              <span class="summary-label-total">Total a pagar</span>
+              <span class="summary-value-total">${{ total() | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <div class="secure-info">
+            <span class="material-icons" aria-hidden="true">verified_user</span>
+            <span>Tu pago está protegido con encriptación SSL de 256 bits.</span>
+          </div>
+        </div>
+
+        <!-- Columna derecha: formulario tarjeta -->
+        <div class="modal-section">
+          <div class="payment-method-header">
+            <h2 class="section-title">Método de pago — Tarjeta</h2>
+            <div class="secure-badge">
+              <span class="material-icons" aria-hidden="true">lock</span>
+              Pago seguro
+            </div>
+          </div>
+
+          <!-- Logos tarjetas -->
+          <div class="card-brands">
+            <div class="card-brand visa">VISA</div>
+            <div class="card-brand mc">MC</div>
+            <div class="card-brand amex">AMEX</div>
+          </div>
+
+          <form class="form-grid" (ngSubmit)="pagar()" novalidate aria-live="polite">
+
+            <!-- Titular -->
+            <div class="form-field form-field-full">
+              <label class="field-label" for="titular-car">
+                NOMBRE DEL TITULAR <span class="required">*</span>
+              </label>
+              <div class="input-icon-wrapper" [class.input-error]="erroresTarjeta['titular']">
+                <span class="material-icons" aria-hidden="true">person</span>
+                <input id="titular-car" type="text" [(ngModel)]="datosTarjeta.titular" name="titular"
+                  placeholder="Como aparece en la tarjeta"
+                  [attr.aria-invalid]="erroresTarjeta['titular'] ? 'true' : null" />
+              </div>
+              @if (erroresTarjeta['titular']) {
+                <div class="field-error" role="alert">
+                  <span class="material-icons" aria-hidden="true">error_outline</span>
+                  {{ erroresTarjeta['titular'] }}
+                </div>
+              }
+            </div>
+
+            <!-- Número tarjeta -->
+            <div class="form-field form-field-full">
+              <label class="field-label" for="numero-car">
+                NÚMERO DE TARJETA <span class="required">*</span>
+              </label>
+              <div class="input-icon-wrapper" [class.input-error]="erroresTarjeta['numero']">
+                <span class="material-icons" aria-hidden="true">credit_card</span>
+                <input id="numero-car" type="text" [value]="datosTarjeta.numero"
+                  (input)="formatearNumero($event)" name="numero"
+                  placeholder="0000 0000 0000 0000" maxlength="19" inputmode="numeric"
+                  autocomplete="cc-number"
+                  [attr.aria-invalid]="erroresTarjeta['numero'] ? 'true' : null" />
+              </div>
+              @if (erroresTarjeta['numero']) {
+                <div class="field-error" role="alert">
+                  <span class="material-icons" aria-hidden="true">error_outline</span>
+                  {{ erroresTarjeta['numero'] }}
+                </div>
+              }
+            </div>
+
+            <!-- Caducidad + CVC -->
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label" for="exp-car">
+                  CADUCIDAD <span class="required">*</span>
+                </label>
+                <div class="input-icon-wrapper" [class.input-error]="erroresTarjeta['expiracion']">
+                  <span class="material-icons" aria-hidden="true">event</span>
+                  <input id="exp-car" type="text" [value]="datosTarjeta.expiracion"
+                    (input)="formatearExpiracion($event)" name="expiracion"
+                    placeholder="MM / AA" maxlength="7" inputmode="numeric"
+                    autocomplete="cc-exp"
+                    [attr.aria-invalid]="erroresTarjeta['expiracion'] ? 'true' : null" />
+                </div>
+                @if (erroresTarjeta['expiracion']) {
+                  <div class="field-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error_outline</span>
+                    {{ erroresTarjeta['expiracion'] }}
+                  </div>
+                }
+              </div>
+
+              <div class="form-field">
+                <label class="field-label" for="cvc-car">
+                  CVC <span class="required">*</span>
+                </label>
+                <div class="input-icon-wrapper" [class.input-error]="erroresTarjeta['cvc']">
+                  <span class="material-icons" aria-hidden="true">lock</span>
+                  <input id="cvc-car" type="password" [value]="datosTarjeta.cvc"
+                    (input)="soloDigitosCvc($event)" name="cvc"
+                    placeholder="123" maxlength="3" inputmode="numeric"
+                    autocomplete="cc-csc"
+                    [attr.aria-invalid]="erroresTarjeta['cvc'] ? 'true' : null" />
+                </div>
+                @if (erroresTarjeta['cvc']) {
+                  <div class="field-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error_outline</span>
+                    {{ erroresTarjeta['cvc'] }}
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="btn btn-secondary" (click)="cancelar()">Cancelar</button>
+              <button type="submit" class="btn btn-primary" [disabled]="procesando()" aria-label="Pagar de forma segura">
+                @if (procesando()) {
+                  <div class="spinner-inline" role="status" aria-label="Procesando"></div>
+                  Procesando...
+                } @else {
+                  <span class="material-icons" aria-hidden="true">lock</span>
+                  Pagar ${{ total() | number:'1.2-2' }}
+                }
+              </button>
+            </div>
+
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}
+
+<app-footer></app-footer>

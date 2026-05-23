@@ -1,10 +1,10 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
 import { FooterComponent } from '../../../components/navbar/footer.component';
-import { FlightItem } from '../../flights/search/flight-results.component';
+import { FlightItem } from '../../../features/flights/search/flight-results.component';
 
 @Component({
   selector: 'app-payment',
@@ -16,6 +16,18 @@ import { FlightItem } from '../../flights/search/flight-results.component';
 export class PaymentComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+
+  // --- Propiedades para uso compartido (Embebido) ---
+  @Input() isStandalone = true;
+  @Input() initialStep: 1 | 2 = 1;
+  @Input() totalInput = 0;
+  @Input() subtotalInput = 0;
+  @Input() ivaInput = 0;
+  @Input() overrideEmail = '';
+  @Input() overrideNombre = '';
+
+  @Output() pagoExitoso = new EventEmitter<void>();
+  @Output() onCancel = new EventEmitter<void>();
 
   guid = '';
   vuelo = signal<FlightItem | null>(null);
@@ -47,32 +59,45 @@ export class PaymentComponent implements OnInit {
 
   erroresTarjeta: Partial<Record<keyof typeof this.datosTarjeta, string>> = {};
 
-  readonly subtotal = computed(() => this.vuelo()?.precioBase ?? 0);
-  readonly iva = computed(() => +(this.subtotal() * 0.094).toFixed(2));
-  readonly total = computed(() => +(this.subtotal() + this.iva()).toFixed(2));
+  readonly subtotal = computed(() => this.isStandalone ? (this.vuelo()?.precioBase ?? 0) : this.subtotalInput);
+  readonly iva = computed(() => this.isStandalone ? +(this.subtotal() * 0.094).toFixed(2) : this.ivaInput);
+  readonly total = computed(() => this.isStandalone ? +(this.subtotal() + this.iva()).toFixed(2) : this.totalInput);
 
   ngOnInit(): void {
-    this.guid = this.route.snapshot.paramMap.get('guid') ?? '';
-    if (!this.guid) { this.router.navigate(['/vuelos/resultados']); return; }
+    this.paso.set(this.initialStep);
 
-    // Precargar datos del usuario desde localStorage si existen
-    const nombre = localStorage.getItem('nombre') ?? '';
-    const email = localStorage.getItem('email') ?? '';
-    this.datosPersonales.nombre = nombre.split(' ')[0] ?? '';
-    this.datosPersonales.apellidos = nombre.split(' ').slice(1).join(' ') ?? '';
-    this.datosPersonales.email = email;
+    if (this.isStandalone) {
+      this.guid = this.route.snapshot.paramMap.get('guid') ?? '';
+      if (!this.guid) { this.router.navigate(['/vuelos/resultados']); return; }
 
-    const raw = sessionStorage.getItem('flight-results');
-    const lista: FlightItem[] = raw ? JSON.parse(raw) : [];
-    const vuelo = lista.find((x) => x.guidServicio === this.guid) ?? null;
+      // Precargar datos del usuario desde localStorage si existen
+      const nombre = localStorage.getItem('nombre') ?? '';
+      const email = localStorage.getItem('email') ?? '';
+      this.datosPersonales.nombre = nombre.split(' ')[0] ?? '';
+      this.datosPersonales.apellidos = nombre.split(' ').slice(1).join(' ') ?? '';
+      this.datosPersonales.email = email;
 
-    if (!vuelo) {
-      this.error.set('No se encontró el vuelo. Por favor vuelve a buscar.');
-      this.loading.set(false);
-      return;
+      const raw = sessionStorage.getItem('flight-results');
+      const lista: FlightItem[] = raw ? JSON.parse(raw) : [];
+      const vuelo = lista.find((x) => x.guidServicio === this.guid) ?? null;
+
+      if (!vuelo) {
+        this.error.set('No se encontró el vuelo. Por favor vuelve a buscar.');
+        this.loading.set(false);
+        return;
+      }
+
+      this.vuelo.set(vuelo);
+    } else {
+      // Uso embebido
+      if (this.overrideNombre) {
+        this.datosPersonales.nombre = this.overrideNombre;
+      }
+      if (this.overrideEmail) {
+        this.datosPersonales.email = this.overrideEmail;
+      }
     }
-
-    this.vuelo.set(vuelo);
+    
     this.loading.set(false);
   }
 
@@ -157,16 +182,26 @@ export class PaymentComponent implements OnInit {
     this.procesando.set(true);
     setTimeout(() => {
       this.procesando.set(false);
-      this.router.navigate(['/checkout', this.guid, 'confirmacion']);
+      if (this.isStandalone) {
+        this.router.navigate(['/checkout', this.guid, 'confirmacion']);
+      } else {
+        this.pagoExitoso.emit();
+      }
     }, 1800);
   }
 
   cancelar(): void {
-    this.router.navigate(['/vuelos/resultados']);
+    if (this.isStandalone) {
+      this.router.navigate(['/vuelos/resultados']);
+    } else {
+      this.onCancel.emit();
+    }
   }
 
   volverAlPaso1(): void {
-    this.paso.set(1);
+    if (this.initialStep === 1) {
+      this.paso.set(1);
+    }
   }
 
   get hayErroresTarjeta(): boolean {

@@ -1,0 +1,286 @@
+.page-bg {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(142, 90, 84, 0.08) 0%, rgba(198, 177, 125, 0.08) 100%),
+              var(--color-bg);
+  z-index: 0;
+}
+
+.confirmation-container {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+  margin: 4rem auto;
+  padding: 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Success Banner */
+.success-banner {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: rgba(39, 174, 96, 0.1);
+  border: 1px solid rgba(39, 174, 96, 0.2);
+  border-radius: 16px;
+  padding: 2rem;
+}
+
+.success-icon-wrap {
+  background: #27ae60;
+  color: white;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 8px 16px rgba(39, 174, 96, 0.2);
+}
+
+.success-icon-wrap .material-icons {
+  font-size: 2.5rem;
+}
+
+.success-title {
+  font-family: var(--font-titulo);
+  color: var(--color-titulo);
+  font-size: 1.8rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.success-subtitle {
+  color: var(--color-subtitulo);
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Reservation Card */
+.reservation-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid rgba(198, 177, 125, 0.2);
+}
+
+.reservation-header {
+  background: var(--color-titulo);
+  color: white;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-left h2 {
+  margin: 0;
+  font-family: var(--font-titulo);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.reservation-code {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.reservation-code span {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+}
+
+.reservation-code strong {
+  font-family: monospace;
+  font-size: 1.3rem;
+  letter-spacing: 0.1em;
+}
+
+.reservation-body {
+  padding: 2rem;
+}
+
+.vehicle-info {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.vehicle-img {
+  width: 200px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.vehicle-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.vehicle-name {
+  font-family: var(--font-titulo);
+  color: var(--color-titulo);
+  font-size: 1.4rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-subtitulo);
+  font-size: 0.95rem;
+}
+
+.detail-item .material-icons {
+  font-size: 1.1rem;
+  color: var(--color-extra1);
+}
+
+.summary-total {
+  border-top: 1px solid rgba(198, 177, 125, 0.3);
+  padding-top: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.1rem;
+  color: var(--color-subtitulo);
+}
+
+.total-amount {
+  font-family: var(--font-titulo);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-titulo);
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--color-titulo);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #7a4a44;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(70, 64, 60, 0.2);
+}
+
+.btn-secondary {
+  background: rgba(198, 177, 125, 0.15);
+  color: var(--color-titulo);
+}
+
+.btn-secondary:hover {
+  background: rgba(198, 177, 125, 0.25);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid rgba(142, 90, 84, 0.3);
+  color: var(--color-titulo);
+}
+
+.btn-outline:hover {
+  background: rgba(142, 90, 84, 0.05);
+}
+
+/* Error Banner */
+.error-banner {
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.error-icon {
+  font-size: 3rem;
+  color: #c0392b;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .vehicle-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .vehicle-img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16/9;
+  }
+  
+  .reservation-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .reservation-code {
+    width: 100%;
+    align-items: flex-start;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

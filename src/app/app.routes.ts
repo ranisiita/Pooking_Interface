@@ -36,6 +36,43 @@ export const routes: Routes = [
       ),
   },
 
+  // ── Autos (RedCar) ──
+  {
+    path: 'autos/resultados',
+    loadComponent: () =>
+      import('./features/cars/search/car-results.component').then(
+        (m) => m.CarResultsComponent,
+      ),
+  },
+  {
+    path: 'autos/detalle/:id',
+    loadComponent: () =>
+      import('./features/cars/detail/car-detail.component').then(
+        (m) => m.CarDetailComponent,
+      ),
+  },
+  {
+    path: 'autos/checkout/:id',
+    loadComponent: () =>
+      import('./features/cars/checkout/car-checkout.component').then(
+        (m) => m.CarCheckoutComponent,
+      ),
+  },
+  {
+    path: 'autos/pago/:id',
+    loadComponent: () =>
+      import('./features/cars/payment/car-payment.component').then(
+        (m) => m.CarPaymentComponent,
+      ),
+  },
+  {
+    path: 'autos/confirmacion/:id',
+    loadComponent: () =>
+      import('./features/cars/confirmation/car-confirmation.component').then(
+        (m) => m.CarConfirmationComponent,
+      ),
+  },
+
   // Resultados de vuelos
   {
     path: 'vuelos/resultados',
@@ -49,14 +86,14 @@ export const routes: Routes = [
   {
     path: 'checkout/:guid',
     loadComponent: () =>
-      import('./features/checkout/payment/payment.component').then(
+      import('./components/checkout/payment/payment.component').then(
         (m) => m.PaymentComponent,
       ),
   },
   {
     path: 'checkout/:guid/confirmacion',
     loadComponent: () =>
-      import('./features/checkout/confirmation/confirmation.component').then(
+      import('./components/checkout/confirmation/confirmation.component').then(
         (m) => m.ConfirmationComponent,
       ),
   },

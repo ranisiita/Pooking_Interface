@@ -1,0 +1,84 @@
+<app-navbar></app-navbar>
+
+<div class="page-bg" aria-hidden="true"></div>
+
+<main class="confirmation-container">
+  @if (reserva()) {
+    <div class="success-banner" aria-live="polite">
+      <div class="success-icon-wrap">
+        <span class="material-icons" aria-hidden="true">check_circle</span>
+      </div>
+      <div class="success-text">
+        <h1 class="success-title">¡Reserva confirmada!</h1>
+        <p class="success-subtitle">Tu pago ha sido procesado exitosamente y la reserva del vehículo está confirmada.</p>
+      </div>
+    </div>
+
+    <div class="reservation-card">
+      <div class="reservation-header">
+        <div class="header-left">
+          <span class="material-icons" aria-hidden="true">directions_car</span>
+          <h2>Detalles de la Reserva</h2>
+        </div>
+        <div class="reservation-code">
+          <span>CÓDIGO DE RESERVA</span>
+          <strong>{{ reserva()!.codigoReserva }}</strong>
+        </div>
+      </div>
+
+      <div class="reservation-body">
+        <div class="vehicle-info">
+          <img [src]="reserva()!.vehiculo.imagenUrl"
+            [alt]="reserva()!.vehiculo.marca + ' ' + reserva()!.vehiculo.modelo"
+            class="vehicle-img"
+            />
+          
+          <div class="vehicle-details">
+            <h3 class="vehicle-name">{{ reserva()!.vehiculo.marca }} {{ reserva()!.vehiculo.modelo }} {{ reserva()!.vehiculo.anio }}</h3>
+            <div class="detail-item">
+              <span class="material-icons" aria-hidden="true">person</span>
+              <span>Conductor: {{ reserva()!.conductor.nombres }} {{ reserva()!.conductor.apellidos }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="material-icons" aria-hidden="true">email</span>
+              <span>{{ reserva()!.conductor.correo }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="material-icons" aria-hidden="true">phone</span>
+              <span>{{ reserva()!.conductor.telefono }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-total">
+          <span>Monto total pagado:</span>
+          <span class="total-amount">${{ reserva()!.total | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-secondary" (click)="buscarOtro()">
+        <span class="material-icons" aria-hidden="true">search</span>
+        Buscar otro auto
+      </button>
+      <button class="btn btn-primary" (click)="irAlPerfil()">
+        <span class="material-icons" aria-hidden="true">receipt_long</span>
+        Ver mis reservas
+      </button>
+      <button class="btn btn-outline" (click)="irAlInicio()">
+        <span class="material-icons" aria-hidden="true">home</span>
+        Ir al inicio
+      </button>
+    </div>
+  } @else {
+    <div class="error-banner">
+      <span class="material-icons error-icon" aria-hidden="true">error_outline</span>
+      <h2>Reserva no encontrada</h2>
+      <p>No pudimos cargar los detalles de esta reserva. Es posible que la sesión haya expirado o la reserva no exista.</p>
+      <button class="btn btn-primary" (click)="irAlInicio()">Volver al inicio</button>
+    </div>
+  }
+</main>
+
+<app-footer></app-footer>

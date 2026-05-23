@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { NavbarComponent } from '../../components/navbar/navbar.component';
 import { FooterComponent } from '../../components/navbar/footer.component';
 import { DatePickerComponent } from '../../components/date-picker/date-picker.component';
+import { CarService } from '../../features/cars/services/car.service';
+import { Localizacion, Categoria } from '../../features/cars/shared/car.models';
 
 type FlightClass = 'Económica' | 'Ejecutiva' | 'Primera clase';
 interface FlightSearchCriteria {
@@ -27,6 +29,7 @@ interface FlightSearchCriteria {
 export class SearchComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private carService = inject(CarService);
   private readonly tabsValidas = new Set(['alojamiento', 'vuelos', 'coches', 'atracciones']);
 
   activeTab = 'alojamiento';
@@ -36,7 +39,7 @@ export class SearchComponent implements OnInit {
   tabs = [
     { key: 'alojamiento',  icon: 'hotel',              label: 'Alojamiento' },
     { key: 'vuelos',       icon: 'flight',             label: 'Vuelos' },
-    { key: 'coches',       icon: 'directions_car',     label: 'Alquiler de Coches' },
+    { key: 'coches',       icon: 'directions_car',     label: 'Coches' },
     { key: 'atracciones',  icon: 'confirmation_number', label: 'Atracciones' },
   ];
 
@@ -60,7 +63,23 @@ export class SearchComponent implements OnInit {
     pasajeros: ''
   };
 
-  coches = { lugar: '', recogida: '', devolucion: '' };
+  coches = {
+    idLocalizacion: null as number | null,
+    recogida: '',
+    devolucion: '',
+    categoria: '',
+    marca: '',
+    transmision: '',
+    proveedor: '',
+    sort: ''
+  };
+  cocheErrors = {
+    recogida: '',
+    devolucion: ''
+  };
+
+  localizacionesCoches: Localizacion[] = [];
+  categoriasCoches: Categoria[] = [];
   atracciones = { destino: '', fecha: '' };
 
   ngOnInit(): void {
@@ -85,6 +104,24 @@ export class SearchComponent implements OnInit {
       const tab = params['tab'];
       this.activeTab = this.tabsValidas.has(tab) ? tab : 'alojamiento';
     });
+
+    this.onProveedorChange();
+  }
+
+  onProveedorChange(): void {
+    // Cuando el proveedor cambia, reseteamos la categoría/sucursal o las dejamos, 
+    // pero idealmente actualizamos las listas.
+    this.coches.idLocalizacion = null;
+    this.coches.categoria = '';
+
+    if (!this.coches.proveedor) {
+      this.localizacionesCoches = [];
+      this.categoriasCoches = [];
+      return;
+    }
+
+    this.carService.getLocalizaciones(this.coches.proveedor).subscribe(locs => this.localizacionesCoches = locs);
+    this.carService.getCategorias(this.coches.proveedor).subscribe(cats => this.categoriasCoches = cats);
   }
 
   setTab(key: string): void {
@@ -269,6 +306,46 @@ export class SearchComponent implements OnInit {
     return !Object.values(this.vueloErrors).some(err => err !== '');
   }
 
+  validarCoches(campo: keyof typeof this.cocheErrors): void {
+    const hoyStr = this.fechaHoy;
+
+    if (campo === 'recogida') {
+      const rec = this.coches.recogida;
+      if (!rec) {
+        this.cocheErrors.recogida = 'Debe seleccionar una fecha de recogida.';
+      } else if (rec < hoyStr) {
+        this.cocheErrors.recogida = 'La fecha de recogida no puede ser anterior a hoy.';
+      } else {
+        this.cocheErrors.recogida = '';
+        if (this.coches.devolucion && this.coches.devolucion < rec) {
+          this.cocheErrors.devolucion = 'La fecha de devolución no puede ser anterior a la recogida.';
+        } else if (this.coches.devolucion && this.coches.devolucion >= rec && this.cocheErrors.devolucion === 'La fecha de devolución no puede ser anterior a la recogida.') {
+          this.cocheErrors.devolucion = '';
+        }
+      }
+    }
+
+    if (campo === 'devolucion') {
+      const dev = this.coches.devolucion;
+      const rec = this.coches.recogida;
+      if (!dev) {
+        this.cocheErrors.devolucion = 'Debe seleccionar una fecha de devolución.';
+      } else if (dev < hoyStr) {
+        this.cocheErrors.devolucion = 'La fecha de devolución no puede ser anterior a hoy.';
+      } else if (rec && dev < rec) {
+        this.cocheErrors.devolucion = 'La fecha de devolución no puede ser anterior a la recogida.';
+      } else {
+        this.cocheErrors.devolucion = '';
+      }
+    }
+  }
+
+  validarTodoCoches(): boolean {
+    this.validarCoches('recogida');
+    this.validarCoches('devolucion');
+    return !Object.values(this.cocheErrors).some(err => err !== '');
+  }
+
   buscarAlojamiento(): void {
     if (!this.validarTodoAloj()) {
       return;
@@ -312,6 +389,24 @@ export class SearchComponent implements OnInit {
         tipoViaje,
       },
     });
+  }
+
+  buscarCoches(): void {
+    if (!this.validarTodoCoches()) {
+      return;
+    }
+
+    const qp: Record<string, string> = {};
+    if (this.coches.idLocalizacion) qp['idLocalizacionRecogida'] = String(this.coches.idLocalizacion);
+    if (this.coches.recogida) qp['fechaRecogida'] = this.coches.recogida;
+    if (this.coches.devolucion) qp['fechaDevolucion'] = this.coches.devolucion;
+    if (this.coches.categoria) qp['nombreCategoria'] = this.coches.categoria;
+    if (this.coches.marca) qp['nombreMarca'] = this.coches.marca;
+    if (this.coches.transmision) qp['transmision'] = this.coches.transmision;
+    if (this.coches.proveedor && this.coches.proveedor !== 'todos') qp['proveedor'] = this.coches.proveedor;
+    if (this.coches.sort) qp['sort'] = this.coches.sort;
+
+    this.router.navigate(['/autos/resultados'], { queryParams: qp });
   }
 
   buscarAtracciones(): void {
