@@ -107,6 +107,24 @@ export const routes: Routes = [
       ),
   },
 
+  // Atracciones — reserva (datos mock, sin POST real por ahora)
+  {
+    path: 'atracciones/:id/reservar',
+    loadComponent: () =>
+      import('./features/atracciones/atracciones-reserva/atracciones-reserva.component').then(
+        (m) => m.AtraccionesReservaComponent,
+      ),
+  },
+
+  // Atracciones — detalle (datos mock, sin API por ahora)
+  {
+    path: 'atracciones/:id',
+    loadComponent: () =>
+      import('./features/atracciones/atracciones-detail/atracciones-detail.component').then(
+        (m) => m.AtraccionesDetailComponent,
+      ),
+  },
+
   // Cuenta
   { path: 'login', component: Login },
   { path: 'signup', component: Signup },

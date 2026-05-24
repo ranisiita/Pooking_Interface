@@ -1,0 +1,359 @@
+<app-navbar></app-navbar>
+
+@switch (estado()) {
+
+  @case ('loading') {
+    <div class="state-block">
+      <div class="ad-spinner" aria-hidden="true"></div>
+      <p>Cargando experiencia…</p>
+    </div>
+  }
+
+  @case ('error') {
+    <div class="state-block state-error" role="alert">
+      <span class="material-icons">error_outline</span>
+      <h3>Ocurrió un problema</h3>
+      <p>{{ errorMsg() }}</p>
+      <button class="btn-primary" (click)="reintentar()">Reintentar</button>
+    </div>
+  }
+
+  @case ('not_found') {
+    <div class="state-block state-empty" role="alert">
+      <span class="material-icons">travel_explore</span>
+      <h3>No encontramos esta atracción</h3>
+      <p>El enlace puede haber expirado o la atracción ya no está disponible.</p>
+      <button class="btn-primary" (click)="volverAlListado()">Volver al listado</button>
+    </div>
+  }
+
+  @case ('success') {
+    @if (detalle(); as d) {
+
+      <!-- ══════════════════════════════════════
+           HERO CON IMAGEN DE FONDO
+      ══════════════════════════════════════ -->
+      <section class="detail-hero" aria-label="Encabezado de la atracción">
+        <div class="detail-hero-bg">
+          <img [src]="d.imagen_principal" [alt]="d.nombre" loading="eager" />
+          <div class="detail-hero-overlay"></div>
+        </div>
+
+        <div class="breadcrumb-wrap">
+          <button class="back-btn" (click)="volverAlListado()" aria-label="Volver al listado">
+            <span class="material-icons">arrow_back</span> Volver
+          </button>
+          <nav class="breadcrumb" aria-label="Ruta de navegación">
+            <span>Atracciones</span>
+            <span class="material-icons">chevron_right</span>
+            <span>{{ d.tipo_nombre }}</span>
+            @if (d.subtipo_nombre) {
+              <span class="material-icons">chevron_right</span>
+              <span>{{ d.subtipo_nombre }}</span>
+            }
+          </nav>
+        </div>
+
+        <div class="hero-info">
+          <div class="hero-badges">
+            <span class="hbadge hbadge-tipo">
+              <span class="material-icons">local_activity</span>
+              {{ d.tipo_nombre }}
+            </span>
+            @if (d.subtipo_nombre) {
+              <span class="hbadge">{{ d.subtipo_nombre }}</span>
+            }
+            @if (d.disponibilidad.disponible) {
+              <span class="hbadge hbadge-ok">
+                <span class="material-icons">check_circle</span> Disponible
+              </span>
+            } @else {
+              <span class="hbadge hbadge-warn">
+                <span class="material-icons">event_busy</span> Sin cupos
+              </span>
+            }
+          </div>
+
+          <h1 class="hero-title">{{ d.nombre }}</h1>
+          <p class="hero-loc">
+            <span class="material-icons">location_on</span>
+            {{ d.ciudad }}, {{ d.pais }}
+          </p>
+          <p class="hero-summary">{{ d.descripcion_corta }}</p>
+
+          <div class="hero-meta">
+            <span class="hm-item">
+              <span class="material-icons">star</span>
+              <strong>{{ d.calificacion | number: '1.1-1' }}</strong>
+              <em>({{ d.total_resenas }} reseñas)</em>
+            </span>
+            <span class="hm-item">
+              <span class="material-icons">schedule</span>
+              {{ formatearDuracion(d.duracion_minutos) }}
+            </span>
+            <span class="hm-item">
+              <span class="material-icons">translate</span>
+              {{ d.idiomas_disponibles.length }} idioma(s)
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════
+           SUBNAV DE SECCIONES
+      ══════════════════════════════════════ -->
+      <nav class="detail-subnav" aria-label="Secciones de la atracción">
+        <a (click)="scrollA('descripcion')">Descripción</a>
+        @if (galeria().length > 1) {
+          <a (click)="scrollA('galeria')">Galería</a>
+        }
+        <a (click)="scrollA('incluye')">Incluye</a>
+        <a (click)="scrollA('encuentro')">Punto de encuentro</a>
+        <a (click)="scrollA('tickets')">Tickets</a>
+      </nav>
+
+      <!-- ══════════════════════════════════════
+           BODY: CONTENIDO + SIDEBAR DE RESERVA
+      ══════════════════════════════════════ -->
+      <div class="detail-layout">
+
+        <!-- ── COLUMNA PRINCIPAL ── -->
+        <div class="detail-main">
+
+          <!-- Descripción -->
+          <article id="descripcion" class="info-card">
+            <header class="info-card-head">
+              <span class="material-icons">description</span>
+              <h2>Sobre esta experiencia</h2>
+            </header>
+            <p class="ad-desc">{{ d.descripcion }}</p>
+
+            @if (d.etiquetas.length) {
+              <div class="ad-tags">
+                @for (et of d.etiquetas; track et) {
+                  <span class="chip chip-etiqueta">
+                    <span class="material-icons">sell</span>
+                    {{ etiquetaLabel(et) }}
+                  </span>
+                }
+              </div>
+            }
+          </article>
+
+          <!-- Galería -->
+          @if (galeria().length > 1) {
+            <article id="galeria" class="info-card">
+              <header class="info-card-head">
+                <span class="material-icons">photo_library</span>
+                <h2>Galería</h2>
+              </header>
+
+              <div class="gallery-main">
+                @if (imagenActiva(); as img) {
+                  <img [src]="img" [alt]="d.nombre" loading="lazy" />
+                }
+              </div>
+
+              <div class="gallery-thumbs" role="list">
+                @for (img of galeria(); track img) {
+                  <button
+                    class="thumb"
+                    role="listitem"
+                    [class.active]="imagenActiva() === img"
+                    (click)="seleccionarImagen(img)"
+                    [attr.aria-label]="'Ver imagen'"
+                  >
+                    <img [src]="img" [alt]="d.nombre" loading="lazy" />
+                  </button>
+                }
+              </div>
+            </article>
+          }
+
+          <!-- Incluye / No incluye -->
+          <article id="incluye" class="info-card">
+            <header class="info-card-head">
+              <span class="material-icons">fact_check</span>
+              <h2>Qué incluye</h2>
+            </header>
+
+            <div class="includes-grid">
+              <div class="includes-col">
+                <h3 class="ic-title ok">
+                  <span class="material-icons">check_circle</span> Incluye
+                </h3>
+                @if (d.incluye.length) {
+                  <ul class="ic-list">
+                    @for (it of d.incluye; track it) {
+                      <li>
+                        <span class="material-icons">check</span>
+                        {{ it }}
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="ic-empty">No se especifican elementos incluidos.</p>
+                }
+              </div>
+
+              <div class="includes-col">
+                <h3 class="ic-title ko">
+                  <span class="material-icons">cancel</span> No incluye
+                </h3>
+                @if (d.no_incluye.length) {
+                  <ul class="ic-list ic-list-ko">
+                    @for (it of d.no_incluye; track it) {
+                      <li>
+                        <span class="material-icons">close</span>
+                        {{ it }}
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="ic-empty">Sin exclusiones reportadas.</p>
+                }
+              </div>
+            </div>
+
+            <div class="logistics-row">
+              <div class="log-pill" [class.log-active]="d.incluye_transporte">
+                <span class="material-icons">directions_bus</span>
+                {{ d.incluye_transporte ? 'Transporte incluido' : 'Sin transporte' }}
+              </div>
+              <div class="log-pill" [class.log-active]="d.incluye_acompaniante">
+                <span class="material-icons">support_agent</span>
+                {{ d.incluye_acompaniante ? 'Guía acompañante' : 'Sin acompañante' }}
+              </div>
+            </div>
+          </article>
+
+          <!-- Punto de encuentro -->
+          <article id="encuentro" class="info-card">
+            <header class="info-card-head">
+              <span class="material-icons">flag</span>
+              <h2>Punto de encuentro</h2>
+            </header>
+            <p class="meeting-point">
+              <span class="material-icons">place</span>
+              {{ d.punto_encuentro || 'No especificado.' }}
+            </p>
+          </article>
+
+          <!-- Tickets -->
+          <article id="tickets" class="info-card">
+            <header class="info-card-head">
+              <span class="material-icons">confirmation_number</span>
+              <h2>Tickets disponibles</h2>
+            </header>
+
+            @if (d.tickets.length) {
+              <div class="tickets-list">
+                @for (t of d.tickets; track trackTicket($index, t)) {
+                  <div class="ticket-card">
+                    <div class="ticket-icon">
+                      <span class="material-icons">local_activity</span>
+                    </div>
+                    <div class="ticket-info">
+                      <div class="ticket-tipo">{{ t.tipo }}</div>
+                      <div class="ticket-guid">ID: {{ t.tck_guid }}</div>
+                    </div>
+                    <div class="ticket-price">
+                      <span class="t-currency">$</span>
+                      <span class="t-val">{{ t.precio | number: '1.2-2' }}</span>
+                      <span class="t-moneda">{{ t.moneda }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+              <p class="tickets-hint">
+                <span class="material-icons">info</span>
+                La selección de tickets se hará al iniciar la reserva.
+              </p>
+            } @else {
+              <p class="ic-empty">No hay tickets disponibles por el momento.</p>
+            }
+          </article>
+        </div>
+
+        <!-- ── SIDEBAR STICKY DE RESERVA ── -->
+        <aside class="reserva-sidebar" aria-label="Resumen y reserva">
+          <div class="reserva-card">
+
+            <div class="rc-price-block">
+              <span class="rc-desde">Desde</span>
+              <div class="rc-price">
+                <span class="rc-dollar">$</span>
+                <span class="rc-val">{{ d.precio_desde | number: '1.2-2' }}</span>
+                <span class="rc-moneda">{{ d.moneda }}</span>
+              </div>
+              <span class="rc-por">por persona</span>
+            </div>
+
+            <div class="rc-summary">
+              <div class="rc-row">
+                <span class="material-icons">schedule</span>
+                <span>{{ formatearDuracion(d.duracion_minutos) }}</span>
+              </div>
+              <div class="rc-row">
+                <span class="material-icons">star</span>
+                <span>{{ d.calificacion | number: '1.1-1' }} · {{ d.total_resenas }} reseñas</span>
+              </div>
+              @if (d.idiomas_disponibles.length) {
+                <div class="rc-row rc-row-wrap">
+                  <span class="material-icons">translate</span>
+                  <div class="rc-langs">
+                    @for (idi of d.idiomas_disponibles; track idi) {
+                      <span class="lang-chip">{{ idiomaLabel(idi) }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="rc-disp" [class.no-disp]="!d.disponibilidad.disponible">
+              @if (d.disponibilidad.disponible_hoy) {
+                <span class="material-icons">today</span>
+                <div>
+                  <strong>Disponible hoy</strong>
+                  @if (d.disponibilidad.cupos_disponibles != null) {
+                    <div class="rc-disp-sub">{{ d.disponibilidad.cupos_disponibles }} cupos restantes</div>
+                  }
+                </div>
+              } @else if (d.disponibilidad.disponible && d.disponibilidad.proxima_fecha_disponible) {
+                <span class="material-icons">event_available</span>
+                <div>
+                  <strong>Próxima fecha</strong>
+                  <div class="rc-disp-sub">{{ d.disponibilidad.proxima_fecha_disponible }}</div>
+                </div>
+              } @else {
+                <span class="material-icons">event_busy</span>
+                <div>
+                  <strong>Sin disponibilidad</strong>
+                  <div class="rc-disp-sub">por el momento</div>
+                </div>
+              }
+            </div>
+
+            <button
+              class="btn-reservar"
+              [disabled]="!d.disponibilidad.disponible"
+              (click)="reservar()"
+              aria-label="Reservar ahora"
+            >
+              <span class="material-icons">event</span>
+              Reservar ahora
+            </button>
+
+            <p class="rc-foot">
+              <span class="material-icons">verified</span>
+              Cancelación según las políticas de la experiencia
+            </p>
+          </div>
+        </aside>
+
+      </div>
+    }
+  }
+}
+
+<app-footer></app-footer>
