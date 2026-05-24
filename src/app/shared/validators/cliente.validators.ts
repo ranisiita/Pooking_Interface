@@ -2,6 +2,7 @@ import { AbstractControl, AsyncValidatorFn, ValidationErrors, ValidatorFn } from
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, timer } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 export function tipoIdentificacionValidator(): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -57,7 +58,7 @@ export function numeroIdentificacionAvailableValidator(http: HttpClient, tipo: s
 
     return timer(500).pipe(
       switchMap(() => {
-        const url = `https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/clientes/disponibilidad/${urlSegment}/${v}`;
+        const url = `${environment.apiGatewayUrl}/api/v2/booking/clientes/disponibilidad/${urlSegment}/${v}`;
         
         return http.get<any>(url).pipe(
           map(res => {

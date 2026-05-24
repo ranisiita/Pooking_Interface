@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { NavbarComponent } from '../../components/navbar/navbar.component';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-profile',
@@ -45,7 +46,7 @@ export class ProfileComponent implements OnInit {
       'Authorization': `Bearer ${token}`
     });
 
-    this.http.get(`https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/clientes/usuario/${guid}`, { headers })
+    this.http.get(`${environment.apiGatewayUrl}/api/v1/clientes/usuario/${guid}`, { headers })
       .subscribe({
         next: (response: any) => {
           this.isLoading = false;

@@ -14,19 +14,19 @@
 
       <form (ngSubmit)="onLogin()" #loginForm="ngForm" *ngIf="loginStatus !== 'success'">
         <div class="form-group">
-          <label for="username">Usuario</label>
-          <div class="input-wrapper" [class.input-error]="usernameError">
+          <label for="identificador">Usuario o correo</label>
+          <div class="input-wrapper" [class.input-error]="identificadorError">
             <span class="material-icons">person</span>
             <input
-              id="username"
+              id="identificador"
               type="text"
-              name="username"
-              placeholder="Tu nombre de usuario"
-              [(ngModel)]="loginData.username"
-              (blur)="touch('username')"
+              name="identificador"
+              placeholder="Tu nombre de usuario o correo"
+              [(ngModel)]="loginData.identificador"
+              (blur)="touch('identificador')"
             />
           </div>
-          <small *ngIf="usernameError" class="field-error">{{ usernameError }}</small>
+          <small *ngIf="identificadorError" class="field-error">{{ identificadorError }}</small>
         </div>
 
         <div class="form-group">

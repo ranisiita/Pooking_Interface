@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-admin',
   standalone: true,
@@ -69,7 +70,7 @@ export class AdminComponent implements OnInit {
       pageSize: 50
     };
 
-    this.http.post('https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/usuarios/buscar', body, { headers })
+    this.http.post(`${environment.apiGatewayUrl}/api/v1/usuarios/buscar`, body, { headers })
       .subscribe({
         next: (response: any) => {
           this.isLoadingUsuarios = false;
@@ -94,7 +95,7 @@ export class AdminComponent implements OnInit {
     this.errorClientes = '';
     const body = { pageNumber: 1, pageSize: 50 };
 
-    this.http.post('https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/clientes/buscar', body, { headers })
+    this.http.post(`${environment.apiGatewayUrl}/api/v1/clientes/buscar`, body, { headers })
       .subscribe({
         next: (response: any) => {
           this.isLoadingClientes = false;
@@ -116,7 +117,7 @@ export class AdminComponent implements OnInit {
     this.errorServicios = '';
     const body = { pageNumber: 1, pageSize: 50 };
 
-    this.http.post('https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/servicios/buscar', body, { headers })
+    this.http.post(`${environment.apiGatewayUrl}/api/v1/servicios/buscar`, body, { headers })
       .subscribe({
         next: (response: any) => {
           this.isLoadingServicios = false;
@@ -138,7 +139,7 @@ export class AdminComponent implements OnInit {
     this.errorFacturacion = '';
     const body = { pageNumber: 1, pageSize: 50 };
 
-    this.http.post('https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/facturacion/buscar', body, { headers })
+    this.http.post(`${environment.apiGatewayUrl}/api/v1/facturacion/buscar`, body, { headers })
       .subscribe({
         next: (response: any) => {
           this.isLoadingFacturacion = false;
