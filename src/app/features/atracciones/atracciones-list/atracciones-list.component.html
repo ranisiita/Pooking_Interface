@@ -28,7 +28,13 @@
               class="seg-input"
               [(ngModel)]="busqueda.ciudad"
               placeholder="¿Dónde quieres explorar?"
+              list="atr-destinos"
             />
+            <datalist id="atr-destinos">
+              @for (d of filtros()?.destinationFilters ?? []; track d.tagname) {
+                <option [value]="d.name"></option>
+              }
+            </datalist>
           </div>
         </div>
 
@@ -58,8 +64,8 @@
             <span class="material-icons asb-ico">category</span>
             <select id="atr-tipo" class="seg-input seg-select" [(ngModel)]="busqueda.tipo">
               <option value="">Todas las experiencias</option>
-              @for (c of categoriasFiltro; track c.tagname) {
-                <option [value]="c.tagname">{{ c.nombre }}</option>
+              @for (t of filtros()?.typeFilters ?? []; track t.tagname) {
+                <option [value]="t.tagname">{{ t.name }}</option>
               }
             </select>
           </div>
@@ -83,9 +89,17 @@
 <section class="results-bar" aria-label="Resumen y ordenación">
   <div class="rb-left">
     <div class="results-title">
-      <strong>{{ totalResultados() }} atracci{{ totalResultados() === 1 ? 'ón' : 'ones' }}</strong>
-      disponible{{ totalResultados() === 1 ? '' : 's' }}
-      <span *ngIf="criterioCiudad()"> en <em>{{ criterioCiudad() }}</em></span>
+      @if (loading() && !response()) {
+        <strong>Cargando…</strong>
+      } @else if (filterStats(); as stats) {
+        <strong>{{ stats.filteredProductCount }} atracci{{ stats.filteredProductCount === 1 ? 'ón' : 'ones' }}</strong>
+        de {{ stats.unfilteredProductCount }} disponible{{ stats.unfilteredProductCount === 1 ? '' : 's' }}
+      } @else {
+        <strong>0 atracciones</strong>
+      }
+      @if (filtroDestino(); as d) {
+        <span> en <em>{{ destinoNombre(d) }}</em></span>
+      }
     </div>
     <p class="rb-subtitle">
       <span class="material-icons">local_activity</span>
@@ -99,14 +113,13 @@
       <select
         class="sort-sel"
         id="atr-sort"
-        [ngModel]="ordenamiento()"
-        (ngModelChange)="ordenamiento.set($event)"
+        [ngModel]="ordenarPor()"
+        (ngModelChange)="setOrden($event)"
         aria-label="Ordenar atracciones"
       >
-        <option value="recomendados">Recomendados</option>
-        <option value="trending">Más populares</option>
-        <option value="lowest_price">Menor precio</option>
-        <option value="highest_weighted_rating">Mejor calificación</option>
+        @for (s of sorters(); track s.value) {
+          <option [value]="s.value">{{ s.name }}</option>
+        }
       </select>
       <span class="material-icons select-chevron">expand_more</span>
     </div>
@@ -126,154 +139,224 @@
       <span>Afina tu experiencia</span>
     </div>
 
-    <!-- Categoría / tipo -->
-    <section class="filter-section filter-group">
-      <h3 class="section-title">
-        <span class="material-icons sec-ico">category</span> Categoría
-      </h3>
-      @for (c of categoriasFiltro; track c.tagname) {
+    @if (filtrosLoading()) {
+      <div class="filter-skeleton">
+        <div class="filter-section skeleton-card"></div>
+        <div class="filter-section skeleton-card"></div>
+        <div class="filter-section skeleton-card"></div>
+      </div>
+    } @else if (filtros(); as f) {
+
+      <!-- Destino -->
+      @if (f.destinationFilters.length) {
+        <section class="filter-section filter-group">
+          <h3 class="section-title">
+            <span class="material-icons sec-ico">place</span> Destino
+          </h3>
+          @for (opt of f.destinationFilters; track opt.tagname) {
+            <label class="fcheck" [class.fcheck-disabled]="opt.productCount === 0">
+              <input
+                type="checkbox"
+                [checked]="filtroDestino() === opt.tagname"
+                [disabled]="opt.productCount === 0"
+                (change)="toggleDestino(opt)"
+                [attr.aria-label]="opt.name"
+              />
+              <span class="fc-label">
+                <span class="material-icons fc-ico">location_city</span>
+                {{ opt.name }}
+                <span class="fc-count">{{ opt.productCount }}</span>
+              </span>
+            </label>
+          }
+        </section>
+      }
+
+      <!-- Tipo -->
+      @if (f.typeFilters.length) {
+        <section class="filter-section filter-group">
+          <h3 class="section-title">
+            <span class="material-icons sec-ico">category</span> Tipo de atracción
+          </h3>
+          @for (opt of f.typeFilters; track opt.tagname) {
+            <label class="fcheck" [class.fcheck-disabled]="opt.productCount === 0">
+              <input
+                type="checkbox"
+                [checked]="filtroTipo() === opt.tagname"
+                [disabled]="opt.productCount === 0"
+                (change)="toggleTipo(opt)"
+                [attr.aria-label]="opt.name"
+              />
+              <span class="fc-label">
+                <span class="material-icons fc-ico">tour</span>
+                {{ opt.name }}
+                <span class="fc-count">{{ opt.productCount }}</span>
+              </span>
+            </label>
+          }
+        </section>
+      }
+
+      <!-- Etiquetas -->
+      @if (f.labelFilters.length) {
+        <section class="filter-section filter-group">
+          <h3 class="section-title">
+            <span class="material-icons sec-ico">sell</span> Etiquetas
+          </h3>
+          @for (opt of f.labelFilters; track opt.tagname) {
+            <label class="fcheck" [class.fcheck-disabled]="opt.productCount === 0">
+              <input
+                type="checkbox"
+                [checked]="filtroEtiqueta() === opt.tagname"
+                [disabled]="opt.productCount === 0"
+                (change)="toggleEtiqueta(opt)"
+                [attr.aria-label]="opt.name"
+              />
+              <span class="fc-label">
+                <span class="material-icons fc-ico">bolt</span>
+                {{ opt.name }}
+                <span class="fc-count">{{ opt.productCount }}</span>
+              </span>
+            </label>
+          }
+        </section>
+      }
+
+      <!-- Calificación mínima -->
+      @if (f.minRatingFilter.length) {
+        <section class="filter-section filter-group">
+          <h3 class="section-title">
+            <span class="material-icons sec-ico">star</span> Calificación mínima
+          </h3>
+          @for (opt of f.minRatingFilter; track opt.tagname) {
+            <label class="fcheck" [class.fcheck-disabled]="opt.productCount === 0">
+              <input
+                type="checkbox"
+                [checked]="filtroCalificacionMin() === +opt.tagname"
+                [disabled]="opt.productCount === 0"
+                (change)="toggleCalificacion(opt)"
+                [attr.aria-label]="opt.name"
+              />
+              <span class="fc-label">
+                <span class="material-icons star-ico">star</span>
+                {{ opt.name }}
+                <span class="fc-count">{{ opt.productCount }}</span>
+              </span>
+            </label>
+          }
+        </section>
+      }
+
+      <!-- Horario del día -->
+      @if (f.timeOfDayFilters.length) {
+        <section class="filter-section filter-group">
+          <h3 class="section-title">
+            <span class="material-icons sec-ico">schedule</span> Horario del día
+          </h3>
+          @for (opt of f.timeOfDayFilters; track opt.tagname) {
+            <label class="fcheck" [class.fcheck-disabled]="opt.productCount === 0">
+              <input
+                type="checkbox"
+                [checked]="filtroHoraInicio() === opt.tagname"
+                [disabled]="opt.productCount === 0"
+                (change)="toggleHora(opt)"
+                [attr.aria-label]="opt.name"
+              />
+              <span class="fc-label">
+                <span class="material-icons fc-ico">schedule</span>
+                {{ opt.name }}
+                <span class="fc-count">{{ opt.productCount }}</span>
+              </span>
+            </label>
+          }
+        </section>
+      }
+
+      <!-- Idiomas -->
+      @if (f.supportedLanguageFilters.length) {
+        <section class="filter-section filter-group">
+          <h3 class="section-title">
+            <span class="material-icons sec-ico">translate</span> Idiomas
+          </h3>
+          @for (opt of f.supportedLanguageFilters; track opt.tagname) {
+            <label class="fcheck" [class.fcheck-disabled]="opt.productCount === 0">
+              <input
+                type="checkbox"
+                [checked]="filtroIdioma() === opt.tagname"
+                [disabled]="opt.productCount === 0"
+                (change)="toggleIdioma(opt)"
+                [attr.aria-label]="opt.name"
+              />
+              <span class="fc-label">
+                <span class="material-icons fc-ico">language</span>
+                {{ opt.name }}
+                <span class="fc-count">{{ opt.productCount }}</span>
+              </span>
+            </label>
+          }
+        </section>
+      }
+
+      <!-- Disponibilidad -->
+      <section class="filter-section filter-group">
+        <h3 class="section-title">
+          <span class="material-icons sec-ico">event_available</span> Disponibilidad
+        </h3>
         <label class="fcheck">
           <input
             type="checkbox"
-            [checked]="filtroCategorias()[c.tagname]"
-            (change)="toggleCategoria(c.tagname)"
-            [attr.aria-label]="c.nombre"
+            [checked]="filtroSoloDisponibles()"
+            (change)="toggleSoloDisponibles()"
+            aria-label="Solo disponibles"
           />
           <span class="fc-label">
-            <span class="material-icons fc-ico">{{ c.icon }}</span>
-            {{ c.nombre }}
+            <span class="material-icons fc-ico">check_circle</span>
+            Solo disponibles
           </span>
         </label>
+      </section>
+
+      @if (hayFiltrosActivos) {
+        <button class="btn-clear" (click)="limpiarFiltros()">Limpiar filtros</button>
       }
-    </section>
-
-    <!-- Etiquetas -->
-    <section class="filter-section filter-group">
-      <h3 class="section-title">
-        <span class="material-icons sec-ico">sell</span> Etiquetas
-      </h3>
-      @for (et of etiquetasFiltro; track et.tagname) {
-        <label class="fcheck">
-          <input
-            type="checkbox"
-            [checked]="filtroEtiquetas()[et.tagname]"
-            (change)="toggleEtiqueta(et.tagname)"
-            [attr.aria-label]="et.label"
-          />
-          <span class="fc-label">
-            <span class="material-icons fc-ico">{{ et.icon }}</span>
-            {{ et.label }}
-          </span>
-        </label>
-      }
-    </section>
-
-    <!-- Calificación mínima -->
-    <section class="filter-section filter-group">
-      <h3 class="section-title">
-        <span class="material-icons sec-ico">star</span> Calificación mínima
-      </h3>
-      @for (cal of calificacionesFiltro; track cal) {
-        <label class="fcheck">
-          <input
-            type="checkbox"
-            [checked]="filtroCalificacionMin() === cal"
-            (change)="setCalificacionMin(cal)"
-            [attr.aria-label]="cal + ' o más'"
-          />
-          <span class="fc-label">
-            <span class="material-icons star-ico">star</span>
-            {{ cal }} o más
-          </span>
-        </label>
-      }
-    </section>
-
-    <!-- Horario -->
-    <section class="filter-section filter-group">
-      <h3 class="section-title">
-        <span class="material-icons sec-ico">schedule</span> Horario
-      </h3>
-      @for (h of horariosFiltro; track h.tag) {
-        <label class="fcheck">
-          <input
-            type="checkbox"
-            [checked]="filtroHorarios()[h.tag]"
-            (change)="toggleHorario(h.tag)"
-            [attr.aria-label]="h.label"
-          />
-          <span class="fc-label">
-            <span class="material-icons fc-ico">{{ h.icon }}</span>
-            {{ h.label }}
-            <span class="fc-hint">{{ h.tag }}</span>
-          </span>
-        </label>
-      }
-    </section>
-
-    <!-- Idiomas -->
-    <section class="filter-section filter-group">
-      <h3 class="section-title">
-        <span class="material-icons sec-ico">translate</span> Idiomas
-      </h3>
-      @for (idi of idiomasDisponibles(); track idi) {
-        <label class="fcheck">
-          <input
-            type="checkbox"
-            [checked]="filtroIdiomas()[idi]"
-            (change)="toggleIdioma(idi)"
-            [attr.aria-label]="idiomaLabel(idi)"
-          />
-          <span class="fc-label">
-            <span class="material-icons fc-ico">language</span>
-            {{ idiomaLabel(idi) }}
-          </span>
-        </label>
-      }
-    </section>
-
-    <!-- Disponibilidad -->
-    <section class="filter-section filter-group">
-      <h3 class="section-title">
-        <span class="material-icons sec-ico">event_available</span> Disponibilidad
-      </h3>
-      <label class="fcheck">
-        <input
-          type="checkbox"
-          [checked]="soloDisponibles()"
-          (change)="soloDisponibles.set(!soloDisponibles())"
-          aria-label="Solo disponibles"
-        />
-        <span class="fc-label">
-          <span class="material-icons fc-ico">check_circle</span>
-          Solo disponibles
-        </span>
-      </label>
-    </section>
-
-    @if (hayFiltrosActivos) {
-      <button class="btn-clear" (click)="limpiarFiltros()">Limpiar filtros</button>
     }
   </aside>
 
   <!-- ── LISTADO DE ATRACCIONES ── -->
   <main class="results-area" aria-label="Resultados de atracciones">
 
-    @if (totalResultados() === 0) {
+    @if (loading()) {
+      <div class="state-block">
+        <div class="ac-spinner" aria-hidden="true"></div>
+        <p>Cargando experiencias disponibles…</p>
+      </div>
+
+    } @else if (error(); as err) {
+      <div class="state-block state-error" role="alert">
+        <span class="material-icons">error_outline</span>
+        <h3>Ocurrió un problema</h3>
+        <p>{{ err }}</p>
+        <button class="btn-clear-filters-state" (click)="reintentar()">Reintentar</button>
+      </div>
+
+    } @else if (atracciones().length === 0) {
       <div class="no-results" role="alert">
         <span class="material-icons no-results-icon">travel_explore</span>
         <h3>No encontramos experiencias</h3>
         <p>
-          Ninguna atracción coincide con la combinación de búsqueda y filtros
-          seleccionada. Prueba ampliando la categoría, el horario o el destino.
+          Ninguna atracción coincide con tu búsqueda. Prueba ampliando la
+          categoría, el horario o el destino.
         </p>
-        <button class="btn-clear-filters-state" (click)="limpiarFiltros()">
-          Restaurar filtros
-        </button>
+        @if (hayFiltrosActivos) {
+          <button class="btn-clear-filters-state" (click)="limpiarFiltros()">
+            Limpiar filtros
+          </button>
+        }
       </div>
+
     } @else {
 
-      @for (atr of atraccionesFiltradas(); track atr.id) {
+      @for (atr of atracciones(); track atr.id) {
         <article class="atraccion-card">
 
           <!-- Columna de imagen -->
@@ -298,7 +381,9 @@
           <div class="ac-info">
             <div class="ac-top">
               <h2 class="ac-name">{{ atr.nombre }}</h2>
-              <span class="ac-cat">{{ atr.subtipo_nombre }}</span>
+              @if (atr.subtipo_nombre) {
+                <span class="ac-cat">{{ atr.subtipo_nombre }}</span>
+              }
             </div>
 
             <div class="ac-loc">
@@ -308,7 +393,6 @@
 
             <p class="ac-desc">{{ atr.descripcion_corta }}</p>
 
-            <!-- Ficha rápida de la experiencia -->
             <div class="ac-meta">
               <div class="ac-meta-item">
                 <span class="material-icons meta-icon">schedule</span>
@@ -318,10 +402,12 @@
                 <span class="material-icons meta-icon">star</span>
                 <span><strong>{{ atr.calificacion }}</strong> ({{ atr.total_resenas }} reseñas)</span>
               </div>
-              <div class="ac-meta-item">
-                <span class="material-icons meta-icon">confirmation_number</span>
-                <span><strong>{{ atr.disponibilidad.cupos_disponibles }}</strong> cupos</span>
-              </div>
+              @if (atr.disponibilidad.cupos_disponibles != null) {
+                <div class="ac-meta-item">
+                  <span class="material-icons meta-icon">confirmation_number</span>
+                  <span><strong>{{ atr.disponibilidad.cupos_disponibles }}</strong> cupos</span>
+                </div>
+              }
               <div class="ac-meta-item">
                 <span class="material-icons meta-icon">translate</span>
                 <span>{{ atr.idiomas_disponibles.length }} idioma(s)</span>
@@ -329,27 +415,32 @@
             </div>
 
             <!-- Chips: etiquetas + idiomas -->
-            <div class="ac-chips">
-              @for (et of atr.etiquetas; track et) {
-                <span class="chip chip-etiqueta">
-                  <span class="material-icons chip-icon">sell</span>
-                  {{ etiquetaLabel(et) }}
-                </span>
-              }
-              @for (idi of atr.idiomas_disponibles; track idi) {
-                <span class="chip chip-idioma">
-                  <span class="material-icons chip-icon">translate</span>
-                  {{ idiomaLabel(idi) }}
-                </span>
-              }
-            </div>
+            @if (atr.etiquetas.length || atr.idiomas_disponibles.length) {
+              <div class="ac-chips">
+                @for (et of atr.etiquetas; track et) {
+                  <span class="chip chip-etiqueta">
+                    <span class="material-icons chip-icon">sell</span>
+                    {{ etiquetaNombre(et) }}
+                  </span>
+                }
+                @for (idi of atr.idiomas_disponibles; track idi) {
+                  <span class="chip chip-idioma">
+                    <span class="material-icons chip-icon">translate</span>
+                    {{ idiomaLabel(idi) }}
+                  </span>
+                }
+              </div>
+            }
 
-            <!-- Estado de disponibilidad -->
+            <!-- Estado de disponibilidad detallado -->
             <p class="ac-disp-info" [class.no-disponible]="!atr.disponibilidad.disponible">
               @if (atr.disponibilidad.disponible_hoy) {
                 <span class="material-icons">today</span>
-                Disponible hoy · {{ atr.disponibilidad.cupos_disponibles }} cupos restantes
-              } @else if (atr.disponibilidad.disponible) {
+                Disponible hoy
+                @if (atr.disponibilidad.cupos_disponibles != null) {
+                  · {{ atr.disponibilidad.cupos_disponibles }} cupos restantes
+                }
+              } @else if (atr.disponibilidad.disponible && atr.disponibilidad.proxima_fecha_disponible) {
                 <span class="material-icons">event_available</span>
                 Próxima fecha disponible: {{ atr.disponibilidad.proxima_fecha_disponible }}
               } @else {
@@ -396,6 +487,39 @@
             </div>
           </div>
         </article>
+      }
+
+      <!-- Paginación -->
+      @if (pagination(); as pag) {
+        @if (pag.total_pages > 1) {
+          <nav class="ac-pagination" aria-label="Paginación de atracciones">
+            <button
+              class="pag-btn"
+              [disabled]="pag.page === 1"
+              (click)="setPage(pag.page - 1)"
+              aria-label="Página anterior"
+            >
+              <span class="material-icons">chevron_left</span>
+            </button>
+            @for (n of [].constructor(pag.total_pages); track $index) {
+              <button
+                class="pag-btn"
+                [class.active]="pag.page === $index + 1"
+                (click)="setPage($index + 1)"
+              >
+                {{ $index + 1 }}
+              </button>
+            }
+            <button
+              class="pag-btn"
+              [disabled]="pag.page === pag.total_pages"
+              (click)="setPage(pag.page + 1)"
+              aria-label="Página siguiente"
+            >
+              <span class="material-icons">chevron_right</span>
+            </button>
+          </nav>
+        }
       }
     }
   </main>

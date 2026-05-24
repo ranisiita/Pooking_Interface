@@ -1,0 +1,520 @@
+<app-navbar></app-navbar>
+
+@switch (estado()) {
+
+  @case ('loading') {
+    <div class="rsv-state">
+      <div class="rsv-spinner" aria-hidden="true"></div>
+      <p>Preparando la reserva…</p>
+    </div>
+  }
+
+  @case ('error') {
+    <div class="rsv-state rsv-state-error" role="alert">
+      <span class="material-icons">error_outline</span>
+      <h3>Ocurrió un problema</h3>
+      <p>{{ errorMsg() }}</p>
+      <button class="rsv-btn-primary" (click)="reintentar()">Reintentar</button>
+    </div>
+  }
+
+  @case ('not_found') {
+    <div class="rsv-state rsv-state-empty" role="alert">
+      <span class="material-icons">travel_explore</span>
+      <h3>No encontramos esta atracción</h3>
+      <p>El enlace puede haber expirado o la atracción ya no está disponible.</p>
+      <button class="rsv-btn-primary" (click)="volverAlListado()">Volver al listado</button>
+    </div>
+  }
+
+  @case ('success') {
+    @if (detalle(); as d) {
+
+      <!-- ══ BREADCRUMB ══ -->
+      <nav class="rsv-breadcrumb" aria-label="Ruta de navegación">
+        <a (click)="volverAlListado()">Atracciones</a>
+        <span class="sep">›</span>
+        <a (click)="volverAlDetalle()">{{ d.nombre }}</a>
+        <span class="sep">›</span>
+        <span>Completar reserva</span>
+      </nav>
+
+      <!-- ══ STEPS ══ -->
+      <div class="rsv-steps">
+        <div class="step done">
+          <div class="step-num"><span class="material-icons">check</span></div>
+          <div class="step-label">Atracción</div>
+        </div>
+        <div class="step-sep"></div>
+        <div class="step active">
+          <div class="step-num">2</div>
+          <div class="step-label">Fecha y tickets</div>
+        </div>
+        <div class="step-sep"></div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-label">Tus datos</div>
+        </div>
+      </div>
+
+      <!-- ══ LAYOUT ══ -->
+      <div class="rsv-layout">
+
+        <!-- ── COLUMNA PRINCIPAL ── -->
+        <div class="rsv-main">
+
+          <!-- 1. FECHA DE VISITA -->
+          <section class="rsv-section">
+            <div class="rsv-section-head">
+              <span class="material-icons">event</span>
+              <h3>Selecciona la fecha de visita</h3>
+            </div>
+
+            <div class="rsv-field" [class.has-error]="fechaError">
+              <label for="rsv-fecha">Fecha</label>
+              <input
+                type="date"
+                id="rsv-fecha"
+                class="rsv-input"
+                [(ngModel)]="fechaVisita"
+                [min]="today"
+                (ngModelChange)="onFechaChange()"
+              />
+              @if (fechaError) {
+                <span class="rsv-field-error">{{ fechaError }}</span>
+              } @else {
+                <span class="rsv-field-hint">
+                  Consultaremos los horarios reales con
+                  <code>GET /horarios?fecha=YYYY-MM-DD</code> cuando esté la API.
+                </span>
+              }
+            </div>
+          </section>
+
+          <!-- 2. HORARIOS -->
+          <section class="rsv-section">
+            <div class="rsv-section-head">
+              <span class="material-icons">schedule</span>
+              <h3>Horarios disponibles</h3>
+            </div>
+
+            @if (!fechaVisita) {
+              <p class="rsv-empty-msg">Elige primero una fecha para ver los horarios disponibles.</p>
+            } @else if (horariosLoading()) {
+              <div class="rsv-inline-loading">
+                <div class="rsv-spinner sm" aria-hidden="true"></div>
+                <span>Cargando horarios…</span>
+              </div>
+            } @else if (horariosError()) {
+              <p class="rsv-empty-msg error">{{ horariosError() }}</p>
+            } @else if (horarios().length === 0) {
+              <p class="rsv-empty-msg">No hay horarios con cupos disponibles para esta fecha.</p>
+            } @else {
+              <div class="horarios-grid">
+                @for (h of horarios(); track trackHorario($index, h)) {
+                  <button
+                    class="horario-card"
+                    [class.selected]="horarioSeleccionado()?.hor_guid === h.hor_guid"
+                    (click)="seleccionarHorario(h)"
+                  >
+                    <div class="hc-fecha">{{ h.fecha }}</div>
+                    <div class="hc-hora">
+                      <span class="material-icons">schedule</span>
+                      {{ h.hora_inicio }} – {{ h.hora_fin }}
+                    </div>
+                    <div class="hc-cupos">
+                      <span class="material-icons">confirmation_number</span>
+                      {{ h.cupos }} cupos
+                    </div>
+                  </button>
+                }
+              </div>
+            }
+          </section>
+
+          <!-- 3. TICKETS -->
+          <section class="rsv-section">
+            <div class="rsv-section-head">
+              <span class="material-icons">confirmation_number</span>
+              <h3>Selecciona tus tickets</h3>
+            </div>
+
+            @if (!horarioSeleccionado()) {
+              <p class="rsv-empty-msg">Selecciona primero un horario para ver los tickets disponibles.</p>
+            } @else if (ticketsLoading()) {
+              <div class="rsv-inline-loading">
+                <div class="rsv-spinner sm" aria-hidden="true"></div>
+                <span>Cargando tickets…</span>
+              </div>
+            } @else if (ticketsError()) {
+              <p class="rsv-empty-msg error">{{ ticketsError() }}</p>
+            } @else if (ticketsHorario().length === 0) {
+              <p class="rsv-empty-msg">No hay tickets disponibles para este horario.</p>
+            } @else {
+              <div class="tickets-list">
+                @for (t of ticketsHorario(); track trackTicket($index, t)) {
+                  <div class="ticket-row">
+                    <div class="tr-info">
+                      <div class="tr-tipo">{{ t.tipo }}</div>
+                      <div class="tr-precio">
+                        <span class="tr-currency">$</span>
+                        <span class="tr-val">{{ t.precio | number: '1.2-2' }}</span>
+                        <span class="tr-moneda">{{ t.moneda }}</span>
+                      </div>
+                    </div>
+                    <div class="counter">
+                      <button
+                        class="counter-btn"
+                        [disabled]="cantidadDe(t.tck_guid) <= 0"
+                        (click)="decrementar(t.tck_guid)"
+                        aria-label="Disminuir cantidad"
+                      >−</button>
+                      <span class="counter-val">{{ cantidadDe(t.tck_guid) }}</span>
+                      <button
+                        class="counter-btn"
+                        [disabled]="totalTickets() >= (horarioSeleccionado()?.cupos ?? 0)"
+                        (click)="incrementar(t.tck_guid)"
+                        aria-label="Aumentar cantidad"
+                      >+</button>
+                    </div>
+                  </div>
+                }
+              </div>
+              <p class="tickets-hint">
+                <span class="material-icons">info</span>
+                Total seleccionado: <strong>{{ totalTickets() }}</strong>
+                / {{ horarioSeleccionado()?.cupos }} cupos disponibles
+              </p>
+            }
+          </section>
+
+          <!-- 4. DATOS DEL CLIENTE -->
+          <section class="rsv-section">
+            <div class="rsv-section-head">
+              <span class="material-icons">person</span>
+              <h3>Datos del cliente</h3>
+            </div>
+
+            <div class="rsv-grid">
+              <div class="rsv-field">
+                <label>Tipo de identificación <span class="req">*</span></label>
+                <select
+                  class="rsv-input"
+                  [class.error]="isFieldError('tipo_identificacion')"
+                  [(ngModel)]="cliente.tipo_identificacion"
+                  (blur)="onTouch('tipo_identificacion')"
+                >
+                  <option value="" disabled>Selecciona…</option>
+                  <option value="CEDULA">Cédula</option>
+                  <option value="PASAPORTE">Pasaporte</option>
+                </select>
+                @if (isFieldError('tipo_identificacion')) {
+                  <span class="rsv-field-error">{{ getFieldErrorMsg('tipo_identificacion') }}</span>
+                }
+              </div>
+
+              <div class="rsv-field">
+                <label>Número de identificación <span class="req">*</span></label>
+                <input
+                  type="text"
+                  class="rsv-input"
+                  [class.error]="isFieldError('numero_identificacion')"
+                  [(ngModel)]="cliente.numero_identificacion"
+                  (blur)="onTouch('numero_identificacion')"
+                  placeholder="Ej. 1756789012"
+                />
+                @if (isFieldError('numero_identificacion')) {
+                  <span class="rsv-field-error">{{ getFieldErrorMsg('numero_identificacion') }}</span>
+                }
+              </div>
+
+              <div class="rsv-field">
+                <label>Nombres <span class="req">*</span></label>
+                <input
+                  type="text"
+                  class="rsv-input"
+                  [class.error]="isFieldError('nombres')"
+                  [(ngModel)]="cliente.nombres"
+                  (blur)="onTouch('nombres')"
+                  placeholder="Ej. Juan Carlos"
+                />
+                @if (isFieldError('nombres')) {
+                  <span class="rsv-field-error">{{ getFieldErrorMsg('nombres') }}</span>
+                }
+              </div>
+
+              <div class="rsv-field">
+                <label>Apellidos <span class="req">*</span></label>
+                <input
+                  type="text"
+                  class="rsv-input"
+                  [class.error]="isFieldError('apellidos')"
+                  [(ngModel)]="cliente.apellidos"
+                  (blur)="onTouch('apellidos')"
+                  placeholder="Ej. Perez Gomez"
+                />
+                @if (isFieldError('apellidos')) {
+                  <span class="rsv-field-error">{{ getFieldErrorMsg('apellidos') }}</span>
+                }
+              </div>
+
+              <div class="rsv-field">
+                <label>Correo electrónico <span class="req">*</span></label>
+                <input
+                  type="email"
+                  class="rsv-input"
+                  [class.error]="isFieldError('correo')"
+                  [(ngModel)]="cliente.correo"
+                  (blur)="onTouch('correo')"
+                  placeholder="correo@ejemplo.com"
+                />
+                @if (isFieldError('correo')) {
+                  <span class="rsv-field-error">{{ getFieldErrorMsg('correo') }}</span>
+                } @else {
+                  <span class="rsv-field-hint">Te enviaremos la confirmación a este correo.</span>
+                }
+              </div>
+
+              <div class="rsv-field">
+                <label>Teléfono <span class="req">*</span></label>
+                <input
+                  type="tel"
+                  class="rsv-input"
+                  [class.error]="isFieldError('telefono')"
+                  [(ngModel)]="cliente.telefono"
+                  (blur)="onTouch('telefono')"
+                  placeholder="Ej. 0991234567"
+                />
+                @if (isFieldError('telefono')) {
+                  <span class="rsv-field-error">{{ getFieldErrorMsg('telefono') }}</span>
+                }
+              </div>
+
+              <div class="rsv-field rsv-field-wide">
+                <label>Dirección <span class="opt">(opcional)</span></label>
+                <input
+                  type="text"
+                  class="rsv-input"
+                  [(ngModel)]="cliente.direccion"
+                  placeholder="Ej. Av. Principal 123"
+                />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ── SIDEBAR DE RESUMEN ── -->
+        <aside class="rsv-sidebar" aria-label="Resumen de la reserva">
+          <div class="rsv-summary">
+
+            <!-- Atracción -->
+            <div class="rs-attr">
+              <img [src]="d.imagen_principal" [alt]="d.nombre" />
+              <div class="rs-attr-info">
+                <div class="rs-attr-name">{{ d.nombre }}</div>
+                <div class="rs-attr-loc">
+                  <span class="material-icons">location_on</span>
+                  {{ d.ciudad }}, {{ d.pais }}
+                </div>
+                <div class="rs-attr-meta">
+                  <span><span class="material-icons">schedule</span> {{ formatearDuracion(d.duracion_minutos) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rs-divider"></div>
+
+            <!-- Fecha y horario -->
+            <div class="rs-line">
+              <span class="rs-key"><span class="material-icons">event</span> Fecha de visita</span>
+              <span class="rs-val">{{ fechaVisita || '—' }}</span>
+            </div>
+            <div class="rs-line">
+              <span class="rs-key"><span class="material-icons">schedule</span> Horario</span>
+              <span class="rs-val">
+                @if (horarioSeleccionado(); as h) {
+                  {{ h.hora_inicio }} – {{ h.hora_fin }}
+                } @else {
+                  —
+                }
+              </span>
+            </div>
+
+            <div class="rs-divider"></div>
+
+            <!-- Tickets -->
+            <div class="rs-tickets">
+              <div class="rs-tickets-head">Tickets</div>
+              @if (totalTickets() === 0) {
+                <p class="rs-empty">Aún no seleccionas tickets.</p>
+              } @else {
+                @for (t of ticketsHorario(); track trackTicket($index, t)) {
+                  @if (cantidadDe(t.tck_guid) > 0) {
+                    <div class="rs-ticket-row">
+                      <span>{{ cantidadDe(t.tck_guid) }} × {{ t.tipo }}</span>
+                      <span>${{ (t.precio * cantidadDe(t.tck_guid)) | number: '1.2-2' }}</span>
+                    </div>
+                  }
+                }
+              }
+            </div>
+
+            <div class="rs-divider"></div>
+
+            <!-- Subtotal estimado -->
+            <div class="rs-total">
+              <div>
+                <span class="rs-total-label">Subtotal estimado</span>
+                <span class="rs-total-hint">No incluye impuestos finales.</span>
+              </div>
+              <div class="rs-total-val">
+                ${{ subtotalEstimado() | number: '1.2-2' }}
+                <small>{{ monedaActiva() }}</small>
+              </div>
+            </div>
+
+            <!-- Acción -->
+            <button
+              class="rsv-btn-primary rs-cta"
+              [disabled]="!puedeReservar || enviando()"
+              (click)="reservar()"
+            >
+              @if (enviando()) {
+                <div class="rsv-spinner sm" aria-hidden="true"></div> Creando reserva…
+              } @else {
+                <span class="material-icons">event_available</span> Reservar ahora
+              }
+            </button>
+
+            @if (errorReserva(); as err) {
+              <div class="rs-error" role="alert">
+                <span class="material-icons">error_outline</span>
+                <span>{{ err }}</span>
+              </div>
+            }
+
+            <p class="rs-foot">
+              <span class="material-icons">info</span>
+              El pago se confirmará después en
+              <code>POST /reservas/&#123;guid&#125;/pagos/confirmacion</code>.
+            </p>
+          </div>
+        </aside>
+
+      </div>
+
+      <!-- ══ MODAL: RESERVA CREADA (response de POST /api/v2/reservas) ══ -->
+      @if (reservaCreada(); as r) {
+        <div class="success-overlay show" (click)="cerrarConfirmacion()">
+          <div class="success-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+
+            <button class="success-close" (click)="cerrarConfirmacion()" aria-label="Cerrar">
+              <span class="material-icons">close</span>
+            </button>
+
+            <div class="success-icon">
+              <span class="material-icons">check</span>
+            </div>
+
+            <h2>¡Reserva creada!</h2>
+            <p class="success-sub">
+              Tu reserva está <strong>pendiente de confirmación de pago</strong>.
+              Los cupos han sido bloqueados temporalmente.
+            </p>
+
+            <!-- Código de reserva -->
+            <div class="success-code">
+              <div class="sc-label">Código de reserva</div>
+              <div class="sc-val">{{ r.rev_codigo }}</div>
+            </div>
+
+            <!-- Información principal -->
+            <div class="success-meta">
+              <div class="sm-item">
+                <div class="smi-label">Atracción</div>
+                <div class="smi-val">{{ r.atraccion_nombre }}</div>
+              </div>
+              <div class="sm-item">
+                <div class="smi-label">Estado</div>
+                <div class="smi-val">
+                  <span class="sm-estado" [class.pendiente]="r.rev_estado === 'PENDIENTE'">
+                    ● {{ r.rev_estado }}
+                  </span>
+                </div>
+              </div>
+              <div class="sm-item">
+                <div class="smi-label">Fecha de visita</div>
+                <div class="smi-val">{{ r.hor_fecha }}</div>
+              </div>
+              <div class="sm-item">
+                <div class="smi-label">Horario</div>
+                <div class="smi-val">{{ r.hor_hora_inicio }} – {{ r.hor_hora_fin }}</div>
+              </div>
+            </div>
+
+            <!-- Detalle de tickets -->
+            <div class="success-tickets">
+              <div class="st-head">Tickets</div>
+              @for (linea of r.detalle; track $index) {
+                <div class="st-row">
+                  <div class="st-row-left">
+                    <span class="material-icons">confirmation_number</span>
+                    <div>
+                      <div class="st-tipo">{{ linea.tck_tipo_participante }}</div>
+                      <div class="st-sub">
+                        {{ linea.cantidad }} × ${{ linea.precio_unit | number: '1.2-2' }} {{ r.moneda }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="st-subtotal">${{ linea.subtotal | number: '1.2-2' }}</div>
+                </div>
+              }
+            </div>
+
+            <!-- Totales -->
+            <div class="success-totals">
+              <div class="stt-row">
+                <span>Subtotal</span>
+                <span>${{ r.rev_subtotal | number: '1.2-2' }} {{ r.moneda }}</span>
+              </div>
+              <div class="stt-row">
+                <span>IVA</span>
+                <span>${{ r.rev_valor_iva | number: '1.2-2' }} {{ r.moneda }}</span>
+              </div>
+              <div class="stt-row stt-total">
+                <span>Total</span>
+                <span>${{ r.rev_total | number: '1.2-2' }} {{ r.moneda }}</span>
+              </div>
+              <div class="stt-saldo">
+                <span class="material-icons">payments</span>
+                Saldo pendiente de pago: <strong>${{ r.rev_total | number: '1.2-2' }} {{ r.moneda }}</strong>
+              </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="success-actions">
+              <button class="btn-success" (click)="continuarAlPago()">
+                <span class="material-icons">payments</span>
+                Continuar al pago
+              </button>
+              <button class="btn-success-ghost" (click)="verMisReservas()">
+                Ver mis reservas
+              </button>
+            </div>
+
+            <!-- Debug opcional -->
+            <button class="btn-debug-toggle" (click)="toggleDebug()">
+              <span class="material-icons">{{ mostrarDebug() ? 'expand_less' : 'expand_more' }}</span>
+              {{ mostrarDebug() ? 'Ocultar' : 'Ver' }} payload técnico (debug)
+            </button>
+            @if (mostrarDebug() && payloadListo()) {
+              <pre class="debug-pre">{{ payloadJson() }}</pre>
+            }
+          </div>
+        </div>
+      }
+    }
+  }
+}
+
+<app-footer></app-footer>
