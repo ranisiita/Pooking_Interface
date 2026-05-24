@@ -1,11 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, forkJoin, of, catchError, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   AtraccionDetalleResponse,
   AtraccionesListResponse,
   AtraccionesQuery,
+  AttractionProvider,
+  AttractionProviderSelector,
+  FilterOption,
+  FiltrosData,
   FiltrosResponse,
   HorariosResponse,
   HorarioTicketsResponse,
@@ -14,6 +18,7 @@ import {
   ReservaPayload,
   ReservaResponse,
   ReservasListResponse,
+  Sorter,
   Ticket,
 } from '../models/atracciones.models';
 
@@ -21,31 +26,38 @@ import {
  * Catálogo de proveedores/integrantes del microservicio de Atracciones.
  * Cada valor corresponde al prefijo del bus/API Gateway:
  *   `/{provider}/api/v2/...`
- *
- * Para añadir más integrantes (francisco, angel) basta con sumarlos aquí
- * y luego asignarlos a `ACTIVE_ATTRACTION_PROVIDER`.
  */
-export const ATTRACTION_PROVIDERS = {
+export const ATTRACTION_PROVIDERS: Record<string, AttractionProvider> = {
   JHONATAN: 'jhonatan',
   LUIS: 'luis',
-} as const;
+  FRANCISCO: 'francisco',
+  ANGEL: 'angel',
+};
 
-export type AttractionProvider =
-  (typeof ATTRACTION_PROVIDERS)[keyof typeof ATTRACTION_PROVIDERS];
+/** Lista plana para iterar en modo 'todos'. */
+export const ALL_ATTRACTION_PROVIDERS: AttractionProvider[] = [
+  ATTRACTION_PROVIDERS['JHONATAN'],
+  ATTRACTION_PROVIDERS['LUIS'],
+  ATTRACTION_PROVIDERS['FRANCISCO'],
+  ATTRACTION_PROVIDERS['ANGEL'],
+];
+
+/** Etiqueta humana de un proveedor para mostrar en UI. */
+export const ATTRACTION_PROVIDER_LABELS: Record<AttractionProvider, string> = {
+  jhonatan: 'Jhonatan',
+  luis: 'Luis',
+  francisco: 'Francisco',
+  angel: 'Angel',
+};
 
 /**
- * Proveedor activo para esta sesión/build. Cambiar este valor para
- * apuntar a otro integrante sin modificar URLs en ningún otro lugar:
- *   - ATTRACTION_PROVIDERS.JHONATAN
- *   - ATTRACTION_PROVIDERS.LUIS
+ * Proveedor activo por defecto. Cuando el componente no especifica selector
+ * (o pasa `undefined`), se usa este valor. La UI normalmente pasa explícito
+ * el selector elegido por el usuario.
  */
-export const ACTIVE_ATTRACTION_PROVIDER: AttractionProvider = ATTRACTION_PROVIDERS.JHONATAN;
+export const ACTIVE_ATTRACTION_PROVIDER: AttractionProvider =
+  ATTRACTION_PROVIDERS['JHONATAN'];
 
-/**
- * Construye el base path `/{provider}/api/v2` de forma centralizada.
- * Útil si en el futuro se quiere generar el path dinámicamente (ej. desde
- * una preferencia de usuario o feature flag).
- */
 export function buildAttractionBasePath(
   provider: AttractionProvider = ACTIVE_ATTRACTION_PROVIDER,
 ): string {
@@ -55,93 +67,297 @@ export function buildAttractionBasePath(
 /**
  * Servicio del microservicio de Atracciones (canal Booking público).
  *
- * Sigue el mismo patrón de `CarService`:
- *   - URL base = `environment.apiGatewayUrl`
- *   - Prefijo del integrante/microservicio: `/{provider}/api/v2`
- *   - Métodos devuelven `Observable<ApiResponse<T>>` con el shape exacto del contrato.
+ * Mantiene el mismo patrón que `CarService` (forkJoin + catchError para
+ * fan-out con tolerancia a fallos por proveedor).
  *
- * El proveedor activo se controla desde `ACTIVE_ATTRACTION_PROVIDER`.
+ * - Métodos de listado/filtros aceptan `AttractionProviderSelector`
+ *   (un proveedor concreto o `'todos'`). En modo `'todos'` se hace
+ *   fan-out a todos los proveedores y se devuelven los resultados de los
+ *   que respondieron + un `failedProviders[]` con los que fallaron.
+ * - Métodos por GUID (detalle, horarios, tickets, reserva, pago) requieren
+ *   un proveedor concreto — usa el `provider` que viaja en cada `Atraccion`.
  */
 @Injectable({ providedIn: 'root' })
 export class AtraccionesService {
   private http = inject(HttpClient);
 
-  /** Proveedor activo + base path, derivados de la config central. */
-  readonly provider: AttractionProvider = ACTIVE_ATTRACTION_PROVIDER;
-  private readonly basePath = buildAttractionBasePath(this.provider);
-  private readonly atraccionesUrl = `${environment.apiGatewayUrl}${this.basePath}/atracciones`;
-  private readonly reservasUrl = `${environment.apiGatewayUrl}${this.basePath}/reservas`;
-
-  // ── 1. GET /atracciones ─────────────────────────────────────────
-  getAtracciones(query: AtraccionesQuery = {}): Observable<AtraccionesListResponse> {
-    return this.http.get<AtraccionesListResponse>(this.atraccionesUrl, {
-      params: this.armarParams(query),
-    });
+  // ── URL builders por proveedor ───────────────────────────────────
+  private atraccionesUrl(provider: AttractionProvider): string {
+    return `${environment.apiGatewayUrl}${buildAttractionBasePath(provider)}/atracciones`;
   }
 
-  // ── 2. GET /atracciones/filtros ─────────────────────────────────
-  getFiltros(): Observable<FiltrosResponse> {
-    return this.http.get<FiltrosResponse>(`${this.atraccionesUrl}/filtros`);
+  private reservasUrl(provider: AttractionProvider): string {
+    return `${environment.apiGatewayUrl}${buildAttractionBasePath(provider)}/reservas`;
+  }
+
+  // ── 1. GET /atracciones (soporta 'todos' con fan-out) ───────────
+  getAtracciones(
+    query: AtraccionesQuery = {},
+    selector: AttractionProviderSelector = ACTIVE_ATTRACTION_PROVIDER,
+  ): Observable<AtraccionesListResponse> {
+    if (selector === 'todos') return this.fanoutAtracciones(query);
+    return this.http
+      .get<AtraccionesListResponse>(this.atraccionesUrl(selector), {
+        params: this.armarParams(query),
+      })
+      .pipe(map((resp) => this.anotarProviderEnListado(resp, selector)));
+  }
+
+  // ── 2. GET /atracciones/filtros (soporta 'todos' con fan-out) ──
+  getFiltros(
+    selector: AttractionProviderSelector = ACTIVE_ATTRACTION_PROVIDER,
+  ): Observable<FiltrosResponse> {
+    if (selector === 'todos') return this.fanoutFiltros();
+    return this.http
+      .get<FiltrosResponse>(`${this.atraccionesUrl(selector)}/filtros`)
+      .pipe(map((resp) => ({ ...resp, failedProviders: [] as AttractionProvider[] })));
   }
 
   // ── 3. GET /atracciones/{guid} ──────────────────────────────────
-  getAtraccionDetalle(guid: string): Observable<AtraccionDetalleResponse> {
-    return this.http.get<AtraccionDetalleResponse>(`${this.atraccionesUrl}/${guid}`);
+  getAtraccionDetalle(
+    guid: string,
+    provider: AttractionProvider = ACTIVE_ATTRACTION_PROVIDER,
+  ): Observable<AtraccionDetalleResponse> {
+    return this.http
+      .get<AtraccionDetalleResponse>(`${this.atraccionesUrl(provider)}/${guid}`)
+      .pipe(map((resp) => ({ ...resp, data: { ...resp.data, provider } })));
   }
 
   // ── 4. GET /atracciones/{guid}/tickets ──────────────────────────
-  getTicketsAtraccion(guid: string): Observable<{ status: number; message: string; data: Ticket[] }> {
+  getTicketsAtraccion(
+    guid: string,
+    provider: AttractionProvider = ACTIVE_ATTRACTION_PROVIDER,
+  ): Observable<{ status: number; message: string; data: Ticket[] }> {
     return this.http.get<{ status: number; message: string; data: Ticket[] }>(
-      `${this.atraccionesUrl}/${guid}/tickets`,
+      `${this.atraccionesUrl(provider)}/${guid}/tickets`,
     );
   }
 
   // ── 5. GET /atracciones/{guid}/horarios ─────────────────────────
-  getHorarios(guid: string, fecha?: string): Observable<HorariosResponse> {
+  getHorarios(
+    guid: string,
+    fecha?: string,
+    provider: AttractionProvider = ACTIVE_ATTRACTION_PROVIDER,
+  ): Observable<HorariosResponse> {
     let params = new HttpParams();
     if (fecha) params = params.set('fecha', fecha);
-    return this.http.get<HorariosResponse>(`${this.atraccionesUrl}/${guid}/horarios`, { params });
+    return this.http.get<HorariosResponse>(
+      `${this.atraccionesUrl(provider)}/${guid}/horarios`,
+      { params },
+    );
   }
 
   // ── 6. GET /atracciones/{guid}/horarios/{horarioGuid}/tickets ──
-  getHorarioTickets(guid: string, horarioGuid: string): Observable<HorarioTicketsResponse> {
+  getHorarioTickets(
+    guid: string,
+    horarioGuid: string,
+    provider: AttractionProvider = ACTIVE_ATTRACTION_PROVIDER,
+  ): Observable<HorarioTicketsResponse> {
     return this.http.get<HorarioTicketsResponse>(
-      `${this.atraccionesUrl}/${guid}/horarios/${horarioGuid}/tickets`,
+      `${this.atraccionesUrl(provider)}/${guid}/horarios/${horarioGuid}/tickets`,
     );
   }
 
   // ── 7. POST /reservas ───────────────────────────────────────────
-  crearReserva(payload: ReservaPayload): Observable<ReservaResponse> {
-    return this.http.post<ReservaResponse>(this.reservasUrl, payload);
+  crearReserva(
+    payload: ReservaPayload,
+    provider: AttractionProvider = ACTIVE_ATTRACTION_PROVIDER,
+  ): Observable<ReservaResponse> {
+    return this.http.post<ReservaResponse>(this.reservasUrl(provider), payload);
   }
 
   // ── 8. GET /reservas ────────────────────────────────────────────
-  getReservas(page = 1, limit = 10): Observable<ReservasListResponse> {
+  getReservas(
+    page = 1,
+    limit = 10,
+    provider: AttractionProvider = ACTIVE_ATTRACTION_PROVIDER,
+  ): Observable<ReservasListResponse> {
     const params = new HttpParams().set('page', page).set('limit', limit);
-    return this.http.get<ReservasListResponse>(this.reservasUrl, { params });
+    return this.http.get<ReservasListResponse>(this.reservasUrl(provider), { params });
   }
 
   // ── 9. GET /reservas/{guid} ─────────────────────────────────────
-  getReservaDetalle(guid: string): Observable<ReservaResponse> {
-    return this.http.get<ReservaResponse>(`${this.reservasUrl}/${guid}`);
+  getReservaDetalle(
+    guid: string,
+    provider: AttractionProvider = ACTIVE_ATTRACTION_PROVIDER,
+  ): Observable<ReservaResponse> {
+    return this.http.get<ReservaResponse>(`${this.reservasUrl(provider)}/${guid}`);
   }
 
   // ── 10. POST /reservas/{guid}/pagos/confirmacion ───────────────
   confirmarPago(
     guid: string,
     body: PagoConfirmacionBody,
+    provider: AttractionProvider = ACTIVE_ATTRACTION_PROVIDER,
   ): Observable<PagoConfirmacionResponse> {
     return this.http.post<PagoConfirmacionResponse>(
-      `${this.reservasUrl}/${guid}/pagos/confirmacion`,
+      `${this.reservasUrl(provider)}/${guid}/pagos/confirmacion`,
       body,
     );
   }
 
-  // ── Internals ───────────────────────────────────────────────────
+  // ── Fan-out en modo 'todos' ─────────────────────────────────────
+  /**
+   * Consulta `/atracciones` en TODOS los proveedores en paralelo.
+   * Si alguno falla (timeout, 5xx, red, CORS), no rompe la respuesta:
+   * los demás se muestran y el proveedor caído se reporta en `failedProviders`.
+   *
+   * Equivale a `Promise.allSettled` — usa `forkJoin` + `catchError` por proveedor.
+   */
+  private fanoutAtracciones(
+    query: AtraccionesQuery,
+  ): Observable<AtraccionesListResponse> {
+    const params = this.armarParams(query);
+    const requests = ALL_ATTRACTION_PROVIDERS.map((p) =>
+      this.http
+        .get<AtraccionesListResponse>(this.atraccionesUrl(p), { params })
+        .pipe(
+          map((resp) => ({ p, resp, failed: false as const })),
+          catchError((err) => {
+            console.warn(`[Atracciones] Proveedor "${p}" no respondió:`, err?.status ?? err);
+            return of({ p, resp: null as AtraccionesListResponse | null, failed: true as const });
+          }),
+        ),
+    );
+    return forkJoin(requests).pipe(map((results) => this.mergeResultadosListado(results)));
+  }
+
+  /**
+   * Consulta `/filtros` en TODOS los proveedores en paralelo y mezcla las
+   * opciones por `tagname` sumando `productCount`. Tolera fallos individuales.
+   */
+  private fanoutFiltros(): Observable<FiltrosResponse> {
+    const requests = ALL_ATTRACTION_PROVIDERS.map((p) =>
+      this.http
+        .get<FiltrosResponse>(`${this.atraccionesUrl(p)}/filtros`)
+        .pipe(
+          map((resp) => ({ p, resp, failed: false as const })),
+          catchError((err) => {
+            console.warn(`[Atracciones] /filtros de "${p}" no respondió:`, err?.status ?? err);
+            return of({ p, resp: null as FiltrosResponse | null, failed: true as const });
+          }),
+        ),
+    );
+    return forkJoin(requests).pipe(map((results) => this.mergeFiltros(results)));
+  }
+
+  // ── Helpers privados ────────────────────────────────────────────
+  private anotarProviderEnListado(
+    resp: AtraccionesListResponse,
+    provider: AttractionProvider,
+  ): AtraccionesListResponse {
+    return {
+      ...resp,
+      data: (resp.data ?? []).map((a) => ({ ...a, provider })),
+      failedProviders: [],
+    };
+  }
+
+  private mergeResultadosListado(
+    results: Array<{ p: AttractionProvider; resp: AtraccionesListResponse | null; failed: boolean }>,
+  ): AtraccionesListResponse {
+    const data = [];
+    const failedProviders: AttractionProvider[] = [];
+    let totalFiltered = 0;
+    let totalUnfiltered = 0;
+    let sorters: Sorter[] = [];
+    let defaultSorter: Sorter | null = null;
+
+    for (const r of results) {
+      if (r.failed || !r.resp) {
+        failedProviders.push(r.p);
+        continue;
+      }
+      for (const a of r.resp.data ?? []) data.push({ ...a, provider: r.p });
+      totalFiltered += r.resp.filterStats?.filteredProductCount ?? r.resp.data?.length ?? 0;
+      totalUnfiltered += r.resp.filterStats?.unfilteredProductCount ?? 0;
+      if (!sorters.length) sorters = r.resp.sorters ?? [];
+      if (!defaultSorter) defaultSorter = r.resp.defaultSorter ?? null;
+    }
+
+    return {
+      status: 200,
+      message: 'Operacion exitosa',
+      data,
+      // En 'todos', concatenamos resultados; la paginación servidor queda en
+      // una sola página agregada para mantener una UX coherente.
+      pagination: {
+        page: 1,
+        limit: Math.max(data.length, 1),
+        total: data.length,
+        total_pages: 1,
+      },
+      filterStats: {
+        filteredProductCount: totalFiltered,
+        unfilteredProductCount: totalUnfiltered,
+      },
+      sorters,
+      defaultSorter: defaultSorter ?? { name: 'Mas populares', value: 'trending' },
+      _links: { self: '' },
+      failedProviders,
+    };
+  }
+
+  private mergeFiltros(
+    results: Array<{ p: AttractionProvider; resp: FiltrosResponse | null; failed: boolean }>,
+  ): FiltrosResponse {
+    const failedProviders: AttractionProvider[] = [];
+    const dest: FilterOption[][] = [];
+    const type: FilterOption[][] = [];
+    const label: FilterOption[][] = [];
+    const rating: FilterOption[][] = [];
+    const time: FilterOption[][] = [];
+    const lang: FilterOption[][] = [];
+
+    for (const r of results) {
+      if (r.failed || !r.resp) {
+        failedProviders.push(r.p);
+        continue;
+      }
+      dest.push(r.resp.data?.destinationFilters ?? []);
+      type.push(r.resp.data?.typeFilters ?? []);
+      label.push(r.resp.data?.labelFilters ?? []);
+      rating.push(r.resp.data?.minRatingFilter ?? []);
+      time.push(r.resp.data?.timeOfDayFilters ?? []);
+      lang.push(r.resp.data?.supportedLanguageFilters ?? []);
+    }
+
+    const merged: FiltrosData = {
+      destinationFilters: this.mergeFilterOptions(dest),
+      typeFilters: this.mergeFilterOptions(type),
+      labelFilters: this.mergeFilterOptions(label),
+      minRatingFilter: this.mergeFilterOptions(rating),
+      timeOfDayFilters: this.mergeFilterOptions(time),
+      supportedLanguageFilters: this.mergeFilterOptions(lang),
+    };
+
+    return {
+      status: 200,
+      message: 'Operacion exitosa',
+      data: merged,
+      failedProviders,
+    };
+  }
+
+  /** Mezcla listas de FilterOption por tagname sumando productCount. */
+  private mergeFilterOptions(lists: FilterOption[][]): FilterOption[] {
+    const map = new Map<string, FilterOption>();
+    for (const list of lists) {
+      for (const opt of list) {
+        const existing = map.get(opt.tagname);
+        if (!existing) {
+          map.set(opt.tagname, { ...opt, productCount: opt.productCount ?? 0 });
+        } else {
+          existing.productCount = (existing.productCount ?? 0) + (opt.productCount ?? 0);
+        }
+      }
+    }
+    return Array.from(map.values());
+  }
+
   /**
    * Construye HttpParams a partir de `AtraccionesQuery`. Omite valores
    * `undefined`, `null`, `''` y `false` para no enviar query params vacíos.
-   * Los nombres coinciden 1:1 con los del contrato.
    */
   private armarParams(query: AtraccionesQuery): HttpParams {
     let params = new HttpParams();

@@ -275,6 +275,19 @@
 
       <!-- ATRACCIONES -->
       <div *ngIf="activeTab === 'atracciones'" class="form-grid">
+        <div class="field full-width">
+          <label>Proveedor</label>
+          <div class="input-icon-wrapper">
+            <span class="material-icons">cloud</span>
+            <select [(ngModel)]="atracciones.proveedor">
+              <option value="todos">Todos</option>
+              <option value="luis">Luis</option>
+              <option value="jhonatan">Jhonatan</option>
+              <option value="francisco">Francisco</option>
+              <option value="angel">Angel</option>
+            </select>
+          </div>
+        </div>
         <div class="field">
           <label>Destino</label>
           <div class="input-icon-wrapper">
