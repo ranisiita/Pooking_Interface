@@ -11,6 +11,7 @@ import { usernameValidator, correoValidator, passwordValidator, usernameAvailabl
 import { tipoIdentificacionValidator, numeroIdentificacionValidator, nombresValidator, apellidosValidator, razonSocialValidator, telefonoValidator, numeroIdentificacionAvailableValidator } from '../../shared/validators/cliente.validators';
 import { passwordMatchValidator } from '../../shared/validators/password-match.validator';
 import { COUNTRY_CODES } from '../../shared/data/country-codes';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-signup',
@@ -233,11 +234,12 @@ export class Signup implements OnDestroy {
     const s1 = this.step1Form.value;
     const s2 = this.step2Form.value;
 
-    const baseUrl = 'https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1';
+    const baseUrl = `${environment.apiGatewayUrl}/api/v2/booking`;
 
     // Un solo payload — el backend crea usuario Y cliente internamente
     const payload = {
       username: s1.username,
+      identificador: s1.username,
       correo: s1.correo,
       password: s1.password,
       nombreRol: 'CLIENTE',

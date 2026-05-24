@@ -2,6 +2,7 @@ import { AbstractControl, AsyncValidatorFn, ValidationErrors, ValidatorFn } from
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, timer } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 export function usernameValidator(): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -22,7 +23,7 @@ export function usernameAvailableValidator(http: HttpClient): AsyncValidatorFn {
     // Esperar 500ms antes de consultar a la base de datos (debounce)
     return timer(500).pipe(
       switchMap(() => {
-        const url = `https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/usuarios/disponibilidad/${control.value}`;
+        const url = `${environment.apiGatewayUrl}/api/v2/booking/usuarios/disponibilidad/${control.value}`;
         
         return http.get<any>(url).pipe(
           map(res => {
@@ -77,7 +78,7 @@ export function correoAvailableValidator(http: HttpClient): AsyncValidatorFn {
     
     return timer(500).pipe(
       switchMap(() => {
-        const url = `https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/clientes/disponibilidad/correo/${control.value}`;
+        const url = `${environment.apiGatewayUrl}/api/v2/booking/usuarios/disponibilidad-correo/${control.value}`;
         
         return http.get<any>(url).pipe(
           map(res => {

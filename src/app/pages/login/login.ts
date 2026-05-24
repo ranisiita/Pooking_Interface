@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { NavbarComponent } from '../../components/navbar/navbar.component';
 import { FooterComponent } from '../../components/navbar/footer.component';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -14,7 +15,7 @@ import { FooterComponent } from '../../components/navbar/footer.component';
   styleUrl: './login.css',
 })
 export class Login {
-  loginData = { username: '', password: '' };
+  loginData = { identificador: '', password: '' };
 
   // Blur tracking
   touched: Record<string, boolean> = {};
@@ -34,10 +35,10 @@ export class Login {
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
 
   // ── Field validators ──────────────────────────────────
-  get usernameError(): string {
-    if (!this.touched['username']) return '';
-    if (!this.loginData.username) return 'El usuario es requerido.';
-    return this.backendErrors['username']?.[0] ?? '';
+  get identificadorError(): string {
+    if (!this.touched['identificador']) return '';
+    if (!this.loginData.identificador) return 'El usaurio / correo es requerido.';
+    return this.backendErrors['identificador']?.[0] ?? '';
   }
 
   get passwordError(): string {
@@ -76,16 +77,15 @@ export class Login {
 
   onLogin() {
     // Touch all fields to show any pending errors
-    this.touched['username'] = true;
+    this.touched['identificador'] = true;
     this.touched['password'] = true;
-    if (!this.loginData.username || !this.loginData.password) return;
+    if (!this.loginData.identificador || !this.loginData.password) return;
 
     this.loginStatus = 'loading';
     this.generalError = '';
     this.backendErrors = {};
 
-    const apiUrl =
-      'https://abooking-f5cghfbphsf8dvbn.centralus-01.azurewebsites.net/api/v1/auth/login';
+    const apiUrl = `${environment.apiGatewayUrl}/api/v2/booking/auth/login`;
 
     this.http.post(apiUrl, this.loginData).subscribe({
       next: (response: any) => {
