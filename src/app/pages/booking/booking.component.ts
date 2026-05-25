@@ -59,7 +59,10 @@ export class BookingComponent implements OnInit {
         if (token) {
           localStorage.setItem('token', token);
           if (usuarioGuid) localStorage.setItem('usuarioGuid', usuarioGuid);
-          if (clienteGuid) localStorage.setItem('clienteGuid', clienteGuid);
+          if (clienteGuid) {
+            localStorage.setItem('clienteGuid', clienteGuid);
+            localStorage.setItem('guidCliente', clienteGuid);
+          }
           localStorage.setItem('roles', JSON.stringify(roles));
           console.log('Saved to localStorage via modal:', { token, usuarioGuid, clienteGuid, roles });
         } else {
@@ -153,7 +156,7 @@ export class BookingComponent implements OnInit {
     try {
       const token = localStorage.getItem('token');
       const uGuid = localStorage.getItem('usuarioGuid');
-      if (token && !localStorage.getItem('clienteGuid')) {
+      if (token && !localStorage.getItem('clienteGuid') && !localStorage.getItem('guidCliente')) {
         const parts = token.split('.');
         if (parts.length >= 2) {
           const payloadBase64 = parts[1];
@@ -182,6 +185,7 @@ export class BookingComponent implements OnInit {
           if (resolved) {
             if (resolved !== uGuid) {
               localStorage.setItem('clienteGuid', resolved);
+              localStorage.setItem('guidCliente', resolved);
               console.log('[DEBUG] Extracted and saved clienteGuid from active JWT:', resolved);
             } else {
               const otherKeys = ['clienteGuid', 'guidCliente', 'cliente_guid'];
@@ -194,6 +198,7 @@ export class BookingComponent implements OnInit {
               }
               if (foundAlternative) {
                 localStorage.setItem('clienteGuid', foundAlternative);
+                localStorage.setItem('guidCliente', foundAlternative);
                 console.log('[DEBUG] Extracted and saved alternative clienteGuid from active JWT:', foundAlternative);
               }
             }
@@ -572,10 +577,10 @@ export class BookingComponent implements OnInit {
           this.showSuccess = true;
 
           // Guardar en localStorage para el historial de reservas
-          const guidCliente = localStorage.getItem('usuarioGuid') || '3fa85f64-5717-4562-b3fc-2c963f66afa6';
+          const userGuid = localStorage.getItem('usuarioGuid') || '3fa85f64-5717-4562-b3fc-2c963f66afa6';
           const newBookingItem = {
             reservaGuid: res.reservaGuid || `guid-${this.successCode}`,
-            usuarioGuid: guidCliente, // Guardar el guid del usuario para filtrar
+            usuarioGuid: userGuid, // Guardar el guid del usuario para filtrar
             provider: this.provider,
             lodgingName: this.lodging?.nombre || 'Hotel',
             lodgingImage: this.lodging?.imagen || '',
@@ -596,9 +601,10 @@ export class BookingComponent implements OnInit {
           }
 
           // AHORA: Guardar reserva centralizada en el middleware (POST /api/v2/booking/clientes/reservas)
+          const guidCliente = localStorage.getItem('guidCliente') || localStorage.getItem('clienteGuid') || localStorage.getItem('usuarioGuid') || '3fa85f64-5717-4562-b3fc-2c963f66afa6';
           const token = localStorage.getItem('token');
           const usuarioGuid = localStorage.getItem('usuarioGuid');
-          const storedClienteGuid = localStorage.getItem('clienteGuid');
+          const storedClienteGuid = localStorage.getItem('guidCliente') || localStorage.getItem('clienteGuid');
 
           const saveToMiddleware = (resolvedClienteGuid: string) => {
             const middlewarePayload = {
@@ -636,8 +642,12 @@ export class BookingComponent implements OnInit {
             });
             this.http.get(`${environment.apiGatewayUrl}/api/v1/clientes/usuario/${usuarioGuid}`, { headers }).subscribe({
               next: (cliRes: any) => {
-                const actualClienteGuid = cliRes?.data?.guid || cliRes?.data?.clienteGuid || cliRes?.data?.guidCliente || usuarioGuid;
+                const actualClienteGuid = cliRes?.data?.guidCliente || cliRes?.data?.clienteGuid || cliRes?.data?.guid || usuarioGuid;
                 console.log('[DEBUG] Fetched actual clienteGuid:', actualClienteGuid, 'for usuarioGuid:', usuarioGuid);
+                if (actualClienteGuid && actualClienteGuid !== usuarioGuid) {
+                  localStorage.setItem('clienteGuid', actualClienteGuid);
+                  localStorage.setItem('guidCliente', actualClienteGuid);
+                }
                 saveToMiddleware(actualClienteGuid);
               },
               error: (cliErr) => {
