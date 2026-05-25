@@ -102,11 +102,31 @@ export class CarCheckoutComponent implements OnInit {
     if (!idParam) { this.router.navigate(['/autos/resultados']); return; }
     const id = +idParam;
 
-    const nombre = localStorage.getItem('nombre') ?? '';
-    const email = localStorage.getItem('email') ?? '';
-    this.conductor.nombres = nombre.split(' ')[0] ?? '';
-    this.conductor.apellidos = nombre.split(' ').slice(1).join(' ') ?? '';
-    this.conductor.correo = email;
+    const usuarioGuid = localStorage.getItem('usuarioGuid');
+    if (usuarioGuid) {
+      this.carService.getClientePorUsuarioGuid(usuarioGuid).subscribe(cliente => {
+        if (cliente) {
+          this.conductor.nombres = cliente.nombres || '';
+          this.conductor.apellidos = cliente.apellidos || '';
+          this.conductor.correo = cliente.correo || '';
+          this.conductor.telefono = cliente.telefono || '';
+          this.conductor.numeroIdentificacion = cliente.numeroIdentificacion || '';
+          if (cliente.tipoIdentificacion === 'CI' || cliente.tipoIdentificacion === 'CEDULA') {
+             this.conductor.tipoIdentificacion = 'CEDULA';
+          } else if (cliente.tipoIdentificacion === 'PAS' || cliente.tipoIdentificacion === 'PASAPORTE') {
+             this.conductor.tipoIdentificacion = 'PASAPORTE';
+          } else if (cliente.tipoIdentificacion === 'RUC') {
+             this.conductor.tipoIdentificacion = 'RUC';
+          } else {
+             this.conductor.tipoIdentificacion = 'CEDULA'; // default
+          }
+        } else {
+          this.fillConductorFromLocalStorageFallback();
+        }
+      });
+    } else {
+      this.fillConductorFromLocalStorageFallback();
+    }
 
     const provider = sessionStorage.getItem('car-provider') ?? undefined;
     const raw = sessionStorage.getItem('car-selected');
@@ -142,6 +162,14 @@ export class CarCheckoutComponent implements OnInit {
        this.error.set('No se encontró el proveedor del vehículo. Por favor vuelve a buscar.');
        this.loading.set(false);
     }
+  }
+
+  private fillConductorFromLocalStorageFallback(): void {
+    const nombre = localStorage.getItem('nombre') ?? '';
+    const email = localStorage.getItem('email') ?? '';
+    this.conductor.nombres = nombre.split(' ')[0] ?? '';
+    this.conductor.apellidos = nombre.split(' ').slice(1).join(' ') ?? '';
+    this.conductor.correo = email;
   }
 
   private cargarExtras(provider: string): void {
@@ -351,6 +379,24 @@ export class CarCheckoutComponent implements OnInit {
         this.errorReserva.set('No se pudo crear la reserva. Por favor contacta soporte.');
         return;
       }
+
+      const guidCliente = localStorage.getItem('guidCliente') || '';
+      const payloadCliente = {
+        guidCliente: guidCliente,
+        guidServicioRef: "1541e52c-4923-4f67-b5fb-6d4733483fee",
+        nombreServicioSnap: `${reserva.vehiculo?.marca} ${reserva.vehiculo?.modelo}`,
+        tipoServicioSnap: "2",
+        nombreProveedor: v.provider,
+        idReservaExterna: reserva.codigoReserva,
+        fechaInicio: reserva.fechaInicio ? new Date(`${reserva.fechaInicio}T00:00:00Z`).toISOString() : new Date().toISOString(),
+        fechaFin: reserva.fechaFin ? new Date(`${reserva.fechaFin}T00:00:00Z`).toISOString() : new Date().toISOString(),
+        canalorigen: "Pooking",
+        montoTotal: reserva.total,
+        moneda: "USD",
+        observaciones: "Reserva de vehículo"
+      };
+
+      this.carService.registrarReservaCliente(payloadCliente).subscribe();
 
       sessionStorage.removeItem('car-selected');
       sessionStorage.removeItem('car-provider');

@@ -78,6 +78,7 @@ export class ProfileComponent implements OnInit {
             try {
               localStorage.removeItem('token');
               localStorage.removeItem('usuarioGuid');
+              localStorage.removeItem('guidCliente');
             } catch {}
             this.router.navigate(['/login']);
           }
