@@ -63,9 +63,25 @@ export interface ReservaAutoPayload {
 }
 
 export interface ReservaAutoResponse {
-  idReserva: number;
+  idReserva?: number;
   codigoReserva: string;
-  estado: string;
+  estadoReserva: string;
+  fechaReservaUtc: string;
+  vehiculo: {
+    idVehiculo: number;
+    codigoInterno: string;
+    marca: string;
+    modelo: string;
+  };
+  fechaInicio: string;
+  fechaFin: string;
+  horaInicio: string;
+  horaFin: string;
+  cantidadDias: number;
+  subtotalVehiculo: number;
+  subtotalExtras: number;
+  subtotal: number;
+  iva: number;
   total: number;
 }
 
@@ -225,6 +241,27 @@ export class CarService {
       map(res => res.data ?? null),
       catchError(err => {
         console.error('Error creando reserva de auto:', err);
+        return of(null);
+      })
+    );
+  }
+
+  // Registrar reserva del cliente → POST /api/v2/booking/clientes/reservas
+  registrarReservaCliente(payload: any): Observable<any> {
+    return this.http.post(`${API_GATEWAY_URL}/api/v2/booking/clientes/reservas`, payload).pipe(
+      catchError(err => {
+        console.error('Error registrando reserva del cliente:', err);
+        return of(null);
+      })
+    );
+  }
+
+  // Obtener cliente por usuarioGuid
+  getClientePorUsuarioGuid(guid: string): Observable<any> {
+    return this.http.get<ApiResponse<any>>(`${API_GATEWAY_URL}/api/v2/booking/clientes/usuario-guid/${guid}`).pipe(
+      map(res => res.data),
+      catchError(err => {
+        console.error('Error obteniendo cliente:', err);
         return of(null);
       })
     );

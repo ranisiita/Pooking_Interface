@@ -2,6 +2,8 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
 import { FooterComponent } from '../../../components/navbar/footer.component';
 import {
@@ -101,8 +103,30 @@ export class CarResultsComponent implements OnInit {
 
   buscarResultados() {
     this.isLoading.set(true);
-    this.carService.buscarVehiculos(this.criterios(), 1, 100).subscribe(vehiculos => {
-      this.todosVehiculos.set(vehiculos);
+    this.carService.buscarVehiculos(this.criterios(), 1, 100).pipe(
+      switchMap(vehiculos => {
+        if (!vehiculos || vehiculos.length === 0) return of([]);
+        
+        const peticiones = vehiculos.map(v => {
+          const rec = this.criterios().fechaRecogida || v.disponibilidad?.fechaRecogida || '';
+          const dev = this.criterios().fechaDevolucion || v.disponibilidad?.fechaDevolucion || '';
+          const idLocRec = v.localizacion?.idLocalizacion ?? 0;
+          
+          if (!v.provider) return of({ v, disponible: false });
+          
+          return this.carService.verificarDisponibilidad(v.idVehiculo, v.provider, rec, dev, idLocRec).pipe(
+            map(disponible => ({ v, disponible })),
+            catchError(() => of({ v, disponible: false }))
+          );
+        });
+
+        return forkJoin(peticiones).pipe(
+          map(resultados => resultados.filter(r => r.disponible).map(r => r.v))
+        );
+      }),
+      catchError(() => of([]))
+    ).subscribe(vehiculosDisponibles => {
+      this.todosVehiculos.set(vehiculosDisponibles);
       this.isLoading.set(false);
     });
   }

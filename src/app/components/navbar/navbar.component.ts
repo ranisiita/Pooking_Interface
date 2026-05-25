@@ -63,6 +63,7 @@ export class NavbarComponent {
     try {
       localStorage.removeItem('token');
       localStorage.removeItem('usuarioGuid');
+      localStorage.removeItem('guidCliente');
       localStorage.removeItem('roles');
     } catch {}
     this.showUserDropdown = false;
