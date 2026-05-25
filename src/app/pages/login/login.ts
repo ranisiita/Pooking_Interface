@@ -101,12 +101,30 @@ export class Login {
             localStorage.setItem('usuarioGuid', guid);
             localStorage.setItem('roles', JSON.stringify(roles));
             console.log('Saved to localStorage:', { token, guid, roles });
+
+            const clienteUrl = `${environment.apiGatewayUrl}/api/v2/booking/clientes/usuario-guid/${guid}`;
+            this.http.get(clienteUrl).subscribe({
+              next: (clienteRes: any) => {
+                const guidCliente = clienteRes?.data?.guidCliente;
+                if (guidCliente) {
+                  localStorage.setItem('guidCliente', guidCliente);
+                  console.log('Saved guidCliente to localStorage:', guidCliente);
+                }
+                this.loginStatus = 'success';
+                setTimeout(() => this.router.navigate(['/']), 2000);
+              },
+              error: (err) => {
+                console.error('Error fetching guidCliente:', err);
+                // Redirect anyway if cliente fetch fails
+                this.loginStatus = 'success';
+                setTimeout(() => this.router.navigate(['/']), 2000);
+              }
+            });
           } else {
             console.warn('Token or GUID missing in response', response);
+            this.loginStatus = 'success';
+            setTimeout(() => this.router.navigate(['/']), 2000);
           }
-          
-          this.loginStatus = 'success';
-          setTimeout(() => this.router.navigate(['/']), 2000);
         });
       },
       error: (err) => {
