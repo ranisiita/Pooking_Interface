@@ -116,6 +116,15 @@ export const routes: Routes = [
       ),
   },
 
+  // Atracciones — pago (POST real /reservas/{guid}/pagos/confirmacion)
+  {
+    path: 'atracciones/reservas/:revGuid/pago',
+    loadComponent: () =>
+      import('./features/atracciones/atracciones-pago/atracciones-pago.component').then(
+        (m) => m.AtraccionesPagoComponent,
+      ),
+  },
+
   // Atracciones — detalle (datos mock, sin API por ahora)
   {
     path: 'atracciones/:id',

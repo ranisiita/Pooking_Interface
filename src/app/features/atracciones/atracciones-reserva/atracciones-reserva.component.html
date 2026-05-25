@@ -393,11 +393,6 @@
               </div>
             }
 
-            <p class="rs-foot">
-              <span class="material-icons">info</span>
-              El pago se confirmará después en
-              <code>POST /reservas/&#123;guid&#125;/pagos/confirmacion</code>.
-            </p>
           </div>
         </aside>
 
@@ -491,6 +486,13 @@
               </div>
             </div>
 
+            @if (advertenciaRegistro(); as adv) {
+              <div class="success-warning" role="status">
+                <span class="material-icons">info</span>
+                <span>{{ adv }}</span>
+              </div>
+            }
+
             <!-- Acciones -->
             <div class="success-actions">
               <button class="btn-success" (click)="continuarAlPago()">
@@ -502,14 +504,6 @@
               </button>
             </div>
 
-            <!-- Debug opcional -->
-            <button class="btn-debug-toggle" (click)="toggleDebug()">
-              <span class="material-icons">{{ mostrarDebug() ? 'expand_less' : 'expand_more' }}</span>
-              {{ mostrarDebug() ? 'Ocultar' : 'Ver' }} payload técnico (debug)
-            </button>
-            @if (mostrarDebug() && payloadListo()) {
-              <pre class="debug-pre">{{ payloadJson() }}</pre>
-            }
           </div>
         </div>
       }
