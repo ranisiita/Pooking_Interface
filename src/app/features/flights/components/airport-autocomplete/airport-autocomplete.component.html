@@ -1,0 +1,53 @@
+<div class="ac-container">
+  <label *ngIf="label" class="ac-label">{{ label }}</label>
+
+  <div class="ac-input-wrapper" [class.ac-active]="mostrarDropdown">
+    <span class="material-icons ac-icon">{{ icono }}</span>
+    <input
+      type="text"
+      class="ac-input"
+      [value]="inputTexto"
+      [placeholder]="placeholder"
+      (input)="onInput($any($event.target).value)"
+      (focus)="onFocus()"
+      (keydown)="onKeydown($event)"
+      autocomplete="off"
+    />
+    <span *ngIf="cargando" class="material-icons ac-spinner">sync</span>
+  </div>
+
+  <div *ngIf="mostrarDropdown" class="ac-dropdown">
+
+    <div *ngIf="cargandoInicial" class="ac-status-row">
+      <span class="material-icons ac-status-icon">sync</span>
+      Cargando aeropuertos...
+    </div>
+
+    <ng-container *ngIf="!cargandoInicial">
+
+      <div *ngIf="cargando" class="ac-status-row">
+        <span class="material-icons ac-status-icon">sync</span>
+        Buscando...
+      </div>
+
+      <ng-container *ngIf="!cargando">
+        <div *ngIf="sugerenciasFiltradas.length === 0" class="ac-status-row">
+          <span class="material-icons ac-status-icon">search_off</span>
+          No se encontraron aeropuertos
+        </div>
+
+        <div
+          *ngFor="let aeropuerto of sugerenciasFiltradas; let i = index"
+          class="ac-item"
+          [class.focused]="indiceFocused === i"
+          (mousedown)="$event.preventDefault(); seleccionarAeropuerto(aeropuerto)"
+        >
+          <span class="ac-item-nombre">{{ aeropuerto.nombre }}</span>
+          <span class="ac-iata-badge">{{ aeropuerto.codigoIata }}</span>
+        </div>
+      </ng-container>
+
+    </ng-container>
+
+  </div>
+</div>

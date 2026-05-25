@@ -1,51 +1,60 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { catchError, of } from 'rxjs';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
 import { FooterComponent } from '../../../components/navbar/footer.component';
+import { AirportAutocompleteComponent } from '../components/airport-autocomplete/airport-autocomplete.component';
+import { FlightService } from '../services/flight.service';
+import { AeropuertoSugerencia, FlightItem, FlightSearchParams } from '../shared/flight.models';
 
-export interface FlightItem {
-  guidServicio: string;
-  nombreComercial: string;
-  tipoServicioNombre: string;
-  salida: string;
-  llegada: string;
-  duracion: string;
-  escalas: number;
-  precioBase: number;
-  origen: string;
-  destino: string;
-  fecha: string;
-}
+export type { FlightItem } from '../shared/flight.models';
 
 @Component({
   selector: 'app-flight-results',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, NavbarComponent, FooterComponent],
+  imports: [CommonModule, DatePipe, RouterModule, FormsModule, NavbarComponent, FooterComponent, AirportAutocompleteComponent],
   templateUrl: './flight-results.component.html',
   styleUrls: ['./flight-results.component.css'],
 })
 export class FlightResultsComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private flightService = inject(FlightService);
 
   // Paginación
   paginaActual = signal(1);
   readonly tamanoPagina = 10;
 
+  // Estado de carga / error
+  cargando = signal(false);
+  error = signal('');
+
   // Criterios de búsqueda (para mostrar en la barra flotante)
   criterios = signal({
     origen: '',
     destino: '',
+    origenNombre: '',
+    destinoNombre: '',
     fechaSalida: '',
     fechaRegreso: '',
     tipoViaje: 'roundtrip' as 'roundtrip' | 'oneway',
   });
 
+  // Aeropuertos seleccionados en la barra flotante
+  aeropuertoOrigen: AeropuertoSugerencia | null = null;
+  aeropuertoDestino: AeropuertoSugerencia | null = null;
+
   // Resultados y cards expandidas
   private readonly resultados = signal<FlightItem[]>([]);
   expandidas = signal<Set<string>>(new Set());
+  reservandoId = signal<string | null>(null);
+  vueloParaConfirmar = signal<FlightItem | null>(null);
+
+  // IATAs de la búsqueda activa (fallback para el modal cuando el proveedor no los devuelve)
+  origenIataSearch = signal('');
+  destinoIataSearch = signal('');
 
   readonly resultadosFiltrados = computed<FlightItem[]>(() => this.resultados());
 
@@ -71,14 +80,47 @@ export class FlightResultsComponent implements OnInit {
 
   ngOnInit(): void {
     const params = this.route.snapshot.queryParamMap;
+    const origenIata = params.get('origenIata') ?? '';
+    const origenNombre = params.get('origenNombre') ?? origenIata;
+    const destinoIata = params.get('destinoIata') ?? '';
+    const destinoNombre = params.get('destinoNombre') ?? destinoIata;
+    const fechaSalida = params.get('fecha') ?? '';
+    const fechaRegreso = params.get('fechaRegreso') ?? '';
+    const tipoViaje = (params.get('tipoViaje') as 'roundtrip' | 'oneway') ?? 'roundtrip';
+
     this.criterios.set({
-      origen: params.get('origen') ?? '',
-      destino: params.get('destino') ?? '',
-      fechaSalida: params.get('fecha') ?? '',
-      fechaRegreso: params.get('fechaRegreso') ?? '',
-      tipoViaje: (params.get('tipoViaje') as 'roundtrip' | 'oneway') ?? 'roundtrip',
+      origen: origenNombre,
+      destino: destinoNombre,
+      origenNombre,
+      destinoNombre,
+      fechaSalida,
+      fechaRegreso,
+      tipoViaje,
     });
-    this.resultados.set(this.generarResultados());
+
+    this.origenIataSearch.set(origenIata);
+    this.destinoIataSearch.set(destinoIata);
+
+    const searchParams: FlightSearchParams = {
+      CodigoIataOrigen: origenIata || undefined,
+      CodigoIataDestino: destinoIata || undefined,
+      FechaSalida: this.toIsoDateTime(fechaSalida),
+    };
+
+    this.cargando.set(true);
+    this.error.set('');
+    this.flightService
+      .buscarVuelos(searchParams)
+      .pipe(
+        catchError(() => {
+          this.error.set('No se pudieron cargar los vuelos. Intenta de nuevo.');
+          return of<FlightItem[]>([]);
+        }),
+      )
+      .subscribe(vuelos => {
+        this.resultados.set(vuelos);
+        this.cargando.set(false);
+      });
   }
 
   toggleDetalle(guid: string): void {
@@ -92,11 +134,63 @@ export class FlightResultsComponent implements OnInit {
     return this.expandidas().has(guid);
   }
 
+  abrirConfirmacion(vuelo: FlightItem, event: Event): void {
+    event.stopPropagation();
+    this.vueloParaConfirmar.set(vuelo);
+  }
+
+  cancelarReserva(): void {
+    this.vueloParaConfirmar.set(null);
+  }
+
+  confirmarReserva(): void {
+    const vuelo = this.vueloParaConfirmar();
+    if (!vuelo) return;
+    // No cerrar el modal todavía: se mantiene abierto mostrando el spinner
+    this.reservar(vuelo, new MouseEvent('click'));
+  }
+
   reservar(vuelo: FlightItem, event: Event): void {
     event.stopPropagation();
-    sessionStorage.setItem('flight-results', JSON.stringify(this.resultados()));
-    sessionStorage.setItem('flight-selected', JSON.stringify(vuelo));
-    this.router.navigate(['/checkout', vuelo.guidServicio]);
+
+    const proveedorLower = (vuelo.proveedor ?? 'nacho').toLowerCase();
+    const idVuelo = vuelo.idVuelo;
+
+    if (!idVuelo) {
+      console.error('No se encontró idVuelo en el objeto vuelo');
+      return;
+    }
+
+    const urlRetorno = window.location.origin + '/vuelos/resultados';
+    this.reservandoId.set(vuelo.guidServicio);
+
+    this.flightService.iniciarReservaVuelo(proveedorLower, idVuelo, urlRetorno).subscribe({
+      next: (response: unknown) => {
+        this.reservandoId.set(null);
+        this.vueloParaConfirmar.set(null);
+        const res = response as Record<string, unknown>;
+        const data = res?.['data'] as Record<string, unknown> | undefined;
+        const redirectUrl = data?.['urlRedirect'] as string | undefined;
+
+        if (redirectUrl && typeof redirectUrl === 'string' && redirectUrl.startsWith('http')) {
+          window.location.href = redirectUrl;
+        } else {
+          alert('Reserva iniciada. Serás redirigido al proveedor en breve.');
+          console.log('Respuesta sesion-redirect:', response);
+        }
+      },
+      error: (err: { status?: number }) => {
+        this.reservandoId.set(null);
+        this.vueloParaConfirmar.set(null);
+        console.error('Error al iniciar reserva:', err);
+        if (err.status === 401) {
+          alert('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
+          this.router.navigate(['/login']);
+        } else {
+          alert('No se pudo iniciar la reserva. Intenta de nuevo.');
+        }
+      },
+    });
   }
 
   cambiarPagina(pagina: number | string): void {
@@ -105,57 +199,49 @@ export class FlightResultsComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  private generarResultados(): FlightItem[] {
-    const c = this.criterios();
-    const proveedores = [
-      { nombre: 'NachoFlights', codigo: 'NF0104', avion: 'Boeing 787' },
-      { nombre: 'SkyExpress', codigo: 'SE2301', avion: 'Airbus A320' },
-      { nombre: 'AeroAndes', codigo: 'AA1502', avion: 'Boeing 737' },
-      { nombre: 'SkyLatam', codigo: 'SL3408', avion: 'Airbus A321' },
-      { nombre: 'NubeAir', codigo: 'NA0720', avion: 'Boeing 737 MAX' },
-      { nombre: 'Pacific Wings', codigo: 'PW1190', avion: 'Airbus A319' },
-      { nombre: 'FlySur', codigo: 'FS2204', avion: 'Boeing 787' },
-      { nombre: 'Aurora Flights', codigo: 'AF3310', avion: 'Airbus A320neo' },
-      { nombre: 'Condor Plus', codigo: 'CP0815', avion: 'Boeing 737' },
-      { nombre: 'Altura Express', codigo: 'AE1650', avion: 'Airbus A321' },
-    ];
-    const horarios = [
-      { salida: '07:30', durMin: 270 },
-      { salida: '14:15', durMin: 345 },
-      { salida: '06:15', durMin: 90 },
-      { salida: '08:30', durMin: 120 },
-      { salida: '10:45', durMin: 150 },
-      { salida: '13:00', durMin: 180 },
-      { salida: '15:20', durMin: 210 },
-      { salida: '17:50', durMin: 240 },
-      { salida: '19:10', durMin: 270 },
-      { salida: '21:30', durMin: 300 },
-    ];
-    const precios = [320, 285, 89, 115, 135, 158, 179, 205, 230, 265];
-    const escalas = [0, 1, 0, 0, 1, 0, 1, 0, 0, 1];
+  onOrigenSeleccionado(a: AeropuertoSugerencia | null): void {
+    this.aeropuertoOrigen = a;
+    if (a) this.criterios.update(c => ({ ...c, origen: a.display, origenNombre: a.display }));
+  }
 
-    return proveedores.map((p, i) => {
-      const slot = horarios[i];
-      const [h, m] = slot.salida.split(':').map(Number);
-      const llegMin = h * 60 + m + slot.durMin;
-      const llegada = `${String(Math.floor(llegMin / 60) % 24).padStart(2, '0')}:${String(llegMin % 60).padStart(2, '0')}`;
-      const hDur = Math.floor(slot.durMin / 60);
-      const minDur = slot.durMin % 60;
-      return {
-        guidServicio: `flight-${i + 1}`,
-        nombreComercial: p.nombre,
-        tipoServicioNombre: 'Vuelos',
-        salida: slot.salida,
-        llegada,
-        duracion: minDur > 0 ? `${hDur}h ${minDur}m` : `${hDur}h`,
-        escalas: escalas[i],
-        precioBase: precios[i],
-        origen: c.origen || 'MAD',
-        destino: c.destino || 'BCN',
-        fecha: c.fechaSalida || '',
-        _codigo: p.codigo,
-        _avion: p.avion,
-      } as FlightItem & { _codigo: string; _avion: string };
-    });
+  onDestinoSeleccionado(a: AeropuertoSugerencia | null): void {
+    this.aeropuertoDestino = a;
+    if (a) this.criterios.update(c => ({ ...c, destino: a.display, destinoNombre: a.display }));
+  }
+
+  buscarDesdeBarraFlotante(): void {
+    const origenIata = this.aeropuertoOrigen?.codigoIata ?? '';
+    const destinoIata = this.aeropuertoDestino?.codigoIata ?? '';
+    const c = this.criterios();
+
+    this.origenIataSearch.set(origenIata);
+    this.destinoIataSearch.set(destinoIata);
+
+    const searchParams: FlightSearchParams = {
+      CodigoIataOrigen: origenIata || undefined,
+      CodigoIataDestino: destinoIata || undefined,
+      FechaSalida: this.toIsoDateTime(c.fechaSalida),
+    };
+
+    this.paginaActual.set(1);
+    this.cargando.set(true);
+    this.error.set('');
+    this.flightService
+      .buscarVuelos(searchParams)
+      .pipe(
+        catchError(() => {
+          this.error.set('No se pudieron cargar los vuelos. Intenta de nuevo.');
+          return of<FlightItem[]>([]);
+        }),
+      )
+      .subscribe(vuelos => {
+        this.resultados.set(vuelos);
+        this.cargando.set(false);
+      });
+  }
+
+  private toIsoDateTime(fecha: string): string | undefined {
+    if (!fecha) return undefined;
+    return fecha.includes('T') ? fecha : `${fecha}T00:00:00`;
   }
 }
