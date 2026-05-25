@@ -1,61 +1,78 @@
 <app-navbar></app-navbar>
 
-<!-- Hero con imagen de avión -->
-<section class="hero">
-  <div class="hero-placeholder" aria-hidden="true">
-    <span class="material-icons hero-plane-icon">flight</span>
-  </div>
+<!-- Hero estilo buscador de hoteles -->
+<section class="flight-search-hero">
+  <div class="flight-search-overlay" aria-hidden="true"></div>
 
-  <!-- Barra de búsqueda flotante -->
-  <div class="search-bar-floating">
-    <div class="search-tabs">
-      <button class="search-tab" [class.active]="criterios().tipoViaje === 'roundtrip'"
-        (click)="criterios.set({...criterios(), tipoViaje: 'roundtrip'})">
-        IDA Y VUELTA
-      </button>
-      <button class="search-tab" [class.active]="criterios().tipoViaje === 'oneway'"
-        (click)="criterios.set({...criterios(), tipoViaje: 'oneway'})">
-        SOLO IDA
-      </button>
-    </div>
+  <div class="flight-search-container">
+    <header class="flight-search-header">
+      <h1 class="flight-search-title">Busca tu vuelo</h1>
+      <p class="flight-search-subtitle">Compara opciones de varios proveedores en un solo lugar</p>
+    </header>
 
-    <div class="search-bar-content">
-      <form class="search-form">
-        <div class="search-field">
-          <label class="search-label">ORIGEN</label>
-          <div class="search-input-wrapper">
-            <span class="material-icons" aria-hidden="true">flight_takeoff</span>
-            <input type="text" [value]="criterios().origen" placeholder="Ciudad de origen"
-              (input)="criterios.set({...criterios(), origen: $any($event.target).value})" />
-          </div>
+    <div class="flight-search-panel">
+
+      <!-- Tabs ida y vuelta / solo ida -->
+      <div class="flight-tabs">
+        <button type="button" class="flight-tab"
+          [class.active]="criterios().tipoViaje === 'roundtrip'"
+          (click)="criterios.set({...criterios(), tipoViaje: 'roundtrip'})">
+          <span class="material-icons tab-icon" aria-hidden="true">sync_alt</span>
+          <span class="tab-label">IDA Y VUELTA</span>
+        </button>
+        <button type="button" class="flight-tab"
+          [class.active]="criterios().tipoViaje === 'oneway'"
+          (click)="criterios.set({...criterios(), tipoViaje: 'oneway'})">
+          <span class="material-icons tab-icon" aria-hidden="true">trending_flat</span>
+          <span class="tab-label">SOLO IDA</span>
+        </button>
+      </div>
+
+      <form class="flight-search-form">
+        <div class="flight-field">
+          <label class="flight-label">ORIGEN</label>
+          <app-airport-autocomplete
+            [valorInicial]="criterios().origenNombre"
+            [icono]="'flight_takeoff'"
+            [placeholder]="'Ciudad de origen'"
+            (aeropuertoSeleccionado)="onOrigenSeleccionado($event)">
+          </app-airport-autocomplete>
         </div>
 
-        <div class="search-field">
-          <label class="search-label">DESTINO</label>
-          <div class="search-input-wrapper">
-            <span class="material-icons" aria-hidden="true">flight_land</span>
-            <input type="text" [value]="criterios().destino" placeholder="Ciudad de destino"
-              (input)="criterios.set({...criterios(), destino: $any($event.target).value})" />
-          </div>
+        <div class="flight-field">
+          <label class="flight-label">DESTINO</label>
+          <app-airport-autocomplete
+            [valorInicial]="criterios().destinoNombre"
+            [icono]="'flight_land'"
+            [placeholder]="'Ciudad de destino'"
+            (aeropuertoSeleccionado)="onDestinoSeleccionado($event)">
+          </app-airport-autocomplete>
         </div>
 
-        <div class="search-field">
-          <label class="search-label">FECHA DE SALIDA</label>
-          <div class="search-input-wrapper">
+        <div class="flight-field">
+          <label class="flight-label">FECHA DE SALIDA</label>
+          <div class="flight-input-wrapper">
             <span class="material-icons" aria-hidden="true">event</span>
             <input type="date" [value]="criterios().fechaSalida" style="color-scheme:light"
               (change)="criterios.set({...criterios(), fechaSalida: $any($event.target).value})" />
           </div>
         </div>
 
-        <div class="search-field">
-          <label class="search-label">FECHA DE REGRESO</label>
-          <div class="search-input-wrapper" [class.disabled]="criterios().tipoViaje === 'oneway'">
+        <div class="flight-field">
+          <label class="flight-label">FECHA DE REGRESO</label>
+          <div class="flight-input-wrapper" [class.flight-input-disabled]="criterios().tipoViaje === 'oneway'">
             <span class="material-icons" aria-hidden="true">event</span>
             <input type="date" [value]="criterios().fechaRegreso" style="color-scheme:light"
               [disabled]="criterios().tipoViaje === 'oneway'"
               (change)="criterios.set({...criterios(), fechaRegreso: $any($event.target).value})" />
           </div>
+        </div>
+
+        <div class="flight-field flight-field-full">
+          <button type="button" class="flight-search-btn" (click)="buscarDesdeBarraFlotante()">
+            <span class="material-icons" aria-hidden="true">search</span>
+            Buscar vuelos
+          </button>
         </div>
       </form>
     </div>
@@ -65,12 +82,25 @@
 <!-- Lista de resultados -->
 <main class="main-content">
 
-  @if (totalResultados() === 0) {
+  @if (cargando()) {
+    <div class="loading-state">
+      <span class="material-icons" aria-hidden="true">flight</span>
+      <p>Buscando vuelos...</p>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error-state">{{ error() }}</div>
+  }
+
+  @if (!cargando() && !error() && totalResultados() === 0) {
     <div class="empty-state">
       <span class="material-icons" style="font-size:3rem;color:var(--color-extra2)" aria-hidden="true">flight_off</span>
       <p>No se encontraron vuelos disponibles para tu búsqueda.</p>
     </div>
-  } @else {
+  }
+
+  @if (!cargando() && totalResultados() > 0) {
 
     <div class="results-container" role="list">
       @for (vuelo of paginaResultados(); track vuelo.guidServicio) {
@@ -84,9 +114,9 @@
                 <span class="material-icons">flight</span>
               </div>
               <div class="airline-info">
-                <div class="airline-name">{{ vuelo.nombreComercial }}</div>
+                <div class="airline-name">{{ vuelo.proveedor }}</div>
                 <div class="flight-code">
-                  {{ $any(vuelo)._codigo || 'AV0104' }} • {{ $any(vuelo)._avion || 'Boeing 787' }}
+                  <span class="provider-badge">Vuelo {{ vuelo.nombreComercial }}</span>
                 </div>
               </div>
             </div>
@@ -144,7 +174,10 @@
                 Detalles
                 <span class="material-icons expand-arrow" aria-hidden="true">expand_more</span>
               </button>
-              <button class="btn-reserve" (click)="reservar(vuelo, $event)" aria-label="Reservar {{ vuelo.nombreComercial }}">
+              <button class="btn-reserve"
+                (click)="abrirConfirmacion(vuelo, $event)"
+                [disabled]="reservandoId() !== null"
+                aria-label="Reservar {{ vuelo.nombreComercial }}">
                 Reservar
               </button>
             </div>
@@ -155,27 +188,24 @@
             <div class="flight-details">
               <div class="details-grid">
                 <div class="detail-section">
-                  <h3>Servicios Incluidos</h3>
+                  <h3>Información del vuelo</h3>
                   <div class="detail-list">
-                    <div class="detail-item">- Equipaje de mano (10kg)</div>
-                    <div class="detail-item optional">- Equipaje de bodega (opcional)</div>
-                    <div class="detail-item">- Snack y bebida</div>
-                  </div>
-                </div>
-                <div class="detail-section">
-                  <h3>Información Adicional</h3>
-                  <div class="detail-list">
-                    <div class="detail-item highlight">Aeronave: {{ $any(vuelo)._avion || 'Boeing 787' }}</div>
+                    <div class="detail-item highlight">Número de vuelo: {{ vuelo.nombreComercial }}</div>
+                    <div class="detail-item">Salida: {{ vuelo.fechaHoraSalida | date:'dd/MM/yyyy HH:mm' }}</div>
+                    <div class="detail-item">Llegada: {{ vuelo.fechaHoraLlegada | date:'dd/MM/yyyy HH:mm' }}</div>
                     <div class="detail-item">Duración: {{ vuelo.duracion }}</div>
-                    <div class="detail-item">Clase: Económica</div>
+                    <div class="detail-item">Escalas: {{ vuelo.escalas === 0 ? 'Vuelo directo' : vuelo.escalas + ' escala(s)' }}</div>
+                    <div class="detail-item">Estado: {{ vuelo.estadoVuelo || 'PROGRAMADO' }}</div>
+                    <div class="detail-item">Asientos disponibles: {{ vuelo.asientosDisponibles ?? 'N/D' }}</div>
+                    <div class="detail-item">Capacidad total: {{ vuelo.capacidadTotal ?? 'N/D' }}</div>
                   </div>
                 </div>
                 <div class="detail-section">
                   <h3>Políticas</h3>
                   <div class="detail-list">
-                    <div class="detail-item">Check-in: Online o aeropuerto</div>
-                    <div class="detail-item">3 horas antes en el aeropuerto</div>
-                    <div class="detail-item">Cambios: Según tarifa</div>
+                    <div class="detail-item">Check-in: Online o en el aeropuerto</div>
+                    <div class="detail-item">Presentarse 3 horas antes del vuelo</div>
+                    <div class="detail-item">Cambios y cancelaciones: según tarifa seleccionada</div>
                   </div>
                 </div>
               </div>
@@ -214,6 +244,57 @@
     }
 
   }
+
+  <!-- Modal de confirmación de reserva -->
+  @if (vueloParaConfirmar()) {
+    <div class="modal-overlay" (click)="cancelarReserva()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <span class="material-icons modal-icon">flight_takeoff</span>
+          <h2 class="modal-title">Confirmar reserva</h2>
+        </div>
+        <div class="modal-body">
+          <p class="modal-flight-name">
+            {{ vueloParaConfirmar()!.proveedor }} —
+            Vuelo {{ vueloParaConfirmar()!.nombreComercial }}
+          </p>
+          <div class="modal-route">
+            <span class="modal-iata">{{ vueloParaConfirmar()!.origen || origenIataSearch() || '—' }}</span>
+            <span class="material-icons modal-arrow">arrow_forward</span>
+            <span class="modal-iata">{{ vueloParaConfirmar()!.destino || destinoIataSearch() || '—' }}</span>
+          </div>
+          <div class="modal-info-row">
+            <span class="material-icons modal-info-icon">schedule</span>
+            {{ vueloParaConfirmar()!.salida }} → {{ vueloParaConfirmar()!.llegada }}
+            · {{ vueloParaConfirmar()!.duracion }}
+          </div>
+          <div class="modal-info-row">
+            <span class="material-icons modal-info-icon">attach_money</span>
+            Desde ${{ vueloParaConfirmar()!.precioBase | number:'1.2-2' }} por persona
+          </div>
+          <div class="modal-redirect-notice">
+            <span class="material-icons">open_in_new</span>
+            Serás redirigido al sitio del proveedor para completar tu reserva.
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn-cancel" (click)="cancelarReserva()">Cancelar</button>
+          <button class="modal-btn-confirm"
+            [disabled]="reservandoId() !== null"
+            (click)="confirmarReserva()">
+            @if (reservandoId() !== null) {
+              <span class="material-icons rotating">sync</span>
+              Procesando...
+            } @else {
+              Continuar
+              <span class="material-icons">arrow_forward</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
 </main>
 
 <app-footer></app-footer>

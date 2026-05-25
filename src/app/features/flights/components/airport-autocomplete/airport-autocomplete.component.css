@@ -1,0 +1,162 @@
+.ac-container {
+  position: relative;
+  width: 100%;
+}
+
+.ac-label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-extra1);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.3rem;
+}
+
+/* ─── Input wrapper ─────────────────────────── */
+.ac-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1.5px solid rgba(198, 177, 125, 0.5);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  background: var(--color-bg);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ac-input-wrapper.ac-active,
+.ac-input-wrapper:focus-within {
+  border-color: var(--color-titulo);
+  box-shadow: 0 0 0 3px rgba(142, 90, 84, 0.1);
+}
+
+.ac-icon {
+  font-size: 1.1rem;
+  color: var(--color-extra2);
+  flex-shrink: 0;
+}
+
+.ac-input {
+  border: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--color-extra1);
+  width: 100%;
+  outline: none;
+}
+
+.ac-input::placeholder {
+  color: rgba(96, 98, 86, 0.5);
+}
+
+/* ─── Spinner ───────────────────────────────── */
+.ac-spinner {
+  font-size: 1rem;
+  color: var(--color-extra2);
+  animation: ac-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes ac-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ─── Dropdown ──────────────────────────────── */
+.ac-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1.5px solid rgba(198, 177, 125, 0.3);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(70, 64, 60, 0.12);
+  z-index: 1000;
+  overflow: hidden;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* ─── Estado: buscando / sin resultados / error ─ */
+.ac-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--color-subtitulo);
+}
+
+.ac-error-row {
+  color: #c0392b;
+}
+
+.ac-status-icon {
+  font-size: 1rem;
+}
+
+/* ─── Items ─────────────────────────────────── */
+.ac-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid rgba(198, 177, 125, 0.1);
+}
+
+.ac-item:last-child {
+  border-bottom: none;
+}
+
+.ac-item:hover {
+  background: rgba(198, 177, 125, 0.1);
+}
+
+.ac-item.focused {
+  background: rgba(198, 177, 125, 0.18);
+  outline: none;
+}
+
+.ac-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.ac-item-nombre {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-extra1);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ac-item-sub {
+  font-size: 0.75rem;
+  color: var(--color-subtitulo);
+}
+
+/* ─── Badge IATA ─────────────────────────────── */
+.ac-iata-badge {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-titulo);
+  background: rgba(142, 90, 84, 0.08);
+  border: 1px solid rgba(142, 90, 84, 0.2);
+  border-radius: 4px;
+  padding: 0.15rem 0.45rem;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}

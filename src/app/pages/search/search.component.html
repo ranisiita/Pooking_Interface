@@ -115,25 +115,23 @@
         <!-- Grid de campos -->
         <div class="form-grid">
           <div class="field">
-            <label for="vOrigen">ORIGEN</label>
-            <div class="input-icon-wrapper">
-              <span class="material-icons">flight_takeoff</span>
-              <input id="vOrigen" type="text"
-                [value]="vuelos.origen"
-                (input)="onCityInput('origen', $event)"
-                placeholder="Ciudad de origen" />
-            </div>
+            <app-airport-autocomplete
+              label="ORIGEN"
+              placeholder="Ciudad de origen"
+              icono="flight_takeoff"
+              (aeropuertoSeleccionado)="aeropuertoOrigen = $event; validarVuelo('origen')"
+            ></app-airport-autocomplete>
+            <small class="field-error" *ngIf="vueloErrors.origen">{{ vueloErrors.origen }}</small>
           </div>
 
           <div class="field">
-            <label for="vDestino">DESTINO</label>
-            <div class="input-icon-wrapper">
-              <span class="material-icons">flight_land</span>
-              <input id="vDestino" type="text"
-                [value]="vuelos.destino"
-                (input)="onCityInput('destino', $event)"
-                placeholder="Ciudad de destino" />
-            </div>
+            <app-airport-autocomplete
+              label="DESTINO"
+              placeholder="Ciudad de destino"
+              icono="flight_land"
+              (aeropuertoSeleccionado)="aeropuertoDestino = $event; validarVuelo('destino')"
+            ></app-airport-autocomplete>
+            <small class="field-error" *ngIf="vueloErrors.destino">{{ vueloErrors.destino }}</small>
           </div>
 
           <div class="field">

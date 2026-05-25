@@ -7,6 +7,8 @@ import { FooterComponent } from '../../components/navbar/footer.component';
 import { DatePickerComponent } from '../../components/date-picker/date-picker.component';
 import { CarService } from '../../features/cars/services/car.service';
 import { Localizacion, Categoria } from '../../features/cars/shared/car.models';
+import { AirportAutocompleteComponent } from '../../features/flights/components/airport-autocomplete/airport-autocomplete.component';
+import { AeropuertoSugerencia } from '../../features/flights/shared/flight.models';
 
 type FlightClass = 'Económica' | 'Ejecutiva' | 'Primera clase';
 interface FlightSearchCriteria {
@@ -22,7 +24,7 @@ interface FlightSearchCriteria {
 @Component({
   selector: 'app-search',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavbarComponent, FooterComponent, DatePickerComponent],
+  imports: [CommonModule, FormsModule, NavbarComponent, FooterComponent, DatePickerComponent, AirportAutocompleteComponent],
   templateUrl: './search.component.html',
   styleUrls: ['./search.component.css'],
 })
@@ -54,6 +56,8 @@ export class SearchComponent implements OnInit {
   };
 
   vuelos = { origen: '', destino: '', salida: '', regreso: '', pasajeros: 1, clase: 'Económica', tipoViaje: 'roundtrip' as 'roundtrip' | 'oneway' };
+  aeropuertoOrigen: AeropuertoSugerencia | null = null;
+  aeropuertoDestino: AeropuertoSugerencia | null = null;
   flightFormError = '';
   vueloErrors = {
     origen: '',
@@ -229,22 +233,16 @@ export class SearchComponent implements OnInit {
     const hoyStr = this.fechaHoy;
 
     if (campo === 'origen') {
-      const orig = this.vuelos.origen;
-      if (!orig || !orig.trim()) {
-        this.vueloErrors.origen = 'Por favor, ingresa una ciudad de origen.';
-      } else if (!this.isCityTextOnly(orig)) {
-        this.vueloErrors.origen = 'El origen solo permite letras y espacios.';
+      if (!this.aeropuertoOrigen) {
+        this.vueloErrors.origen = 'Por favor, selecciona un aeropuerto de origen.';
       } else {
         this.vueloErrors.origen = '';
       }
     }
 
     if (campo === 'destino') {
-      const dest = this.vuelos.destino;
-      if (!dest || !dest.trim()) {
-        this.vueloErrors.destino = 'Por favor, ingresa una ciudad de destino.';
-      } else if (!this.isCityTextOnly(dest)) {
-        this.vueloErrors.destino = 'El destino solo permite letras y espacios.';
+      if (!this.aeropuertoDestino) {
+        this.vueloErrors.destino = 'Por favor, selecciona un aeropuerto de destino.';
       } else {
         this.vueloErrors.destino = '';
       }
@@ -369,10 +367,15 @@ export class SearchComponent implements OnInit {
       return;
     }
 
-    const { origen, destino, salida, regreso, pasajeros, clase, tipoViaje } = this.vuelos;
+    const { salida, regreso, pasajeros, clase, tipoViaje } = this.vuelos;
+    const origenIata = this.aeropuertoOrigen?.codigoIata ?? '';
+    const origenNombre = this.aeropuertoOrigen?.nombre ?? '';
+    const destinoIata = this.aeropuertoDestino?.codigoIata ?? '';
+    const destinoNombre = this.aeropuertoDestino?.nombre ?? '';
+
     const criterios: FlightSearchCriteria = {
-      origen: origen.trim(),
-      destino: destino.trim(),
+      origen: origenNombre,
+      destino: destinoNombre,
       fechaSalida: salida,
       fechaRegreso: tipoViaje === 'roundtrip' ? regreso : '',
       pasajeros,
@@ -382,8 +385,10 @@ export class SearchComponent implements OnInit {
     sessionStorage.setItem('flight-search-criteria', JSON.stringify(criterios));
     this.router.navigate(['/vuelos/resultados'], {
       queryParams: {
-        origen: origen.trim(),
-        destino: destino.trim(),
+        origenIata,
+        origenNombre,
+        destinoIata,
+        destinoNombre,
         fecha: salida,
         fechaRegreso: tipoViaje === 'roundtrip' ? regreso : '',
         tipoViaje,
@@ -415,13 +420,6 @@ export class SearchComponent implements OnInit {
     if (destino.trim()) queryParams.ciudad = destino.trim();
     if (fecha) queryParams.fecha = fecha;
     this.router.navigate(['/atracciones'], { queryParams });
-  }
-
-  onCityInput(field: 'origen' | 'destino', event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const saneado = input.value.replace(/[^a-zA-Z\u00C0-\u017F\s]/g, '');
-    this.vuelos[field] = saneado;
-    this.validarVuelo(field);
   }
 
   private isCityTextOnly(value: string): boolean {
