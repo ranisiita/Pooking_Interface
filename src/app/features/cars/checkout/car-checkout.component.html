@@ -611,6 +611,8 @@
     [totalInput]="total()"
     [overrideNombre]="conductor.nombres + ' ' + conductor.apellidos"
     [overrideEmail]="conductor.correo"
+    [serviceType]="'auto'"
+    [customDetails]="paymentDetails()"
     (pagoExitoso)="procesarReservaAPI()"
     (onCancel)="cancelarPago()">
   </app-payment>

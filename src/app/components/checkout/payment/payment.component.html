@@ -179,12 +179,21 @@
 
             @if (detallesExpandidos()) {
               <div class="details-expandidos">
+                @if (customDetails && customDetails.length > 0) {
+                  @for (item of customDetails; track item.name) {
+                    <div class="detail-row">
+                      <span>{{ item.name }}</span>
+                      <span>${{ item.value | number:'1.2-2' }}</span>
+                    </div>
+                  }
+                } @else {
+                  <div class="detail-row">
+                    <span>{{ itemName || getServiceDefaultName() }}</span>
+                    <span>${{ subtotal() | number:'1.2-2' }}</span>
+                  </div>
+                }
                 <div class="detail-row">
-                  <span>Reserva vuelo</span>
-                  <span>${{ subtotal() | number:'1.2-2' }}</span>
-                </div>
-                <div class="detail-row">
-                  <span>IVA (9,4%)</span>
+                  <span>IVA ({{ getIvaPercentageLabel() }})</span>
                   <span>${{ iva() | number:'1.2-2' }}</span>
                 </div>
               </div>
@@ -301,7 +310,7 @@
                   Procesando...
                 } @else {
                   <span class="material-icons" aria-hidden="true">lock</span>
-                  Pagar de forma segura
+                  {{ buttonLabel }}
                 }
               </button>
             </div>
@@ -315,3 +324,13 @@
 }
 
 <app-footer></app-footer>
+
+@if (procesando()) {
+  <div class="top-right-loading-toast" role="alert" aria-live="assertive">
+    <div class="toast-spinner"></div>
+    <div class="toast-text">
+      <strong>Procesando pago...</strong>
+      <span>Esto puede demorar unos segundos.</span>
+    </div>
+  </div>
+}

@@ -1,42 +1,33 @@
-<!-- ══ TOPNAV ══ -->
-<nav class="topnav" *ngIf="lodging">
-  <a [routerLink]="['/']" class="logo">Pooking<span>.</span></a>
-  <div class="nav-bc">
-    <a [routerLink]="['/alojamiento/resultados']">Resultados</a>
-    <span class="sep">›</span>
-    <a [routerLink]="['/alojamiento', lodging.id]">{{ lodging.nombre }}</a>
-    <span class="sep">›</span>
-    <span>Completar reserva</span>
-  </div>
-  <div class="nav-secure">
-    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    Pago seguro garantizado
-  </div>
-</nav>
+<app-navbar></app-navbar>
 
-<!-- ══ STEPS ══ -->
-<div class="steps-bar">
-  <div class="step-item done" [routerLink]="['/alojamiento/resultados']">
-    <div class="step-num">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-        <polyline points="20 6 9 17 4 12"/>
-      </svg>
+<!-- ══ STEPS (Premium Stepper matching Automóviles) ══ -->
+<div class="stepper-rail" aria-label="Progreso de la reserva" role="navigation">
+  <div class="stepper-inner">
+    <!-- Paso 1 -->
+    <div class="step done" [routerLink]="['/alojamiento/resultados']" style="cursor: pointer;">
+      <div class="step-circle" aria-hidden="true">
+        <span class="material-icons">check</span>
+      </div>
+      <div class="step-label">Alojamiento</div>
     </div>
-    <div class="step-label">Alojamiento</div>
-  </div>
-  <div class="step-sep"></div>
-  <div class="step-item done" [routerLink]="['/alojamiento', lodging?.id]">
-    <div class="step-num">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-        <polyline points="20 6 9 17 4 12"/>
-      </svg>
+    <div class="step-line done" aria-hidden="true"></div>
+    
+    <!-- Paso 2 -->
+    <div class="step done" [routerLink]="['/alojamiento', lodging?.id]" style="cursor: pointer;">
+      <div class="step-circle" aria-hidden="true">
+        <span class="material-icons">check</span>
+      </div>
+      <div class="step-label">Habitación</div>
     </div>
-    <div class="step-label">Habitación</div>
-  </div>
-  <div class="step-sep"></div>
-  <div class="step-item active">
-    <div class="step-num">3</div>
-    <div class="step-label">Tus datos</div>
+    <div class="step-line done" aria-hidden="true"></div>
+    
+    <!-- Paso 3 -->
+    <div class="step active">
+      <div class="step-circle" aria-hidden="true">
+        <span>3</span>
+      </div>
+      <div class="step-label">Confirmación</div>
+    </div>
   </div>
 </div>
 
@@ -47,13 +38,13 @@
   <div class="main-col">
 
     <!-- ── 1. DATOS DEL HUÉSPED ── -->
-    <section class="section">
+    <section class="section" id="datos-huesped">
       <h3>Datos del huésped</h3>
 
       <div class="field-grid cols-2">
         <div class="field">
-          <label>Tipo de identificación<span class="req">*</span></label>
-          <select class="fi" [class.error]="isFieldError('tipoIdentificacion')" [(ngModel)]="tipoIdentificacion" (blur)="onTouch('tipoIdentificacion')" required>
+          <label for="tipoIdentificacion">Tipo de identificación<span class="req">*</span></label>
+          <select id="tipoIdentificacion" class="fi" [class.error]="isFieldError('tipoIdentificacion')" [(ngModel)]="tipoIdentificacion" (blur)="onTouch('tipoIdentificacion')" required>
             <option value="" disabled selected>Selecciona…</option>
             <option value="CED">Cédula (CED)</option>
             <option value="RUC">RUC</option>
@@ -62,103 +53,81 @@
           <span class="field-error" *ngIf="isFieldError('tipoIdentificacion')">{{ getFieldErrorMsg('tipoIdentificacion') }}</span>
         </div>
         <div class="field">
-          <label>Número de identificación<span class="req">*</span></label>
-          <input class="fi" [class.error]="isFieldError('numeroIdentificacion')" type="text" [(ngModel)]="numeroIdentificacion" (blur)="onTouch('numeroIdentificacion')" placeholder="Ej. 1723456789" required>
+          <label for="numeroIdentificacion">Número de identificación<span class="req">*</span></label>
+          <input id="numeroIdentificacion" class="fi" [class.error]="isFieldError('numeroIdentificacion')" type="text" [(ngModel)]="numeroIdentificacion" (blur)="onTouch('numeroIdentificacion')" placeholder="Ej. 1723456789" required>
           <span class="field-error" *ngIf="isFieldError('numeroIdentificacion')">{{ getFieldErrorMsg('numeroIdentificacion') }}</span>
         </div>
         <div class="field">
-          <label>Nombres<span class="req">*</span></label>
-          <input class="fi" [class.error]="isFieldError('nombres')" type="text" [(ngModel)]="nombres" (blur)="onTouch('nombres')" placeholder="Ej. Juan Carlos" required>
+          <label for="nombres">Nombres<span class="req">*</span></label>
+          <input id="nombres" class="fi" [class.error]="isFieldError('nombres')" type="text" [(ngModel)]="nombres" (blur)="onTouch('nombres')" placeholder="Ej. Juan Carlos" required>
           <span class="field-error" *ngIf="isFieldError('nombres')">{{ getFieldErrorMsg('nombres') }}</span>
         </div>
         <div class="field">
-          <label>Apellidos <span class="opt">(opcional)</span></label>
-          <input class="fi" type="text" [(ngModel)]="apellidos" placeholder="Ej. Pérez García">
+          <label for="apellidos">Apellidos <span class="opt">(opcional)</span></label>
+          <input id="apellidos" class="fi" type="text" [(ngModel)]="apellidos" placeholder="Ej. Pérez García">
         </div>
         <div class="field">
-          <label>Correo electrónico<span class="req">*</span></label>
-          <input class="fi" [class.error]="isFieldError('correo')" type="email" [(ngModel)]="correo" (blur)="onTouch('correo')" placeholder="correo@ejemplo.com" required>
+          <label for="correo">Correo electrónico<span class="req">*</span></label>
+          <input id="correo" class="fi" [class.error]="isFieldError('correo')" type="email" [(ngModel)]="correo" (blur)="onTouch('correo')" placeholder="correo@ejemplo.com" required>
           <span class="field-hint" *ngIf="!isFieldError('correo')">Te enviaremos la confirmación aquí</span>
           <span class="field-error" *ngIf="isFieldError('correo')">{{ getFieldErrorMsg('correo') }}</span>
         </div>
         <div class="field">
-          <label>Teléfono<span class="req">*</span></label>
-          <input class="fi" [class.error]="isFieldError('telefono')" type="tel" [(ngModel)]="telefono" (blur)="onTouch('telefono')" placeholder="Ej. 0999999999" required>
+          <label for="telefono">Teléfono<span class="req">*</span></label>
+          <input id="telefono" class="fi" [class.error]="isFieldError('telefono')" type="tel" [(ngModel)]="telefono" (blur)="onTouch('telefono')" placeholder="Ej. 0999999999" required>
           <span class="field-error" *ngIf="isFieldError('telefono')">{{ getFieldErrorMsg('telefono') }}</span>
         </div>
         <div class="field field-span2">
-          <label>Dirección <span class="opt">(opcional)</span></label>
-          <input class="fi" type="text" [(ngModel)]="direccion" placeholder="Ej. Quito, Pichincha">
+          <label for="direccion">Dirección<span class="req">*</span></label>
+          <input id="direccion" class="fi" [class.error]="isFieldError('direccion')" type="text" [(ngModel)]="direccion" (blur)="onTouch('direccion')" placeholder="Ej. Quito, Pichincha" required>
+          <span class="field-error" *ngIf="isFieldError('direccion')">{{ getFieldErrorMsg('direccion') }}</span>
         </div>
       </div>
     </section>
 
 
 
-    <!-- ── 3. HABITACIONES ── -->
+    <!-- ── 3. HABITACIONES SELECCIONADAS (ESTÁTICA/QUEMADA) ── -->
     <section class="section">
-      <h3>Habitaciones</h3>
+      <h3>Habitaciones seleccionadas</h3>
 
       <div id="hab-list">
-        <div *ngFor="let room of lodging.habitaciones; let i = index" class="hab-card" [class.selected]="roomSelections[i]?.selected">
-          <div class="hab-head" (click)="toggleRoom(i)">
-            <div class="hab-head-left">
-              <div class="hab-check">
-                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <div>
-                <div class="hab-name">{{ room.nombre }}</div>
-                <div class="hab-meta">{{ room.cama }} · {{ room.metros }} m² · {{ room.capacidad }}</div>
-              </div>
-            </div>
-            <div class="hab-price-head">
-              <strong>${{ room.precio }}</strong>
-              <span> USD/noche</span>
-            </div>
-          </div>
-          <div class="hab-body" *ngIf="roomSelections[i]?.selected">
-            <div class="field-grid cols-2">
-              <div class="field">
-                <label>Habitaciones<span class="req">*</span></label>
-                <div class="counter-wrap">
-                  <div class="counter">
-                    <button class="counter-btn" [disabled]="roomSelections[i].roomsCount <= 1" (click)="count(i, 'roomsCount', 1, -1)">−</button>
-                    <div class="counter-val">{{ roomSelections[i].roomsCount }}</div>
-                    <button class="counter-btn" (click)="count(i, 'roomsCount', 1, 1)">+</button>
-                  </div>
-                  <span class="counter-label">Disponibles: {{ room.disponibles }}</span>
+        <ng-container *ngFor="let room of lodging.habitaciones; let i = index">
+          <div *ngIf="roomSelections[i]?.selected" class="hab-card selected" style="cursor: default; border-color: var(--border-md);">
+            <div class="hab-head" style="cursor: default; pointer-events: none;">
+              <div class="hab-head-left">
+                <div class="hab-check" style="background: var(--titulo); border-color: var(--titulo); opacity: 1;">
+                  <svg viewBox="0 0 24 24" style="opacity: 1; transform: scale(1);"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div>
+                  <div class="hab-name">{{ room.nombre }}</div>
+                  <div class="hab-meta">{{ room.cama }} · {{ room.metros }} m² · {{ room.capacidad }}</div>
                 </div>
               </div>
-              <div class="field guests-col-group">
-                <div class="sub-field">
-                  <label>Adultos<span class="req">*</span></label>
-                  <div class="counter-wrap">
-                    <div class="counter">
-                      <button class="counter-btn" [disabled]="roomSelections[i].adultsCount <= 1" (click)="count(i, 'adultsCount', 1, -1)">−</button>
-                      <div class="counter-val">{{ roomSelections[i].adultsCount }}</div>
-                      <button class="counter-btn" (click)="count(i, 'adultsCount', 1, 1)">+</button>
-                    </div>
-                    <span class="counter-label">mín. 1</span>
-                  </div>
+              <div class="hab-price-head">
+                <strong>${{ room.precio }}</strong>
+                <span> USD/noche</span>
+              </div>
+            </div>
+            <div class="hab-body" style="padding: 16px 20px; background: rgba(142, 90, 84, 0.02); border-top: 1px solid var(--border);">
+              <div style="display: flex; gap: 40px; align-items: center;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--sub); letter-spacing: 0.5px; font-family: var(--font-body, 'Poppins', sans-serif);">Habitaciones</span>
+                  <strong style="font-size: 15px; color: var(--extra1); font-family: var(--font-body, 'Poppins', sans-serif);">{{ roomSelections[i].roomsCount }} hab.</strong>
                 </div>
-                <div class="sub-field">
-                  <label>Niños<span class="req">*</span></label>
-                  <div class="counter-wrap">
-                    <div class="counter">
-                      <button class="counter-btn" [disabled]="roomSelections[i].kidsCount <= 0" (click)="count(i, 'kidsCount', 0, -1)">−</button>
-                      <div class="counter-val">{{ roomSelections[i].kidsCount }}</div>
-                      <button class="counter-btn" (click)="count(i, 'kidsCount', 0, 1)">+</button>
-                    </div>
-                    <span class="counter-label">mín. 0</span>
-                  </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--sub); letter-spacing: 0.5px; font-family: var(--font-body, 'Poppins', sans-serif);">Adultos</span>
+                  <strong style="font-size: 15px; color: var(--extra1); font-family: var(--font-body, 'Poppins', sans-serif);">{{ roomSelections[i].adultsCount }} adultos</strong>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;" *ngIf="roomSelections[i].kidsCount > 0">
+                  <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--sub); letter-spacing: 0.5px; font-family: var(--font-body, 'Poppins', sans-serif);">Niños</span>
+                  <strong style="font-size: 15px; color: var(--extra1); font-family: var(--font-body, 'Poppins', sans-serif);">{{ roomSelections[i].kidsCount }} niños</strong>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </ng-container>
       </div>
-
-
     </section>
 
     <!-- ── 4. PETICIONES ESPECIALES (CONFIGURACIÓN) — ALTAMENTE ESTILIZADO ── -->
@@ -244,10 +213,6 @@
           </div>
         </div>
         <div class="pb-row">
-          <span class="pb-label">Descuento global</span>
-          <span class="pb-val green" id="rc-desc">−$0.00</span>
-        </div>
-        <div class="pb-row">
           <span class="pb-label">IVA (15%)</span>
           <span class="pb-val" id="rc-iva">${{ iva | number:'1.2-2' }}</span>
         </div>
@@ -257,10 +222,6 @@
           <span class="pb-val" id="rc-total">${{ total | number:'1.2-2' }}</span>
         </div>
         <div class="pb-saldo" id="rc-saldo">Saldo pendiente: ${{ total | number:'1.2-2' }} USD</div>
-        <div class="pb-estado">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Estado inicial: <strong>PEN</strong> (pendiente)
-        </div>
       </div>
 
       <!-- CTA -->
@@ -283,6 +244,9 @@
 <!-- ══ SUCCESS ══ -->
 <div class="success-overlay" [class.show]="showSuccess" *ngIf="lodging">
   <div class="success-card">
+    <button class="success-close-btn" (click)="closeSuccess()" aria-label="Cerrar y volver a la búsqueda">
+      <span class="material-icons">close</span>
+    </button>
     <div class="success-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
     <h2>¡Reserva confirmada!</h2>
     <p>Tu solicitud fue enviada exitosamente. El hotel procesará tu reserva y recibirás la confirmación en tu correo.</p>
@@ -294,10 +258,6 @@
       <div class="sm-item">
         <div class="smi-label">Alojamiento</div>
         <div class="smi-val">{{ lodging.nombre }}</div>
-      </div>
-      <div class="sm-item">
-        <div class="smi-label">Estado</div>
-        <div class="smi-val"><span class="sm-estado">● PEN</span></div>
       </div>
       <div class="sm-item">
         <div class="smi-label">Check-in</div>
@@ -320,9 +280,147 @@
   </div>
 </div>
 
-<!-- ══ FOOTER ══ -->
-<footer *ngIf="lodging">
-  <span class="f-logo">Pooking<span>.</span></span>
-  <span>© 2026 Pooking · POST /api/v1/accommodations/reservas</span>
-  <span>Accommodations API v1</span>
-</footer>
+<app-footer></app-footer>
+
+
+<!-- ══ POPUP INICIAR SESIÓN ══ -->
+@if (mostrarLoginModal()) {
+  <div class="login-modal-overlay" (click)="mostrarLoginModal.set(false)" role="dialog" aria-modal="true">
+    <div class="login-modal-card" (click)="$event.stopPropagation()">
+      <button class="login-modal-close" (click)="mostrarLoginModal.set(false)" aria-label="Cerrar modal">
+        <span class="material-icons">close</span>
+      </button>
+
+      <div class="login-modal-header">
+        <div class="login-modal-logo">Pooking<span>.</span></div>
+        <h2>Inicia sesión para continuar</h2>
+        <p>Para confirmar tu reserva de forma segura, necesitamos que inicies sesión en tu cuenta.</p>
+      </div>
+
+      <!-- Feedback Exitoso -->
+      @if (loginStatus === 'success') {
+        <div class="login-modal-feedback success">
+          <span class="material-icons">check_circle</span>
+          <div class="feedback-text">
+            <strong>¡Bienvenido de nuevo!</strong>
+            <span>Autenticación exitosa. Redirigiendo a confirmar reserva...</span>
+          </div>
+        </div>
+      }
+
+      @if (loginStatus !== 'success') {
+        <form (ngSubmit)="onLoginModalSubmit()" #loginModalForm="ngForm" class="login-modal-form">
+          
+          <div class="login-form-group">
+            <label for="modal-identificador">Usuario o correo electrónico</label>
+            <div class="login-input-wrapper">
+              <span class="material-icons input-icon">person</span>
+              <input
+                id="modal-identificador"
+                type="text"
+                name="identificador"
+                placeholder="Tu usuario o correo"
+                [(ngModel)]="loginData.identificador"
+                required
+                #identificadorModel="ngModel"
+                [class.error]="identificadorModel.touched && !loginData.identificador"
+              />
+            </div>
+            @if (identificadorModel.touched && !loginData.identificador) {
+              <small class="login-field-error">El usuario o correo es requerido.</small>
+            }
+          </div>
+
+          <div class="login-form-group">
+            <label for="modal-password">Contraseña</label>
+            <div class="login-input-wrapper">
+              <span class="material-icons input-icon">lock</span>
+              <input
+                id="modal-password"
+                [type]="showPassword ? 'text' : 'password'"
+                name="password"
+                placeholder="Tu contraseña"
+                [(ngModel)]="loginData.password"
+                required
+                #passwordModel="ngModel"
+                [class.error]="passwordModel.touched && !loginData.password"
+              />
+              <button type="button" class="login-toggle-pwd" (click)="showPassword = !showPassword" tabindex="-1"
+                [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                <span class="material-icons">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+            @if (passwordModel.touched && !loginData.password) {
+              <small class="login-field-error">La contraseña es requerida.</small>
+            }
+          </div>
+
+          <!-- Error general -->
+          @if (loginStatus === 'error' && generalError) {
+            <div class="login-modal-feedback error">
+              <span class="material-icons">error_outline</span>
+              <span>{{ generalError }}</span>
+            </div>
+          }
+
+          <button type="submit" class="login-modal-btn" [disabled]="loginStatus === 'loading' || !loginData.identificador || !loginData.password">
+            @if (loginStatus === 'loading') {
+              <span class="login-btn-spinner"></span>
+              <span>Ingresando...</span>
+            } @else {
+              <span>Ingresar y continuar</span>
+            }
+          </button>
+        </form>
+
+        <div class="login-modal-footer">
+          <span>¿No tienes cuenta? </span>
+          <a routerLink="/signup" (click)="mostrarLoginModal.set(false)">Regístrate aquí</a>
+        </div>
+      }
+    </div>
+  </div>
+}
+
+@if (mostrarPago()) {
+  <app-payment 
+    [isStandalone]="false" 
+    [initialStep]="2" 
+    [subtotalInput]="subtotal" 
+    [ivaInput]="iva" 
+    [totalInput]="total"
+    [overrideNombre]="nombres + ' ' + (apellidos || '')"
+    [overrideEmail]="correo"
+    [serviceType]="'alojamiento'"
+    [customDetails]="paymentDetails"
+    buttonLabel="Realizar reserva"
+    (pagoExitoso)="procesarPagoYReserva()"
+    (datosEditados)="actualizarDatosHuesped($event)"
+    (onCancel)="cancelarPago()">
+  </app-payment>
+}
+
+@if (procesandoReserva()) {
+  <div class="top-right-loading-toast" role="alert" aria-live="assertive">
+    <div class="toast-spinner"></div>
+    <div class="toast-text">
+      <strong>Realizando reserva...</strong>
+      <span>Esto puede demorar unos segundos.</span>
+    </div>
+  </div>
+}
+
+@if (errorMsg()) {
+  <div class="error-toast-overlay" (click)="errorMsg.set(null)" role="dialog" aria-modal="true">
+    <div class="error-toast-card" (click)="$event.stopPropagation()">
+      <span class="material-icons error-toast-icon" aria-hidden="true">error_outline</span>
+      <div class="error-toast-content">
+        <strong>Error en la solicitud</strong>
+        <p>{{ errorMsg() }}</p>
+      </div>
+      <button class="error-toast-close" (click)="errorMsg.set(null)" aria-label="Cerrar mensaje de error">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+  </div>
+}
