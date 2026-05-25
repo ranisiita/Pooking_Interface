@@ -4,9 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
 import { FooterComponent } from '../../../components/navbar/footer.component';
-import { AtraccionesService } from '../services/atracciones.service';
+import {
+  ACTIVE_ATTRACTION_PROVIDER,
+  ALL_ATTRACTION_PROVIDERS,
+  AtraccionesService,
+} from '../services/atracciones.service';
 import {
   AtraccionDetalle,
+  AttractionProvider,
   ClienteInvitado,
   Horario,
   LineaReserva,
@@ -40,6 +45,9 @@ export class AtraccionesReservaComponent implements OnInit {
   estado = signal<EstadoCarga>('loading');
   errorMsg = signal<string | null>(null);
   detalle = signal<AtraccionDetalle | null>(null);
+
+  /** Proveedor de origen de la atracción (viaja por queryParam). */
+  provider: AttractionProvider = ACTIVE_ATTRACTION_PROVIDER;
 
   // ── Horarios ─────────────────────────────────────────────
   horariosLoading = signal(false);
@@ -99,13 +107,17 @@ export class AtraccionesReservaComponent implements OnInit {
       this.estado.set('not_found');
       return;
     }
+    const provQp = this.route.snapshot.queryParamMap.get('provider');
+    if (provQp && (ALL_ATTRACTION_PROVIDERS as string[]).includes(provQp)) {
+      this.provider = provQp as AttractionProvider;
+    }
     this.cargarDetalle(id);
   }
 
   // ── Carga inicial ────────────────────────────────────────
   cargarDetalle(id: string): void {
     this.estado.set('loading');
-    this.svc.getAtraccionDetalle(id).subscribe({
+    this.svc.getAtraccionDetalle(id, this.provider).subscribe({
       next: (resp) => {
         this.detalle.set(resp.data);
         this.estado.set('success');
@@ -146,7 +158,7 @@ export class AtraccionesReservaComponent implements OnInit {
     if (!d || !this.fechaVisita) return;
     this.horariosLoading.set(true);
     this.horariosError.set(null);
-    this.svc.getHorarios(d.id, this.fechaVisita).subscribe({
+    this.svc.getHorarios(d.id, this.fechaVisita, this.provider).subscribe({
       next: (resp) => {
         this.horarios.set(resp.data);
         this.horariosLoading.set(false);
@@ -170,7 +182,7 @@ export class AtraccionesReservaComponent implements OnInit {
     if (!d) return;
     this.ticketsLoading.set(true);
     this.ticketsError.set(null);
-    this.svc.getHorarioTickets(d.id, horGuid).subscribe({
+    this.svc.getHorarioTickets(d.id, horGuid, this.provider).subscribe({
       next: (resp) => {
         this.ticketsHorario.set(resp.data.items);
         // Reset cantidades a 0 para cada ticket nuevo.
@@ -297,11 +309,11 @@ export class AtraccionesReservaComponent implements OnInit {
       },
     };
 
-    // POST real a /{provider}/api/v2/reservas
+    // POST real a /{provider}/api/v2/reservas (provider de origen de la atracción).
     this.payloadListo.set(payload);
     this.enviando.set(true);
     this.errorReserva.set(null);
-    this.svc.crearReserva(payload).subscribe({
+    this.svc.crearReserva(payload, this.provider).subscribe({
       next: (resp) => {
         this.reservaCreada.set(resp.data);
         this.enviando.set(false);

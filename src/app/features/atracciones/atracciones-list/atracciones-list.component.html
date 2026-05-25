@@ -139,6 +139,30 @@
       <span>Afina tu experiencia</span>
     </div>
 
+    <!-- Selector de proveedor (bus / API Gateway) -->
+    <section class="filter-section filter-group provider-section">
+      <h3 class="section-title">
+        <span class="material-icons sec-ico">cloud</span> Proveedor
+      </h3>
+      <div class="provider-select-wrap">
+        <select
+          class="provider-select"
+          [ngModel]="proveedor()"
+          (ngModelChange)="cambiarProveedor($event)"
+          aria-label="Proveedor del microservicio de Atracciones"
+        >
+          <option value="todos">Todos</option>
+          @for (p of allProviders; track p) {
+            <option [value]="p">{{ providerLabel(p) }}</option>
+          }
+        </select>
+        <span class="material-icons">expand_more</span>
+      </div>
+      <p class="provider-hint">
+        Selecciona un proveedor o "Todos" para combinar resultados del bus.
+      </p>
+    </section>
+
     @if (filtrosLoading()) {
       <div class="filter-skeleton">
         <div class="filter-section skeleton-card"></div>
@@ -324,6 +348,17 @@
 
   <!-- ── LISTADO DE ATRACCIONES ── -->
   <main class="results-area" aria-label="Resultados de atracciones">
+
+    <!-- Banner: algunos proveedores no respondieron (modo 'todos') -->
+    @if (proveedor() === 'todos' && failedProviders().length && atracciones().length > 0) {
+      <div class="provider-warning" role="status">
+        <span class="material-icons">cloud_off</span>
+        <span>
+          Algunos proveedores no respondieron: <strong>{{ failedProvidersLabel() }}</strong>.
+          Mostrando los resultados disponibles.
+        </span>
+      </div>
+    }
 
     @if (loading()) {
       <div class="state-block">

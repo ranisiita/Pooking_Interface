@@ -80,7 +80,7 @@ export class SearchComponent implements OnInit {
 
   localizacionesCoches: Localizacion[] = [];
   categoriasCoches: Categoria[] = [];
-  atracciones = { destino: '', fecha: '' };
+  atracciones = { destino: '', fecha: '', proveedor: 'todos' };
 
   ngOnInit(): void {
     // Calcular fecha de hoy y de mañana para el alojamiento por defecto
@@ -410,10 +410,12 @@ export class SearchComponent implements OnInit {
   }
 
   buscarAtracciones(): void {
-    const { destino, fecha } = this.atracciones;
-    const queryParams: { ciudad?: string; fecha?: string } = {};
+    const { destino, fecha, proveedor } = this.atracciones;
+    const queryParams: { ciudad?: string; fecha?: string; proveedor?: string } = {};
     if (destino.trim()) queryParams.ciudad = destino.trim();
     if (fecha) queryParams.fecha = fecha;
+    // Solo se envía si NO es 'todos' (default — equivale a omitir el filtro).
+    if (proveedor && proveedor !== 'todos') queryParams.proveedor = proveedor;
     this.router.navigate(['/atracciones'], { queryParams });
   }
 

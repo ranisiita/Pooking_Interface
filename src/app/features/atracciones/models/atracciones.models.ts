@@ -4,8 +4,13 @@
  *   - GET /api/v2/atracciones
  *   - GET /api/v2/atracciones/filtros
  *
- * No se agregan campos fuera del contrato.
+ * No se agregan campos fuera del contrato. Las anotaciones cliente
+ * (provider, failedProviders) están marcadas como opcionales y derivadas.
  */
+
+/** Catálogo de integrantes del bus que sirven el microservicio. */
+export type AttractionProvider = 'jhonatan' | 'luis' | 'francisco' | 'angel';
+export type AttractionProviderSelector = AttractionProvider | 'todos';
 
 // ── Item de listado / detalle compartidos ─────────────────────────
 export interface Disponibilidad {
@@ -39,6 +44,8 @@ export interface Atraccion {
   idiomas_disponibles: string[];
   disponibilidad: Disponibilidad;
   _links: AtraccionLinks;
+  /** Anotación cliente: integrante del bus que sirvió esta atracción. */
+  provider?: AttractionProvider;
 }
 
 // ── Metadatos del listado ─────────────────────────────────────────
@@ -72,6 +79,8 @@ export interface AtraccionesListResponse {
   sorters: Sorter[];
   defaultSorter: Sorter;
   _links: AtraccionesListLinks;
+  /** Anotación cliente: proveedores que no respondieron en modo 'todos'. */
+  failedProviders?: AttractionProvider[];
 }
 
 // ── Filtros disponibles ───────────────────────────────────────────
@@ -100,6 +109,8 @@ export interface FiltrosResponse {
   status: number;
   message: string;
   data: FiltrosData;
+  /** Anotación cliente: proveedores que no respondieron en modo 'todos'. */
+  failedProviders?: AttractionProvider[];
 }
 
 // ── Detalle (GET /api/v2/atracciones/{guid}) ──────────────────────
@@ -119,6 +130,8 @@ export interface AtraccionDetalle extends Atraccion {
   incluye_transporte: boolean;
   incluye_acompaniante: boolean;
   tickets: Ticket[];
+  /** Anotación cliente — heredada de `Atraccion.provider`. */
+  provider?: AttractionProvider;
 }
 
 export interface AtraccionDetalleResponse {

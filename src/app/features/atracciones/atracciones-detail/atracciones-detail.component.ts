@@ -3,8 +3,16 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
 import { FooterComponent } from '../../../components/navbar/footer.component';
-import { AtraccionesService } from '../services/atracciones.service';
-import { AtraccionDetalle, Ticket } from '../models/atracciones.models';
+import {
+  ACTIVE_ATTRACTION_PROVIDER,
+  ALL_ATTRACTION_PROVIDERS,
+  AtraccionesService,
+} from '../services/atracciones.service';
+import {
+  AtraccionDetalle,
+  AttractionProvider,
+  Ticket,
+} from '../models/atracciones.models';
 
 type EstadoCarga = 'loading' | 'success' | 'not_found' | 'error';
 
@@ -42,6 +50,9 @@ export class AtraccionesDetailComponent implements OnInit {
   errorMsg = signal<string | null>(null);
   detalle = signal<AtraccionDetalle | null>(null);
 
+  /** Proveedor de origen de esta atracción (viaja por queryParam). */
+  provider: AttractionProvider = ACTIVE_ATTRACTION_PROVIDER;
+
   imagenActiva = signal<string | null>(null);
 
   readonly galeria = computed<string[]>(() => {
@@ -60,6 +71,10 @@ export class AtraccionesDetailComponent implements OnInit {
       this.estado.set('not_found');
       return;
     }
+    const provQp = this.route.snapshot.queryParamMap.get('provider');
+    if (provQp && (ALL_ATTRACTION_PROVIDERS as string[]).includes(provQp)) {
+      this.provider = provQp as AttractionProvider;
+    }
     this.cargar(id);
   }
 
@@ -67,7 +82,7 @@ export class AtraccionesDetailComponent implements OnInit {
     this.estado.set('loading');
     this.errorMsg.set(null);
     this.detalle.set(null);
-    this.svc.getAtraccionDetalle(id).subscribe({
+    this.svc.getAtraccionDetalle(id, this.provider).subscribe({
       next: (resp) => {
         this.detalle.set(resp.data);
         this.imagenActiva.set(resp.data.imagen_principal);
@@ -94,13 +109,16 @@ export class AtraccionesDetailComponent implements OnInit {
   }
 
   /**
-   * Por ahora navega a una ruta placeholder. La pantalla de reserva
-   * (POST /api/v2/reservas) se implementará en una fase posterior.
-   * TODO(reserva): conectar con el flujo real cuando esté disponible.
+   * Navega a la pantalla de reserva conservando el proveedor de la atracción
+   * para que las llamadas (horarios, tickets, crearReserva) usen el mismo
+   * microservicio.
    */
   reservar(): void {
     const id = this.route.snapshot.paramMap.get('id');
-    if (id) this.router.navigate(['/atracciones', id, 'reservar']);
+    if (!id) return;
+    this.router.navigate(['/atracciones', id, 'reservar'], {
+      queryParams: { provider: this.provider },
+    });
   }
 
   seleccionarImagen(src: string): void {

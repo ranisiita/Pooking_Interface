@@ -4,11 +4,17 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
 import { FooterComponent } from '../../../components/navbar/footer.component';
-import { AtraccionesService } from '../services/atracciones.service';
+import {
+  ALL_ATTRACTION_PROVIDERS,
+  ATTRACTION_PROVIDER_LABELS,
+  AtraccionesService,
+} from '../services/atracciones.service';
 import {
   Atraccion,
   AtraccionesListResponse,
   AtraccionesQuery,
+  AttractionProvider,
+  AttractionProviderSelector,
   FilterStats,
   FilterOption,
   FiltrosData,
@@ -48,6 +54,13 @@ export class AtraccionesListComponent implements OnInit {
   filtros = signal<FiltrosData | null>(null);
   filtrosLoading = signal(true);
 
+  // ── Proveedor seleccionado + fallos parciales ───────────
+  readonly allProviders = ALL_ATTRACTION_PROVIDERS;
+  readonly providerLabels = ATTRACTION_PROVIDER_LABELS;
+  proveedor = signal<AttractionProviderSelector>('todos');
+  failedProviders = signal<AttractionProvider[]>([]);
+  filtrosFailedProviders = signal<AttractionProvider[]>([]);
+
   // Derivados
   readonly atracciones = computed<Atraccion[]>(() => this.response()?.data ?? []);
   readonly pagination = computed<Pagination | null>(() => this.response()?.pagination ?? null);
@@ -76,11 +89,13 @@ export class AtraccionesListComponent implements OnInit {
   readonly limit = 4;
 
   ngOnInit(): void {
-    this.cargarFiltros();
-
-    // Lectura inicial de queryParams: solo siembra el formulario del hero.
-    // Los filtros laterales tagname-based los gestiona el sidebar.
     const params = this.route.snapshot.queryParamMap;
+    // Proveedor — desde el queryParam, o 'todos' por defecto.
+    const provQp = params.get('proveedor');
+    if (provQp && this.esSelectorValido(provQp)) {
+      this.proveedor.set(provQp as AttractionProviderSelector);
+    }
+    // Hero — solo siembra el formulario.
     this.busqueda = {
       ciudad: params.get('ciudad') ?? '',
       fecha: params.get('fecha') ?? '',
@@ -88,19 +103,26 @@ export class AtraccionesListComponent implements OnInit {
     };
     if (this.busqueda.tipo) this.filtroTipo.set(this.busqueda.tipo);
 
+    this.cargarFiltros();
     this.aplicarFiltros();
+  }
+
+  private esSelectorValido(v: string): boolean {
+    return v === 'todos' || (ALL_ATTRACTION_PROVIDERS as string[]).includes(v);
   }
 
   // ── Carga de opciones de filtro (GET /atracciones/filtros) ──
   cargarFiltros(): void {
     this.filtrosLoading.set(true);
-    this.svc.getFiltros().subscribe({
+    this.svc.getFiltros(this.proveedor()).subscribe({
       next: (resp) => {
         this.filtros.set(resp.data);
+        this.filtrosFailedProviders.set(resp.failedProviders ?? []);
         this.filtrosLoading.set(false);
       },
       error: () => {
         this.filtros.set(null);
+        this.filtrosFailedProviders.set([]);
         this.filtrosLoading.set(false);
       },
     });
@@ -111,21 +133,64 @@ export class AtraccionesListComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     const query = this.armarQuery();
-    this.svc.getAtracciones(query).subscribe({
+    this.svc.getAtracciones(query, this.proveedor()).subscribe({
       next: (resp) => {
         this.response.set(resp);
-        // Si la API devuelve un defaultSorter distinto y aún no hemos elegido
-        // orden, lo respetamos. Útil cuando se conecte el backend real.
+        this.failedProviders.set(resp.failedProviders ?? []);
         if (!this.ordenarPor() && resp.defaultSorter) {
           this.ordenarPor.set(resp.defaultSorter.value);
         }
         this.loading.set(false);
+        // Caso extremo: en modo individual, si el proveedor no respondió,
+        // marcamos como caído para mostrar el banner correspondiente.
       },
-      error: () => {
-        this.error.set('No pudimos cargar las atracciones. Inténtalo de nuevo.');
+      error: (err) => {
+        // En modo individual no hay fan-out: la falla es total. Reportamos
+        // el proveedor caído y un mensaje claro.
+        const sel = this.proveedor();
+        if (sel !== 'todos') {
+          this.failedProviders.set([sel]);
+          this.error.set(this.mensajeProveedorCaido(sel));
+        } else {
+          this.error.set('No pudimos cargar las atracciones. Inténtalo de nuevo.');
+        }
         this.loading.set(false);
+        console.warn('[Atracciones] Error al cargar listado:', err?.status ?? err);
       },
     });
+  }
+
+  /** Cambia el proveedor desde el sidebar y recarga listado + filtros. */
+  cambiarProveedor(sel: AttractionProviderSelector): void {
+    if (sel === this.proveedor()) return;
+    this.proveedor.set(sel);
+    this.page.set(1);
+    // Persistimos en queryParams para que detalle/reserva puedan heredar.
+    const qp: Record<string, string> = {};
+    if (sel !== 'todos') qp['proveedor'] = sel;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: qp,
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    this.cargarFiltros();
+    this.aplicarFiltros();
+  }
+
+  /** Etiqueta humana para un proveedor (UI). */
+  providerLabel(p: AttractionProvider): string {
+    return ATTRACTION_PROVIDER_LABELS[p] ?? p;
+  }
+
+  /** Concatena nombres de proveedores caídos para el banner. */
+  failedProvidersLabel(): string {
+    return this.failedProviders().map((p) => this.providerLabel(p)).join(', ');
+  }
+
+  private mensajeProveedorCaido(p: AttractionProvider): string {
+    const label = this.providerLabel(p);
+    return `El proveedor ${label} no está disponible en este momento. Prueba con otro proveedor o vuelve más tarde.`;
   }
 
   /**
@@ -315,14 +380,17 @@ export class AtraccionesListComponent implements OnInit {
   }
 
   verDetalle(a: Atraccion): void {
-    // TODO: la pantalla de detalle (atracciones-detail) aún no existe.
-    // Cuando se conecte la API real puede usarse `a._links.self` o el `id`.
-    this.router.navigate(['/atracciones', a.id]);
+    // Conserva el proveedor de origen de esta atracción para que detalle
+    // y reserva consuman el mismo microservicio.
+    this.router.navigate(['/atracciones', a.id], {
+      queryParams: a.provider ? { provider: a.provider } : {},
+    });
   }
 
   seleccionar(a: Atraccion): void {
-    // TODO: el flujo de reserva (POST /api/v2/reservas) se implementará después.
-    this.router.navigate(['/atracciones', a.id]);
+    this.router.navigate(['/atracciones', a.id], {
+      queryParams: a.provider ? { provider: a.provider } : {},
+    });
   }
 
   // ── Utilidades internas ────────────────────────────────
