@@ -38,8 +38,8 @@
         </div>
         
         <div class="profile-actions">
-          <button class="btn btn-outline">Editar Perfil</button>
-          <button class="btn btn-primary">Configuración</button>
+          <button class="btn btn-outline" style="cursor: not-allowed; opacity: 0.7;">Editar Perfil</button>
+          <button class="btn btn-primary" style="cursor: not-allowed; opacity: 0.7;">Configuración</button>
         </div>
       </div>
     </div>
@@ -50,14 +50,14 @@
       <!-- Stats Sidebar -->
       <div class="sidebar">
         <div class="stats-card">
-          <h3>Estadísticas de Viaje</h3>
+          <h3>Estadísticas de Viajes</h3>
           <div class="stat-item">
             <div class="stat-icon-wrapper trips">
-              <span class="material-icons">flight_takeoff</span>
+              <span class="material-icons">hotel</span>
             </div>
             <div class="stat-info">
               <span class="stat-value">{{ user.stats.trips }}</span>
-              <span class="stat-label">Viajes</span>
+              <span class="stat-label">Alojamientos</span>
             </div>
           </div>
           <div class="stat-item">
@@ -65,7 +65,7 @@
               <span class="material-icons">rate_review</span>
             </div>
             <div class="stat-info">
-              <span class="stat-value">{{ user.stats.reviews }}</span>
+              <span class="stat-value">0</span>
               <span class="stat-label">Reseñas</span>
             </div>
           </div>
@@ -74,37 +74,131 @@
               <span class="material-icons">loyalty</span>
             </div>
             <div class="stat-info">
-              <span class="stat-value">{{ user.stats.points }}</span>
+              <span class="stat-value">150</span>
               <span class="stat-label">Puntos Pooking</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Main Content: Trips -->
+      <!-- Main Content: Lodging, Attraction and Car Bookings with Tabs/Viñetas -->
       <div class="main-panel">
         <div class="section-header">
-          <h2>Tus viajes ya realizados</h2>
-          <a href="#" class="view-all">Ver todos</a>
+          <h2>Tus Reservas Activas</h2>
+          <span class="reservations-badge">
+            {{ activeTab === 'alojamiento' ? reservations.length : (activeTab === 'atracciones' ? attractionReservations.length : carReservations.length) }} activa(s)
+          </span>
+        </div>
+
+        <!-- Viñetas / Pestañas de Navegación -->
+        <div class="profile-tabs">
+          <button [class.active]="activeTab === 'alojamiento'" (click)="setTab('alojamiento')">
+            <span class="material-icons">hotel</span> Alojamientos
+          </button>
+          <button [class.active]="activeTab === 'atracciones'" (click)="setTab('atracciones')">
+            <span class="material-icons">local_activity</span> Atracciones
+          </button>
+          <button [class.active]="activeTab === 'automoviles'" (click)="setTab('automoviles')">
+            <span class="material-icons">directions_car</span> Automóviles
+          </button>
         </div>
         
-        <div class="trips-grid">
-          <div class="trip-card" *ngFor="let trip of upcomingTrips">
-            <div class="trip-image" [ngStyle]="{'background-image': 'url(' + trip.imageUrl + ')'}"></div>
+        <!-- Loading Reservations -->
+        <div *ngIf="isLoadingReservations" style="text-align: center; padding: 40px; background: #fff; border-radius: 16px; border: 1px solid rgba(198,177,125,0.25);">
+          <div class="spinner-inline" style="border-top-color: var(--color-titulo); width: 32px; height: 32px; margin: 0 auto 12px; display: block;"></div>
+          <p style="color: var(--color-subtitulo); font-size: 14px;">Consultando tus reservas con los proveedores...</p>
+        </div>
+
+        <!-- Bookings Grid: ALOJAMIENTOS -->
+        <div *ngIf="!isLoadingReservations && activeTab === 'alojamiento'" class="trips-grid">
+          <div class="trip-card" *ngFor="let res of reservations">
+            <div class="trip-image" [ngStyle]="{'background-image': 'url(' + res.lodgingImage + ')'}">
+              <span class="trip-status" [ngClass]="res.estadoReserva">
+                {{ res.estadoReserva === 'PEN' ? 'Pendiente' : (res.estadoReserva === 'CON' ? 'Confirmada' : 'Cancelada') }}
+              </span>
+            </div>
             <div class="trip-details">
-              <h3 class="trip-destination">{{ trip.destination }}</h3>
-              <p class="trip-date"><span class="material-icons">event</span> {{ trip.date }}</p>
-              <p class="trip-hotel"><span class="material-icons">hotel</span> {{ trip.hotel }}</p>
+              <span class="booking-provider-tag">{{ res.provider | uppercase }}</span>
+              <h3 class="trip-destination">{{ res.lodgingName }}</h3>
+              <p class="trip-date"><span class="material-icons">event</span> {{ fmtDateShort(res.fechaInicio) }} → {{ fmtDateShort(res.fechaFin) }}</p>
+              <p class="trip-code-label"><span class="material-icons">confirmation_number</span> <strong>Código:</strong> {{ res.codigoReserva }}</p>
+              <p class="trip-price-label"><span class="material-icons">payments</span> <strong>Total:</strong> ${{ res.totalReserva | number:'1.2-2' }} USD</p>
+              
+              <button class="btn-manage" (click)="openReservaDetails(res)">
+                Ver detalles del contrato →
+              </button>
             </div>
           </div>
           
           <!-- Empty State / Add New -->
-          <div class="trip-card add-new-trip" routerLink="/">
+          <div class="trip-card add-new-trip" [routerLink]="['/']">
             <div class="add-icon-wrapper">
               <span class="material-icons">add</span>
             </div>
-            <h3>Planear un nuevo viaje</h3>
-            <p>Descubre tu próximo destino</p>
+            <h3>Reservar otro hotel</h3>
+            <p>Explora hospedajes en Pooking</p>
+          </div>
+        </div>
+
+        <!-- Bookings Grid: ATRACCIONES -->
+        <div *ngIf="!isLoadingReservations && activeTab === 'atracciones'" class="trips-grid">
+          <div class="trip-card" *ngFor="let res of attractionReservations">
+            <div class="trip-image" [ngStyle]="{'background-image': 'url(' + res.lodgingImage + ')'}">
+              <span class="trip-status" [ngClass]="res.estadoReserva">
+                {{ res.estadoReserva === 'PEN' ? 'Pendiente' : (res.estadoReserva === 'CON' ? 'Confirmada' : 'Cancelada') }}
+              </span>
+            </div>
+            <div class="trip-details">
+              <span class="booking-provider-tag">{{ res.provider | uppercase }}</span>
+              <h3 class="trip-destination">{{ res.lodgingName }}</h3>
+              <p class="trip-date"><span class="material-icons">event</span> {{ fmtDateShort(res.fechaInicio) }}</p>
+              <p class="trip-code-label"><span class="material-icons">confirmation_number</span> <strong>Código:</strong> {{ res.codigoReserva }}</p>
+              <p class="trip-price-label"><span class="material-icons">payments</span> <strong>Total:</strong> ${{ res.totalReserva | number:'1.2-2' }} USD</p>
+              
+              <button class="btn-manage" (click)="openReservaDetails(res)">
+                Ver detalles del contrato →
+              </button>
+            </div>
+          </div>
+          
+          <!-- Empty State / Add New -->
+          <div class="trip-card add-new-trip" [routerLink]="['/']">
+            <div class="add-icon-wrapper">
+              <span class="material-icons">add</span>
+            </div>
+            <h3>Reservar Atracciones</h3>
+            <p>Explora actividades en Pooking</p>
+          </div>
+        </div>
+
+        <!-- Bookings Grid: AUTOMÓVILES -->
+        <div *ngIf="!isLoadingReservations && activeTab === 'automoviles'" class="trips-grid">
+          <div class="trip-card" *ngFor="let res of carReservations">
+            <div class="trip-image" [ngStyle]="{'background-image': 'url(' + res.lodgingImage + ')'}">
+              <span class="trip-status" [ngClass]="res.estadoReserva">
+                {{ res.estadoReserva === 'PEN' ? 'Pendiente' : (res.estadoReserva === 'CON' ? 'Confirmada' : 'Cancelada') }}
+              </span>
+            </div>
+            <div class="trip-details">
+              <span class="booking-provider-tag">{{ res.provider | uppercase }}</span>
+              <h3 class="trip-destination">{{ res.lodgingName }}</h3>
+              <p class="trip-date"><span class="material-icons">event</span> {{ fmtDateShort(res.fechaInicio) }} → {{ fmtDateShort(res.fechaFin) }}</p>
+              <p class="trip-code-label"><span class="material-icons">confirmation_number</span> <strong>Código:</strong> {{ res.codigoReserva }}</p>
+              <p class="trip-price-label"><span class="material-icons">payments</span> <strong>Total:</strong> ${{ res.totalReserva | number:'1.2-2' }} USD</p>
+              
+              <button class="btn-manage" (click)="openReservaDetails(res)">
+                Ver detalles del contrato →
+              </button>
+            </div>
+          </div>
+          
+          <!-- Empty State / Add New -->
+          <div class="trip-card add-new-trip" [routerLink]="['/']">
+            <div class="add-icon-wrapper">
+              <span class="material-icons">add</span>
+            </div>
+            <h3>Alquilar Automóvil</h3>
+            <p>Explora vehículos en Pooking</p>
           </div>
         </div>
       </div>
@@ -112,3 +206,191 @@
     </div>
   </ng-container>
 </div>
+
+<!-- ===================== PREMIUM VISOR MODAL (CONTRATO COMPLETO) ===================== -->
+<div class="modal-overlay" *ngIf="selectedReserva" (click)="closeReservaDetails()" role="dialog" aria-modal="true" aria-labelledby="modal-reserva-title">
+  <div class="modal-card-contract" (click)="$event.stopPropagation()">
+    
+    <!-- Header -->
+    <div class="contract-header">
+      <div>
+        <span class="contract-badge-provider">{{ selectedReserva.provider | uppercase }} API v1</span>
+        <h2 id="modal-reserva-title" class="contract-title">Resumen de Contrato de Reserva</h2>
+      </div>
+      <button class="contract-close-btn" (click)="closeReservaDetails()" aria-label="Cerrar detalles">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="contract-body">
+      
+      <!-- Visual Card -->
+      <div class="contract-hotel-banner" [ngStyle]="{'background-image': 'linear-gradient(to right, rgba(15,12,10,0.85), rgba(15,12,10,0.3)), url(' + selectedReserva.lodgingImage + ')'}">
+        <div class="chb-info">
+          <h3>{{ selectedReserva.lodgingName }}</h3>
+          <p><span class="material-icons">place</span> Ecuador</p>
+        </div>
+        <div class="chb-status-badge" [ngClass]="selectedReserva.estadoReserva">
+          {{ selectedReserva.estadoReserva === 'PEN' ? 'Pendiente' : (selectedReserva.estadoReserva === 'CON' ? 'Confirmada' : 'Cancelada') }}
+        </div>
+      </div>
+
+      <div class="contract-grid">
+        
+        <!-- Left Section: Meta details -->
+        <div class="contract-left">
+          
+          <!-- Identificadores -->
+          <div class="contract-section">
+            <h4><span class="material-icons">info</span> Identificación de Reserva</h4>
+            <div class="c-fields">
+              <div class="c-field">
+                <span class="c-label">CÓDIGO DE RESERVA</span>
+                <span class="c-val highlight">{{ selectedReserva.codigoReserva }}</span>
+              </div>
+              <div class="c-field">
+                <span class="c-label">NOMBRE DE LA SUCURSAL</span>
+                <span class="c-val font-semibold">{{ selectedReserva.lodgingName }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Datos de Estancia & Cliente -->
+          <div class="contract-section">
+            <h4><span class="material-icons">person</span> Datos del Huésped & Estancia</h4>
+            <div class="c-fields">
+              <div class="c-field">
+                <span class="c-label">HUESPED</span>
+                <span class="c-val font-semibold">{{ selectedReserva.cliente?.nombres || 'Invitado' }}</span>
+              </div>
+              <div class="c-field" *ngIf="selectedReserva.cliente?.correo">
+                <span class="c-label">CORREO</span>
+                <span class="c-val">{{ selectedReserva.cliente?.correo }}</span>
+              </div>
+              <div class="c-field" *ngIf="selectedReserva.cliente?.telefono">
+                <span class="c-label">TELÉFONO</span>
+                <span class="c-val">{{ selectedReserva.cliente?.telefono }}</span>
+              </div>
+              <div class="c-field" *ngIf="selectedReserva.cliente?.direccion">
+                <span class="c-label">DIRECCIÓN</span>
+                <span class="c-val">{{ selectedReserva.cliente?.direccion }}</span>
+              </div>
+              <div class="c-field">
+                <span class="c-label">CHECK-IN</span>
+                <span class="c-val">{{ fmtDateTime(selectedReserva.fechaInicio) }}</span>
+              </div>
+              <div class="c-field">
+                <span class="c-label">CHECK-OUT</span>
+                <span class="c-val">{{ fmtDateTime(selectedReserva.fechaFin) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Observaciones y Canal -->
+          <div class="contract-section">
+            <h4><span class="material-icons">notes</span> Información de Origen</h4>
+            <div class="c-fields">
+              <div class="c-field">
+                <span class="c-label">FECHA DE DESTINO</span>
+                <span class="c-val">{{ fmtDateTime(selectedReserva.fechaInicio) }}</span>
+              </div>
+              <div class="c-field">
+                <span class="c-label">OBSERVACIONES</span>
+                <span class="c-val italic" style="white-space: pre-wrap;">"{{ selectedReserva.observaciones || 'Sin observaciones adicionales' }}"</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Section: Money and Rooms Breakdown -->
+        <div class="contract-right">
+          
+          <!-- Desglose de Dinero -->
+          <div class="contract-section money-summary-card">
+            <h4><span class="material-icons">receipt_long</span> Desglose del Contrato Financiero</h4>
+            
+            <div class="money-rows">
+              <!-- Item de costo por cada tipo de habitación que se reserva -->
+              <div class="money-row" *ngFor="let rm of selectedReserva.habitaciones">
+                <span>COSTO {{ rm.tipoHabitacion || 'HABITACIÓN' | uppercase }}</span>
+                <strong>${{ rm.totalLinea | number:'1.2-2' }} USD</strong>
+              </div>
+              <hr class="money-divider" *ngIf="selectedReserva.habitaciones?.length > 0">
+
+              <div class="money-row">
+                <span>SUBTOTAL RESERVA</span>
+                <strong>${{ selectedReserva.subtotalReserva | number:'1.2-2' }} USD</strong>
+              </div>
+              <div class="money-row">
+                <span>VALOR IVA (15%)</span>
+                <strong>${{ selectedReserva.valorIva | number:'1.2-2' }} USD</strong>
+              </div>
+              <hr class="money-divider">
+              <div class="money-row grand-total">
+                <span>TOTAL RESERVA</span>
+                <strong>${{ selectedReserva.totalReserva | number:'1.2-2' }} USD</strong>
+              </div>
+              <div class="money-row pending-balance">
+                <span>SALDO PENDIENTE</span>
+                <strong>${{ selectedReserva.saldoPendiente | number:'1.2-2' }} USD</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Habitaciones detalladas -->
+          <div class="contract-section">
+            <h4><span class="material-icons">meeting_room</span> Habitaciones Reservadas</h4>
+            
+            <div class="contract-rooms-list">
+              <div class="c-room-item" *ngFor="let rm of selectedReserva.habitaciones; let idx = index">
+                <div class="cri-header">
+                  <span class="cri-title">{{ rm.tipoHabitacion || 'Habitación' }} #{{ idx + 1 }}</span>
+                  <span class="cri-status" [ngClass]="rm.estadoDetalle || 'PEN'">{{ rm.estadoDetalle || 'PEN' }}</span>
+                </div>
+                <div class="cri-body">
+                  <div class="cri-meta-grid">
+                    <div>
+                      <span class="cri-label">ADULTOS</span>
+                      <strong>{{ rm.numAdultos }}</strong>
+                    </div>
+                    <div>
+                      <span class="cri-label">NIÑOS</span>
+                      <strong>{{ rm.numNinos }}</strong>
+                    </div>
+                    <div>
+                      <span class="cri-label">PRECIO/NOCHE</span>
+                      <strong>${{ rm.precioNocheAplicado | number:'1.2-2' }} USD</strong>
+                    </div>
+                  </div>
+                  
+                  <div class="cri-line-details">
+                    <div class="crld-row">
+                      <span>Subtotal línea:</span>
+                      <span>${{ rm.subtotalLinea | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="crld-row">
+                      <span>IVA línea:</span>
+                      <span>${{ rm.valorIvaLinea | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="crld-row crld-total">
+                      <span>Total línea:</span>
+                      <span>${{ rm.totalLinea | number:'1.2-2' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<app-footer></app-footer>

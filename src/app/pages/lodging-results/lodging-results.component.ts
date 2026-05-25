@@ -1,34 +1,11 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NavbarComponent } from '../../components/navbar/navbar.component';
 import { FooterComponent } from '../../components/navbar/footer.component';
 import { DatePickerComponent } from '../../components/date-picker/date-picker.component';
-
-interface Lodging {
-  id: number;
-  nombre: string;
-  tipo: 'Hotel' | 'Hostal' | 'Motel' | 'Apartamento';
-  categoria: number; // Estrellas 1-5
-  calidad: 'Negocios' | 'Familia' | 'Lujo' | 'Económico' | 'Relajación';
-  direccion: string;
-  ciudad: string;
-  descripcion: string;
-  imagen: string;
-  fotosCount: number;
-  precio: number;
-  valoracion: number;
-  ratingTexto: string;
-  reviewsCount: number;
-  habitacionesDisponibles: number;
-  checkIn: string;
-  checkOut: string;
-  servicios: string[]; // 'Wifi', 'Desayuno', 'Piscina', 'Spa', 'Restaurante', 'Gimnasio', 'Estacionamiento'
-  aceptaNinos: boolean;
-  aceptaMascotas: boolean;
-  favorito?: boolean;
-}
+import { Lodging, LodgingService } from '../../services/lodging.service';
 
 @Component({
   selector: 'app-lodging-results',
@@ -40,6 +17,8 @@ interface Lodging {
 export class LodgingResultsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private lodgingService = inject(LodgingService);
+  private cdr = inject(ChangeDetectorRef);
 
   // Criterios de búsqueda activos
   busqueda = {
@@ -65,184 +44,7 @@ export class LodgingResultsComponent implements OnInit {
   };
 
   // Base de datos de alojamientos
-  lodgings: Lodging[] = [
-    {
-      id: 1,
-      nombre: 'Hotel Las Velas Quito',
-      tipo: 'Hotel',
-      categoria: 4,
-      calidad: 'Negocios',
-      direccion: 'Av. Amazonas N34-123, Quito · Pichincha',
-      ciudad: 'Quito',
-      descripcion: 'Hotel céntrico para viajes de negocio y turismo. A pasos del parque La Carolina y los mejores restaurantes de la ciudad.',
-      imagen: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80',
-      fotosCount: 6,
-      precio: 85,
-      valoracion: 4.6,
-      ratingTexto: 'Muy bueno',
-      reviewsCount: 25,
-      habitacionesDisponibles: 12,
-      checkIn: '14:00',
-      checkOut: '12:00',
-      servicios: ['Wifi', 'Desayuno', 'Piscina', 'Restaurante'],
-      aceptaNinos: true,
-      aceptaMascotas: false
-    },
-    {
-      id: 2,
-      nombre: 'Casa del Arco Boutique',
-      tipo: 'Hostal',
-      categoria: 4,
-      calidad: 'Familia',
-      direccion: 'García Moreno 362, Centro Histórico, Quito',
-      ciudad: 'Quito',
-      descripcion: 'Hostal boutique en el corazón del Centro Histórico declarado Patrimonio de la Humanidad. Ambiente colonial único con desayuno incluido.',
-      imagen: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600&q=80',
-      fotosCount: 9,
-      precio: 52,
-      valoracion: 4.8,
-      ratingTexto: 'Excelente',
-      reviewsCount: 41,
-      habitacionesDisponibles: 5,
-      checkIn: '15:00',
-      checkOut: '11:00',
-      servicios: ['Wifi', 'Desayuno'],
-      aceptaNinos: true,
-      aceptaMascotas: true
-    },
-    {
-      id: 3,
-      nombre: 'Oro Verde Luxury Quito',
-      tipo: 'Hotel',
-      categoria: 5,
-      calidad: 'Lujo',
-      direccion: 'Av. 12 de Octubre N24-562, La Mariscal, Quito',
-      ciudad: 'Quito',
-      descripcion: 'Uno de los hoteles más emblemáticos de Quito con piscina exterior, spa de primera clase y restaurante gourmet con vistas panorámicas.',
-      imagen: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=600&q=80',
-      fotosCount: 14,
-      precio: 175,
-      valoracion: 4.9,
-      ratingTexto: 'Excepcional',
-      reviewsCount: 88,
-      habitacionesDisponibles: 3,
-      checkIn: '14:00',
-      checkOut: '12:00',
-      servicios: ['Wifi', 'Piscina', 'Desayuno', 'Spa', 'Restaurante', 'Gimnasio'],
-      aceptaNinos: false,
-      aceptaMascotas: false
-    },
-    {
-      id: 4,
-      nombre: 'Motel La Colina',
-      tipo: 'Motel',
-      categoria: 2,
-      calidad: 'Económico',
-      direccion: 'Panamericana Norte Km 12, Quito',
-      ciudad: 'Quito',
-      descripcion: 'Alojamiento económico con acceso directo a la vía Panamericana. Estacionamiento gratuito y atención 24 horas.',
-      imagen: '', // Sin imagen para activar placeholder
-      fotosCount: 0,
-      precio: 28,
-      valoracion: 3.2,
-      ratingTexto: 'Aceptable',
-      reviewsCount: 7,
-      habitacionesDisponibles: 8,
-      checkIn: '12:00',
-      checkOut: '11:00',
-      servicios: ['Wifi', 'Estacionamiento'],
-      aceptaNinos: false,
-      aceptaMascotas: false
-    },
-    {
-      id: 5,
-      nombre: 'Galapagos Garden Sanctuary',
-      tipo: 'Apartamento',
-      categoria: 5,
-      calidad: 'Lujo',
-      direccion: 'Puerto Ayora, Isla Santa Cruz, Galápagos',
-      ciudad: 'Galapagos',
-      descripcion: 'Bungalow premium inmerso en la biodiversidad de Galápagos. Estilo eco-luxury con alberca natural y avistamiento privado.',
-      imagen: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=600&q=80',
-      fotosCount: 18,
-      precio: 240,
-      valoracion: 5.0,
-      ratingTexto: 'Excepcional',
-      reviewsCount: 15,
-      habitacionesDisponibles: 2,
-      checkIn: '13:00',
-      checkOut: '10:00',
-      servicios: ['Wifi', 'Desayuno', 'Piscina', 'Spa', 'Estacionamiento'],
-      aceptaNinos: true,
-      aceptaMascotas: true
-    },
-    {
-      id: 6,
-      nombre: 'Hotel Colonial San Francisco',
-      tipo: 'Hotel',
-      categoria: 3,
-      calidad: 'Relajación',
-      direccion: 'Calle Sucre N4-56, Centro Histórico, Quito',
-      ciudad: 'Quito',
-      descripcion: 'Estructura colonial rehabilitada con espectaculares patios interiores empedrados. Desayuno tradicional quiteño incluido.',
-      imagen: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&q=80',
-      fotosCount: 8,
-      precio: 45,
-      valoracion: 4.1,
-      ratingTexto: 'Muy bueno',
-      reviewsCount: 19,
-      habitacionesDisponibles: 9,
-      checkIn: '14:00',
-      checkOut: '12:00',
-      servicios: ['Wifi', 'Desayuno', 'Estacionamiento'],
-      aceptaNinos: true,
-      aceptaMascotas: false
-    },
-    {
-      id: 7,
-      nombre: 'Suite Luxury Cuenca Monumental',
-      tipo: 'Apartamento',
-      categoria: 4,
-      calidad: 'Lujo',
-      direccion: 'Calle Larga y Borrero, Cuenca · Azuay',
-      ciudad: 'Cuenca',
-      descripcion: 'Apartamento de gran nivel con vistas inigualables al Río Tomebamba. Totalmente amoblado con acabados de primera y calefacción central.',
-      imagen: 'https://images.unsplash.com/photo-1455587734955-081b22074882?w=600&q=80',
-      fotosCount: 11,
-      precio: 95,
-      valoracion: 4.7,
-      ratingTexto: 'Excelente',
-      reviewsCount: 30,
-      habitacionesDisponibles: 4,
-      checkIn: '15:00',
-      checkOut: '11:00',
-      servicios: ['Wifi', 'Restaurante', 'Gimnasio'],
-      aceptaNinos: true,
-      aceptaMascotas: false
-    },
-    {
-      id: 8,
-      nombre: 'Hostería Relajación Cajas',
-      tipo: 'Hostal',
-      categoria: 3,
-      calidad: 'Relajación',
-      direccion: 'Vía al Cajas Km 22, Cuenca',
-      ciudad: 'Cuenca',
-      descripcion: 'Cabañas acogedoras con chimenea de leña rodeadas de la mística neblina andina, a minutos del Parque Nacional Cajas.',
-      imagen: 'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=600&q=80',
-      fotosCount: 7,
-      precio: 60,
-      valoracion: 4.4,
-      ratingTexto: 'Muy bueno',
-      reviewsCount: 22,
-      habitacionesDisponibles: 6,
-      checkIn: '14:00',
-      checkOut: '13:00',
-      servicios: ['Wifi', 'Desayuno', 'Restaurante', 'Estacionamiento'],
-      aceptaNinos: true,
-      aceptaMascotas: true
-    }
-  ];
+  lodgings: Lodging[] = [];
 
   // Listado final que se muestra al usuario (filtrado y ordenado)
   filteredLodgings: Lodging[] = [];
@@ -312,6 +114,7 @@ export class LodgingResultsComponent implements OnInit {
     this.fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
 
     this.route.queryParams.subscribe(params => {
+      console.log('[DEBUG] Query parameters received from URL:', params);
       this.busqueda.destino = params['destino'] || '';
       this.busqueda.llegada = params['llegada'] || '';
       this.busqueda.salida = params['salida'] || '';
@@ -324,7 +127,35 @@ export class LodgingResultsComponent implements OnInit {
         this.filtroNinos = true;
       }
 
-      this.aplicarFiltros();
+      console.log('[DEBUG] Calling buscarLodgings with criteria:', {
+        destino: this.busqueda.destino,
+        fechaInicio: this.busqueda.llegada,
+        fechaFin: this.busqueda.salida,
+        adultos: this.busqueda.adultos,
+        ninos: this.busqueda.ninos,
+        habitaciones: this.busqueda.habitaciones
+      });
+
+      this.lodgingService.buscarLodgings({
+        destino: this.busqueda.destino,
+        fechaInicio: this.busqueda.llegada,
+        fechaFin: this.busqueda.salida,
+        adultos: this.busqueda.adultos,
+        ninos: this.busqueda.ninos,
+        habitaciones: this.busqueda.habitaciones
+      }).subscribe({
+        next: (lodgings) => {
+          console.log('[DEBUG] buscarLodgings returned raw result count:', lodgings.length, lodgings);
+          this.lodgings = lodgings;
+          this.aplicarFiltros();
+          console.log('[DEBUG] filteredLodgings visible after client-side filters:', this.filteredLodgings.length, this.filteredLodgings);
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('[ERROR] buscarLodgings API request failed:', err);
+          this.cdr.detectChanges();
+        }
+      });
     });
   }
 
@@ -490,18 +321,8 @@ export class LodgingResultsComponent implements OnInit {
     this.currentPage = 1;
     let result = [...this.lodgings];
 
-    // 1. Filtrar por Destino (Ciudad / Dirección)
-    if (this.busqueda.destino.trim()) {
-      const query = this.busqueda.destino.toLowerCase().trim();
-      result = result.filter(h =>
-        h.ciudad.toLowerCase().includes(query) ||
-        h.nombre.toLowerCase().includes(query) ||
-        h.direccion.toLowerCase().includes(query)
-      );
-    }
-
-    // 2. Filtrar por Rango de Precios
-    result = result.filter(h => h.precio >= this.filtroPrecioMin && h.precio <= this.filtroPrecioMax);
+    // 1. Filtrar por Rango de Precios (si el máximo es 300, se asume sin límite superior "+$300")
+    result = result.filter(h => h.precio >= this.filtroPrecioMin && (this.filtroPrecioMax === 300 || h.precio <= this.filtroPrecioMax));
 
     // 3. Filtrar por Estrellas (si hay alguna seleccionada)
     const estrellasSeleccionadas = Object.keys(this.filtroEstrellas)

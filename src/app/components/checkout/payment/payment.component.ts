@@ -25,6 +25,7 @@ export class PaymentComponent implements OnInit {
   @Input() ivaInput = 0;
   @Input() overrideEmail = '';
   @Input() overrideNombre = '';
+  @Input() buttonLabel = 'Pagar de forma segura';
 
   @Output() pagoExitoso = new EventEmitter<void>();
   @Output() onCancel = new EventEmitter<void>();

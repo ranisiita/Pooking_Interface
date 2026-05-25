@@ -59,7 +59,6 @@
   <a href="javascript:void(0)" [class.active]="activeSection() === 'servicios'" (click)="scrollToSection('servicios')">Servicios</a>
   <a href="javascript:void(0)" [class.active]="activeSection() === 'reviews'" (click)="scrollToSection('reviews')">Valoraciones</a>
   <a href="javascript:void(0)" [class.active]="activeSection() === 'ubicacion'" (click)="scrollToSection('ubicacion')">Ubicación</a>
-  <a href="javascript:void(0)" [class.active]="activeSection() === 'politicas'" (click)="scrollToSection('politicas')">Políticas</a>
 </nav>
 
 <!-- ══════════════════════════════════════
@@ -163,49 +162,33 @@
     </section>
 
     <!-- ── SERVICIOS / AMENITIES ── -->
-    <section id="servicios" class="detail-section">
+    <section id="servicios" class="detail-section" *ngIf="(lodging.servicios && lodging.servicios.length > 0) || (lodging.amenities && lodging.amenities.length > 0)">
       <h3>Servicios e instalaciones</h3>
-      <div class="detail-amenities-grid">
-        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Wifi')">
-          <span class="material-icons dam-icon">wifi</span>
-          Wifi gratuito en todo el hotel
+      
+      <div class="services-amenities-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 16px;">
+        
+        <!-- Sección de Servicios -->
+        <div class="services-column" *ngIf="lodging.servicios && lodging.servicios.length > 0">
+          <h4 style="font-family: var(--font-titulo, serif); font-size: 17px; color: var(--titulo); margin-bottom: 12px; border-left: 3px solid var(--color-titulo, #8E5A54); padding-left: 8px;">Servicios</h4>
+          <div class="detail-amenities-vertical-list" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="detail-amenity" *ngFor="let serv of lodging.servicios" style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--sub);">
+              <span class="material-icons dam-icon" style="color: var(--color-titulo, #8E5A54); font-size: 20px;">{{ getServiceIcon(serv) }}</span>
+              {{ serv }}
+            </div>
+          </div>
         </div>
-        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Desayuno')">
-          <span class="material-icons dam-icon">free_breakfast</span>
-          Desayuno buffet
+
+        <!-- Sección de Beneficios Especiales -->
+        <div class="amenities-column" *ngIf="lodging.amenities && lodging.amenities.length > 0">
+          <h4 style="font-family: var(--font-titulo, serif); font-size: 17px; color: var(--titulo); margin-bottom: 12px; border-left: 3px solid var(--color-extra2, #C6B17D); padding-left: 8px;">Beneficios especiales</h4>
+          <div class="detail-amenities-vertical-list" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="detail-amenity" *ngFor="let amen of lodging.amenities" style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--sub);">
+              <span class="material-icons dam-icon" style="color: var(--color-extra2, #C6B17D); font-size: 20px;">{{ getServiceIcon(amen) }}</span>
+              {{ amen }}
+            </div>
+          </div>
         </div>
-        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Piscina')">
-          <span class="material-icons dam-icon">pool</span>
-          Piscina exterior
-        </div>
-        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Restaurante')">
-          <span class="material-icons dam-icon">restaurant</span>
-          Restaurante en el lugar
-        </div>
-        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Estacionamiento')">
-          <span class="material-icons dam-icon">local_parking</span>
-          Estacionamiento privado
-        </div>
-        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Sala de conferencias')">
-          <span class="material-icons dam-icon">meeting_room</span>
-          Sala de conferencias
-        </div>
-        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Spa')">
-          <span class="material-icons dam-icon">spa</span>
-          Spa y bienestar
-        </div>
-        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Gimnasio')">
-          <span class="material-icons dam-icon">fitness_center</span>
-          Gimnasio equipado
-        </div>
-        <div class="detail-amenity" [class.inactive]="!lodging.servicios.includes('Servicio al cliente 24h')">
-          <span class="material-icons dam-icon">support_agent</span>
-          Servicio al cliente 24 h
-        </div>
-        <div class="detail-amenity inactive">
-          <span class="material-icons dam-icon">pets</span>
-          <span style="text-decoration:line-through">No acepta mascotas</span>
-        </div>
+
       </div>
     </section>
 
@@ -218,16 +201,22 @@
           class="detail-room-card"
           *ngFor="let room of lodging.habitaciones"
           [class.selected]="isRoomSelected(room.id)"
-          (click)="selectRoom(room.id)">
+          (click)="openRoomModal(room, $event)"
+          style="cursor: pointer;">
 
           <!-- Imagen -->
-          <div class="drc-img">
+          <div class="drc-img" style="position: relative;">
             <img *ngIf="room.imagen; else roomPh" [src]="room.imagen" [alt]="room.nombre" loading="lazy">
             <ng-template #roomPh>
               <div class="drc-img-ph">
                 <span class="material-icons">hotel</span>
               </div>
             </ng-template>
+            <!-- Indicador de cámara/galería -->
+            <div class="drc-img-overlay" style="position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.65); color: #fff; padding: 4px 8px; border-radius: 100px; display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 500; backdrop-filter: blur(2px);">
+              <span class="material-icons" style="font-size: 12px; color: #E8B94F;">photo_camera</span>
+              {{ room.imagenes ? room.imagenes.length : 1 }}
+            </div>
           </div>
 
           <!-- Info -->
@@ -258,7 +247,7 @@
                   ● {{ room.disponibles === 1 ? 'Solo 1 disponible' : room.disponibles + ' disponibles' }}
                 </span>
               </div>
-              <button class="btn-select-room" [class.selected]="isRoomSelected(room.id)" (click)="selectRoom(room.id); $event.stopPropagation()">
+              <button class="btn-select-room" [class.selected]="isRoomSelected(room.id)" (click)="openRoomModal(room, $event); $event.stopPropagation()">
                 <span class="material-icons" *ngIf="isRoomSelected(room.id)">check_circle</span>
                 {{ isRoomSelected(room.id) ? 'Seleccionada' : 'Seleccionar' }}
               </button>
@@ -275,7 +264,7 @@
       <h3>Ubicación</h3>
       <div class="detail-location-block">
         <div class="detail-map-placeholder">
-          <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=900&q=60" alt="Mapa de referencia">
+          <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1200&q=85" alt="Mapa de referencia">
           <div class="map-pin-overlay">
             <span class="material-icons">location_on</span>
             {{ lodging.nombre }}
@@ -289,29 +278,6 @@
           </div>
         </div>
       </div>
-    </section>
-
-    <!-- ── POLÍTICAS ── -->
-    <section id="politicas" class="detail-section">
-      <h3>Políticas del alojamiento</h3>
-      <ul class="detail-policy-list">
-        <li>
-          <span class="material-icons policy-icon">info</span>
-          <span>Aplican políticas generales de la propiedad.</span>
-        </li>
-        <li>
-          <span class="material-icons policy-icon">security</span>
-          <span>El hotel se reserva el derecho de solicitar un depósito de garantía al momento del check-in.</span>
-        </li>
-        <li>
-          <span class="material-icons policy-icon">cancel</span>
-          <span>Las cancelaciones deben realizarse con al menos 24 horas de anticipación para evitar cargos adicionales.</span>
-        </li>
-        <li>
-          <span class="material-icons policy-icon">family_restroom</span>
-          <span>Los menores de edad deben estar acompañados por un adulto responsable en todo momento.</span>
-        </li>
-      </ul>
     </section>
 
     <!-- ── VALORACIONES ── -->
@@ -387,24 +353,61 @@
       </div>
 
       <!-- Fechas -->
-      <div class="dbc-date-grid">
-        <div class="dbc-date-cell">
-          <div class="dbc-dc-label">Llegada</div>
-          <div class="dbc-dc-val">{{ fechaLlegada }}</div>
+      <div class="dbc-date-grid-inputs">
+        <div class="dbc-date-cell-input">
+          <label class="dbc-date-label">Llegada</label>
+          <app-date-picker
+            [value]="fechaLlegada"
+            [min]="fechaHoy"
+            placeholder="dd/mm/aaaa"
+            theme="light"
+            (valueChange)="onLlegadaChange($event)"
+          ></app-date-picker>
         </div>
-        <div class="dbc-date-cell">
-          <div class="dbc-dc-label">Salida</div>
-          <div class="dbc-dc-val">{{ fechaSalida }}</div>
+        <div class="dbc-date-cell-input">
+          <label class="dbc-date-label">Salida</label>
+          <app-date-picker
+            [value]="fechaSalida"
+            [min]="fechaLlegada || fechaHoy"
+            placeholder="dd/mm/aaaa"
+            theme="light"
+            (valueChange)="onSalidaChange($event)"
+          ></app-date-picker>
         </div>
       </div>
 
       <!-- Huéspedes -->
-      <div class="dbc-guests-row">
-        <div>
-          <div class="dbc-gr-label">Huéspedes</div>
-          <div class="dbc-gr-val">{{ adultos }} adultos · {{ ninos }} niño · {{ habitacionesSel }} hab.</div>
+      <!-- Huéspedes y Asignación -->
+      <div class="dbc-guests-row-premium" style="background: var(--bg); border: 1.5px dashed var(--border-md); border-radius: 9px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="dbc-gr-label" style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--sub); font-family: var(--font-body, 'Poppins', sans-serif);">Búsqueda de Huéspedes</div>
+          <div style="font-size: 12px; font-weight: 600; color: var(--titulo); font-family: var(--font-body, 'Poppins', sans-serif);">{{ adultos }} adultos · {{ ninos }} niños</div>
         </div>
-        <span class="material-icons" style="color:var(--color-subtitulo)">expand_more</span>
+        
+        <div style="border-top: 1px solid var(--border); padding-top: 6px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--extra1); font-weight: 500; font-family: var(--font-body, 'Poppins', sans-serif);">
+            <span>Habitaciones seleccionadas:</span>
+            <strong>{{ totalHabitacionesSeleccionadas }} hab.</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--extra1); font-weight: 500; font-family: var(--font-body, 'Poppins', sans-serif);">
+            <span>Adultos asignados:</span>
+            <span [style.color]="totalAdultosSeleccionados >= adultos ? 'var(--green-tx)' : 'var(--red-tx)'">
+              <strong>{{ totalAdultosSeleccionados }} / {{ adultos }}</strong>
+            </span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--extra1); font-weight: 500; font-family: var(--font-body, 'Poppins', sans-serif);">
+            <span>Niños asignados:</span>
+            <span [style.color]="totalNinosSeleccionados >= ninos ? 'var(--green-tx)' : 'var(--red-tx)'">
+              <strong>{{ totalNinosSeleccionados }} / {{ ninos }}</strong>
+            </span>
+          </div>
+        </div>
+
+        <!-- Indicador de Estado -->
+        <div class="guest-status-pill" [style.background]="puedeReservar ? '#eaf7ee' : '#fdeaea'" [style.color]="puedeReservar ? '#2a7d4f' : '#b52020'" style="padding: 6px; border-radius: 6px; text-align: center; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-body, 'Poppins', sans-serif);">
+          <span class="material-icons" style="font-size: 14px;">{{ puedeReservar ? 'check_circle' : 'info' }}</span>
+          <span>{{ puedeReservar ? 'Asignación completa' : 'Asigna los huéspedes en las habitaciones' }}</span>
+        </div>
       </div>
 
       <!-- Desglose de precio -->
@@ -417,10 +420,6 @@
           <span class="dbr-label">IVA (15%)</span>
           <span class="dbr-val">${{ iva | number:'1.2-2' }}</span>
         </div>
-        <div class="dbr-row">
-          <span class="dbr-label">Descuento aplicado</span>
-          <span class="dbr-val green">−$0.00</span>
-        </div>
         <hr class="dbr-divider">
         <div class="dbr-row dbr-total">
           <span class="dbr-label">Total reserva</span>
@@ -430,9 +429,13 @@
       </div>
 
       <!-- CTA Reservar -->
-      <button class="dbc-btn-reservar" [routerLink]="['/alojamiento', lodging.id, 'reservar']">
-        <span class="material-icons">favorite</span>
-        Reservar ahora
+      <button 
+        class="dbc-btn-reservar" 
+        [disabled]="!puedeReservar"
+        [class.btn-disabled]="!puedeReservar"
+        (click)="procederAReserva()">
+        <span class="material-icons">{{ puedeReservar ? 'favorite' : 'lock' }}</span>
+        {{ puedeReservar ? 'Reservar ahora' : 'Completa la selección' }}
       </button>
       <p class="dbc-disclaimer">No se cobra hasta el momento del check-in</p>
       <div class="dbc-security">
@@ -445,5 +448,120 @@
   </aside>
 
 </div><!-- /page-wrap -->
+
+<!-- ══════════════════════════════════════
+     MODAL FLOTANTE DE GALERÍA DE HABITACIÓN
+     ══════════════════════════════════════ -->
+<div class="room-gallery-modal" *ngIf="selectedRoomForModal() as room" (click)="closeRoomModal()">
+  <div class="rgm-content" (click)="$event.stopPropagation()">
+    
+    <!-- Botón de Cerrar -->
+    <button class="rgm-close-btn" (click)="closeRoomModal()" aria-label="Cerrar galería">
+      <span class="material-icons">close</span>
+    </button>
+
+    <!-- Carousel de imágenes de la habitación -->
+    <div class="rgm-carousel">
+      <div class="rgm-track" [style.transform]="'translateX(-' + activeRoomSlide() * 100 + '%)'">
+        <div class="rgm-slide" *ngFor="let img of room.imagenes; let i = index">
+          <img [src]="img" [alt]="room.nombre + ' - foto ' + (i + 1)">
+        </div>
+      </div>
+
+      <!-- Controles de navegación del Carousel -->
+      <button class="rgm-btn rgm-btn-prev" *ngIf="room.imagenes.length > 1" (click)="prevRoomSlide()" aria-label="Anterior foto">
+        <span class="material-icons">chevron_left</span>
+      </button>
+      <button class="rgm-btn rgm-btn-next" *ngIf="room.imagenes.length > 1" (click)="nextRoomSlide()" aria-label="Siguiente foto">
+        <span class="material-icons">chevron_right</span>
+      </button>
+
+      <!-- Indicador contador -->
+      <div class="rgm-counter" *ngIf="room.imagenes.length > 0">
+        <span class="material-icons" style="font-size:12px;">photo_camera</span>
+        {{ activeRoomSlide() + 1 }} / {{ room.imagenes.length }}
+      </div>
+    </div>
+
+    <!-- Detalles de la Habitación en el Modal -->
+    <div class="rgm-info">
+      <div class="rgm-header-row">
+        <h4 class="rgm-title">{{ room.nombre }}</h4>
+        <div class="rgm-price">${{ room.precio }} <span style="font-size: 11px; font-weight: 500; color: var(--sub);">USD / noche</span></div>
+      </div>
+      
+      <div class="rgm-meta-row">
+        <span class="rgm-meta-pill"><span class="material-icons">bed</span> {{ room.cama }}</span>
+        <span class="rgm-meta-pill"><span class="material-icons">group</span> {{ room.capacidad }}</span>
+        <span class="rgm-meta-pill"><span class="material-icons">square_foot</span> {{ room.metros }} m²</span>
+        <span class="rgm-meta-pill"><span class="material-icons">apartment</span> {{ room.piso }}</span>
+      </div>
+
+      <!-- SELECCIÓN DE CANTIDADES Y GUEST ALLOCATION -->
+      <div class="rgm-selector-panel" style="border-top: 1.5px solid var(--border); border-bottom: 1.5px solid var(--border); padding: 16px 0; display: flex; flex-direction: column; gap: 14px; margin-top: 4px;">
+        
+        <!-- Habitaciones counter -->
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--titulo); font-family: var(--font-body, 'Poppins', sans-serif);">Habitaciones *</div>
+            <div style="font-size: 11px; color: var(--sub);">Disponibles: {{ room.disponibles }}</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="rgm-counter-btn" style="width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border-md); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; color: var(--titulo);" (click)="changeModalHabitaciones(-1)">−</button>
+            <span style="font-size: 16px; font-weight: 700; width: 24px; text-align: center; color: var(--extra1);">{{ modalHabitaciones() }}</span>
+            <button class="rgm-counter-btn" style="width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border-md); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; color: var(--titulo);" (click)="changeModalHabitaciones(1)">+</button>
+          </div>
+        </div>
+
+        <!-- Adultos counter -->
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--titulo); font-family: var(--font-body, 'Poppins', sans-serif);">Adultos *</div>
+            <div style="font-size: 11px; color: var(--sub);">Máx. {{ room.capacidadAdultos * modalHabitaciones() }} en total</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="rgm-counter-btn" style="width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border-md); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; color: var(--titulo);" (click)="changeModalAdultos(-1)">−</button>
+            <span style="font-size: 16px; font-weight: 700; width: 24px; text-align: center; color: var(--extra1);">{{ modalAdultos() }}</span>
+            <button class="rgm-counter-btn" style="width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border-md); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; color: var(--titulo);" (click)="changeModalAdultos(1)">+</button>
+          </div>
+        </div>
+
+        <!-- Niños counter -->
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--titulo); font-family: var(--font-body, 'Poppins', sans-serif);">Niños *</div>
+            <div style="font-size: 11px; color: var(--sub);">Máx. {{ room.capacidadNinos * modalHabitaciones() }} en total</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="rgm-counter-btn" style="width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border-md); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; color: var(--titulo);" (click)="changeModalNinos(-1)">−</button>
+            <span style="font-size: 16px; font-weight: 700; width: 24px; text-align: center; color: var(--extra1);">{{ modalNinos() }}</span>
+            <button class="rgm-counter-btn" style="width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border-md); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; color: var(--titulo);" (click)="changeModalNinos(1)">+</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="rgm-actions" style="display: flex; gap: 10px;">
+        <button 
+          class="btn-select-room-modal" 
+          [class.selected]="isRoomSelected(room.id)" 
+          (click)="confirmRoomSelection(room)"
+          style="flex: 1;">
+          <span class="material-icons" style="font-size:16px;">check_circle</span>
+          {{ isRoomSelected(room.id) ? 'Guardar configuración' : 'Agregar esta habitación' }}
+        </button>
+        <button 
+          *ngIf="isRoomSelected(room.id)"
+          class="btn-remove-room-modal" 
+          (click)="removeRoomSelection(room.id)"
+          style="padding: 11px 16px; border-radius: var(--pill-r); border: 1.5px solid var(--red-tx); background: transparent; color: var(--red-tx); font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; font-family: var(--font-body, 'Poppins', sans-serif);">
+          <span class="material-icons" style="font-size:16px;">delete</span>
+          Quitar
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <app-footer></app-footer>
