@@ -627,7 +627,7 @@
 /* Campos clave-valor */
 .c-fields {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem 1.5rem;
 }
 
@@ -679,6 +679,7 @@
   color: var(--color-titulo);
   font-weight: 700;
   font-size: 1rem;
+  word-break: break-all;
 }
 
 /* Desglose financiero premium */

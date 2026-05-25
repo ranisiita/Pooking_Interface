@@ -6,8 +6,9 @@ import { FooterComponent } from '../../components/navbar/footer.component';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { LodgingService } from '../../services/lodging.service';
+import { AtraccionesService } from '../../features/atracciones/services/atracciones.service';
 import { forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-profile',
@@ -20,6 +21,7 @@ export class ProfileComponent implements OnInit {
   private http = inject(HttpClient);
   private router = inject(Router);
   private lodgingService = inject(LodgingService);
+  private atraccionesService = inject(AtraccionesService);
   private cdr = inject(ChangeDetectorRef);
 
   user: any = null;
@@ -120,14 +122,20 @@ export class ProfileComponent implements OnInit {
       'Authorization': `Bearer ${token}`
     });
 
-    const resolvedGuid = localStorage.getItem('clienteGuid') || guid;
-
-    this.http.get(`${environment.apiGatewayUrl}/api/v1/clientes/usuario/${resolvedGuid}`, { headers })
+    this.http.get(`${environment.apiGatewayUrl}/api/v2/booking/clientes/usuario-guid/${guid}`, { headers })
       .subscribe({
         next: (response: any) => {
           this.isLoading = false;
           if (response && response.data) {
             const data = response.data;
+
+            // Extraer y guardar guidCliente en localStorage para consistencia de la app
+            const actualGuidCliente = data.guidCliente || data.clienteGuid || data.guid;
+            if (actualGuidCliente) {
+              localStorage.setItem('guidCliente', actualGuidCliente);
+              localStorage.setItem('clienteGuid', actualGuidCliente);
+            }
+
             this.user = {
               name: `${data.nombres} ${data.apellidos}`,
               email: data.correo,
@@ -194,15 +202,32 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    const url = `${environment.apiGatewayUrl}/api/v2/booking/clientes/reservas/usuario/${guid}`;
-    this.http.get<any>(url).pipe(
+    const token = localStorage.getItem('token');
+    const headers = token ? new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    }) : undefined;
+
+    const guidCliente = localStorage.getItem('guidCliente') || localStorage.getItem('clienteGuid') || guid;
+    const url = `${environment.apiGatewayUrl}/api/v2/booking/reservas/cliente/${guidCliente}`;
+    this.http.get<any>(url, { headers }).pipe(
       catchError(err => {
         console.warn('[WARNING] Error fetching reservations from middleware. Falling back to local storage...', err);
         return of([]);
       })
     ).subscribe({
       next: (response: any) => {
-        const items = response?.data || response || [];
+        let items: any[] = [];
+        if (response) {
+          if (response.data && response.data.items && Array.isArray(response.data.items)) {
+            items = response.data.items;
+          } else if (response.data && Array.isArray(response.data)) {
+            items = response.data;
+          } else if (Array.isArray(response)) {
+            items = response;
+          } else if (response.items && Array.isArray(response.items)) {
+            items = response.items;
+          }
+        }
         console.log('[DEBUG] Fetched reservations from middleware:', items);
 
         // Agrupación por tipo de servicio
@@ -230,133 +255,219 @@ export class ProfileComponent implements OnInit {
               console.warn(`Error getting lodging reservation details for ${externalId}:`, err);
               return of(null);
             }),
-            map(res => {
+            switchMap(res => {
+              const sucursalGuid = res?.sucursalGuid || bk.guidServicioRef;
+              if (!sucursalGuid) {
+                return of({ res, lodging: null });
+              }
+              return this.lodgingService.getLodgingById(sucursalGuid, providerName).pipe(
+                catchError(err => {
+                  console.warn(`Error getting lodging details for sucursal ${sucursalGuid}:`, err);
+                  return of(null);
+                }),
+                map(lodging => ({ res, lodging }))
+              );
+            }),
+            map(({ res, lodging }) => {
+              let mappedEstado = 'PEN';
+              const bkEstado = (bk.estado || '').toUpperCase();
+              if (bkEstado === 'PEND' || bkEstado === 'PENDIENTE' || bkEstado === 'PEN') {
+                mappedEstado = 'PEN';
+              } else if (bkEstado === 'CONF' || bkEstado === 'CONFIRMADA' || bkEstado === 'CON' || bkEstado === 'CON-PAGO') {
+                mappedEstado = 'CON';
+              } else if (bkEstado === 'CANC' || bkEstado === 'CANCELADA' || bkEstado === 'CAN') {
+                mappedEstado = 'CAN';
+              }
+
+              const total = bk.montoTotal || 0;
+              const subtotal = total / 1.15;
+              const iva = total - subtotal;
+              
+              const lodgingName = lodging?.nombre || bk.nombreServicioSnap || bk.nombreHotel || 'Alojamiento';
+              const lodgingImage = lodging?.imagen || '';
+
               if (res) {
                 return {
                   ...res,
                   provider: providerName,
-                  lodgingName: bk.nombreHotel || bk.nombreServicioSnap || 'Alojamiento',
-                  lodgingImage: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80',
+                  lodgingName: lodgingName,
+                  lodgingImage: lodgingImage,
+                  estadoReserva: mappedEstado,
                   cliente: {
-                    nombres: this.user?.name || 'Invitado',
-                    correo: this.user?.email || 'invitado@example.com',
-                    telefono: '—',
-                    direccion: '—'
+                    nombres: this.user ? `${this.user.nombres || ''} ${this.user.apellidos || ''}`.trim() || this.user.name : 'Invitado',
+                    correo: this.user?.correo || this.user?.email || 'invitado@example.com',
+                    telefono: this.user?.telefono || '—',
+                    direccion: this.user?.direccion || '—'
                   }
                 };
               } else {
-                // Mock Fallback resiliente
-                const cod = externalId.startsWith('guid-') ? externalId.substring(5) : `RES-${externalId.substring(0, 8).toUpperCase()}`;
+                // If getReservaByGuid fails, we STILL show it with the middleware data (no fictitious rooms!)
                 return {
-                  reservaGuid: externalId,
-                  codigoReserva: cod,
-                  clienteGuid: bk.guidCliente || guid,
-                  sucursalGuid: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-                  fechaReservaUtc: new Date().toISOString(),
-                  fechaInicio: bk.fechaInicio || (new Date().toISOString()),
-                  fechaFin: bk.fechaFin || (new Date(new Date().getTime() + 172800000).toISOString()),
-                  subtotalReserva: bk.montoTotal ? (bk.montoTotal / 1.15) : 180.00,
-                  valorIva: bk.montoTotal ? (bk.montoTotal * 0.15 / 1.15) : 27.00,
-                  totalReserva: bk.montoTotal || 207.00,
+                  reservaGuid: bk.guidReserva,
+                  codigoReserva: bk.idReservaExterna || bk.guidReserva,
+                  clienteGuid: bk.guidClienteRef || guidCliente,
+                  sucursalGuid: bk.guidServicioRef || '',
+                  fechaReservaUtc: bk.fechaReservaUtc || '',
+                  fechaInicio: bk.fechaInicio,
+                  fechaFin: bk.fechaFin,
+                  subtotalReserva: subtotal,
+                  valorIva: iva,
+                  totalReserva: total,
                   descuentoAplicado: 0,
-                  saldoPendiente: bk.montoTotal || 207.00,
-                  origenCanalReserva: bk.canalOrigen || 'MARKETPLACE',
-                  estadoReserva: 'PEN',
+                  saldoPendiente: total,
+                  origenCanalReserva: bk.canalOrigen || 'Pooking',
+                  estadoReserva: mappedEstado,
                   provider: providerName,
-                  lodgingName: bk.nombreServicioSnap || 'Alojamiento Premium',
-                  lodgingImage: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80',
+                  lodgingName: lodgingName,
+                  lodgingImage: lodgingImage,
+                  observaciones: bk.observaciones || '',
                   cliente: {
-                    nombres: this.user?.name || 'Invitado',
-                    correo: this.user?.email || 'invitado@example.com',
-                    telefono: '—',
-                    direccion: '—'
+                    nombres: this.user ? `${this.user.nombres || ''} ${this.user.apellidos || ''}`.trim() || this.user.name : 'Invitado',
+                    correo: this.user?.correo || this.user?.email || 'invitado@example.com',
+                    telefono: this.user?.telefono || '—',
+                    direccion: this.user?.direccion || '—'
                   },
-                  habitaciones: [
-                    {
-                      reservaHabitacionGuid: 'res-hab-guid-mock',
-                      habitacionGuid: 'hab-guid-mock',
-                      fechaInicio: bk.fechaInicio || (new Date().toISOString()),
-                      fechaFin: bk.fechaFin || (new Date(new Date().getTime() + 172800000).toISOString()),
-                      numAdultos: 2,
-                      numNinos: 0,
-                      precioNocheAplicado: bk.montoTotal ? (bk.montoTotal / 2.3) : 90.00,
-                      subtotalLinea: bk.montoTotal ? (bk.montoTotal / 1.15) : 180.00,
-                      valorIvaLinea: bk.montoTotal ? (bk.montoTotal * 0.15 / 1.15) : 27.00,
-                      descuentoLinea: 0,
-                      totalLinea: bk.montoTotal || 207.00,
-                      estadoDetalle: 'PEN',
-                      tipoHabitacion: 'Suite Ejecutiva'
-                    }
-                  ]
+                  habitaciones: []
                 };
               }
             })
           );
         });
 
-        // ── 2. MAPEAR ATRACCIONES ──
+        // ── 2. MAPEAR ATRACCIONES DINÁMICAMENTE ──
         let attractionRequests = attractionItems.map((bk: any) => {
           const providerName = bk.nombreProveedor || 'jorge';
           const externalId = bk.idReservaExterna || bk.reservaGuid;
-          const cod = externalId.startsWith('guid-') ? externalId.substring(5) : `RES-${externalId.substring(0, 8).toUpperCase()}`;
-          return of({
-            reservaGuid: externalId,
-            codigoReserva: cod,
-            clienteGuid: bk.guidCliente || guid,
-            sucursalGuid: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-            fechaReservaUtc: new Date().toISOString(),
-            fechaInicio: bk.fechaInicio || new Date().toISOString(),
-            fechaFin: bk.fechaFin || new Date().toISOString(),
-            subtotalReserva: bk.montoTotal ? (bk.montoTotal / 1.15) : 120.00,
-            valorIva: bk.montoTotal ? (bk.montoTotal * 0.15 / 1.15) : 18.00,
-            totalReserva: bk.montoTotal || 138.00,
-            descuentoAplicado: 0,
-            saldoPendiente: bk.montoTotal || 138.00,
-            origenCanalReserva: bk.canalOrigen || 'MARKETPLACE',
-            estadoReserva: 'CON',
-            provider: providerName,
-            tipoServicio: 'atraccion',
-            lodgingName: bk.nombreServicioSnap || 'Atracción Turística Premium',
-            lodgingImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80',
-            cliente: {
-              nombres: this.user?.name || 'Invitado',
-              correo: this.user?.email || 'invitado@example.com',
-              telefono: '—',
-              direccion: '—'
-            },
-            habitaciones: []
-          });
+          
+          return this.atraccionesService.getReservaDetalle(externalId, providerName).pipe(
+            catchError(err => {
+              console.warn(`Error getting attraction reservation details for ${externalId}:`, err);
+              return of(null);
+            }),
+            map(res => {
+              let mappedEstado = 'PEN';
+              const bkEstado = (bk.estado || '').toUpperCase();
+              if (bkEstado === 'PEND' || bkEstado === 'PENDIENTE' || bkEstado === 'PEN') {
+                mappedEstado = 'PEN';
+              } else if (bkEstado === 'CONF' || bkEstado === 'CONFIRMADA' || bkEstado === 'CON' || bkEstado === 'CON-PAGO') {
+                mappedEstado = 'CON';
+              } else if (bkEstado === 'CANC' || bkEstado === 'CANCELADA' || bkEstado === 'CAN') {
+                mappedEstado = 'CAN';
+              }
+
+              const total = bk.montoTotal || 0;
+              const subtotal = total / 1.15;
+              const iva = total - subtotal;
+
+              if (res) {
+                const data = res.data || res;
+                return {
+                  reservaGuid: data.rev_guid || externalId,
+                  codigoReserva: data.rev_codigo || `RES-${externalId.substring(0, 8).toUpperCase()}`,
+                  clienteGuid: bk.guidClienteRef || bk.guidCliente || guid,
+                  sucursalGuid: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+                  fechaReservaUtc: bk.fechaReservaUtc || data.rev_fecha_reserva_utc || new Date().toISOString(),
+                  fechaInicio: bk.fechaInicio || data.hor_fecha || new Date().toISOString(),
+                  fechaFin: bk.fechaFin || data.hor_fecha || new Date().toISOString(),
+                  subtotalReserva: data.rev_subtotal || subtotal,
+                  valorIva: data.rev_valor_iva || iva,
+                  totalReserva: data.rev_total || total,
+                  descuentoAplicado: 0,
+                  saldoPendiente: data.rev_total || total,
+                  origenCanalReserva: bk.canalOrigen || 'MARKETPLACE',
+                  estadoReserva: mappedEstado,
+                  provider: providerName,
+                  tipoServicio: 'atraccion',
+                  lodgingName: data.atraccion_nombre || bk.nombreServicioSnap || 'Atracción Turística',
+                  lodgingImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80',
+                  cliente: {
+                    nombres: this.user ? `${this.user.nombres || ''} ${this.user.apellidos || ''}`.trim() || this.user.name : 'Invitado',
+                    correo: this.user?.correo || this.user?.email || 'invitado@example.com',
+                    telefono: this.user?.telefono || '—',
+                    direccion: this.user?.direccion || '—'
+                  },
+                  habitaciones: []
+                };
+              } else {
+                // If getReservaDetalle fails, we STILL show it with the middleware data
+                return {
+                  reservaGuid: bk.guidReserva,
+                  codigoReserva: bk.idReservaExterna || bk.guidReserva,
+                  clienteGuid: bk.guidClienteRef || guidCliente,
+                  sucursalGuid: bk.guidServicioRef || '',
+                  fechaReservaUtc: bk.fechaReservaUtc || '',
+                  fechaInicio: bk.fechaInicio,
+                  fechaFin: bk.fechaFin || bk.fechaInicio,
+                  subtotalReserva: subtotal,
+                  valorIva: iva,
+                  totalReserva: total,
+                  descuentoAplicado: 0,
+                  saldoPendiente: total,
+                  origenCanalReserva: bk.canalOrigen || 'Pooking',
+                  estadoReserva: mappedEstado,
+                  provider: providerName,
+                  tipoServicio: 'atraccion',
+                  lodgingName: bk.nombreServicioSnap || 'Atracción Turística',
+                  lodgingImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80',
+                  observaciones: bk.observaciones || '',
+                  cliente: {
+                    nombres: this.user ? `${this.user.nombres || ''} ${this.user.apellidos || ''}`.trim() || this.user.name : 'Invitado',
+                    correo: this.user?.correo || this.user?.email || 'invitado@example.com',
+                    telefono: this.user?.telefono || '—',
+                    direccion: this.user?.direccion || '—'
+                  },
+                  habitaciones: []
+                };
+              }
+            })
+          );
         });
 
         // ── 3. MAPEAR AUTOMÓVILES ──
         let carRequests = carItems.map((bk: any) => {
           const providerName = bk.nombreProveedor || 'kelvin';
-          const externalId = bk.idReservaExterna || bk.reservaGuid;
+          const externalId = bk.idReservaExterna || bk.reservaGuid || bk.guidReserva;
           const cod = externalId.startsWith('guid-') ? externalId.substring(5) : `RES-${externalId.substring(0, 8).toUpperCase()}`;
+          
+          let mappedEstado = 'PEN';
+          const bkEstado = (bk.estado || '').toUpperCase();
+          if (bkEstado === 'PEND' || bkEstado === 'PENDIENTE' || bkEstado === 'PEN') {
+            mappedEstado = 'PEN';
+          } else if (bkEstado === 'CONF' || bkEstado === 'CONFIRMADA' || bkEstado === 'CON' || bkEstado === 'CON-PAGO') {
+            mappedEstado = 'CON';
+          } else if (bkEstado === 'CANC' || bkEstado === 'CANCELADA' || bkEstado === 'CAN') {
+            mappedEstado = 'CAN';
+          }
+
+          const total = bk.montoTotal || 0;
+          const subtotal = total / 1.15;
+          const iva = total - subtotal;
+
           return of({
-            reservaGuid: externalId,
-            codigoReserva: cod,
-            clienteGuid: bk.guidCliente || guid,
-            sucursalGuid: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-            fechaReservaUtc: new Date().toISOString(),
-            fechaInicio: bk.fechaInicio || new Date().toISOString(),
-            fechaFin: bk.fechaFin || new Date().toISOString(),
-            subtotalReserva: bk.montoTotal ? (bk.montoTotal / 1.15) : 150.00,
-            valorIva: bk.montoTotal ? (bk.montoTotal * 0.15 / 1.15) : 22.50,
-            totalReserva: bk.montoTotal || 172.50,
+            reservaGuid: bk.guidReserva || externalId,
+            codigoReserva: bk.idReservaExterna || cod,
+            clienteGuid: bk.guidClienteRef || guidCliente,
+            sucursalGuid: bk.guidServicioRef || '',
+            fechaReservaUtc: bk.fechaReservaUtc || '',
+            fechaInicio: bk.fechaInicio,
+            fechaFin: bk.fechaFin || bk.fechaInicio,
+            subtotalReserva: subtotal,
+            valorIva: iva,
+            totalReserva: total,
             descuentoAplicado: 0,
-            saldoPendiente: bk.montoTotal || 172.50,
-            origenCanalReserva: bk.canalOrigen || 'MARKETPLACE',
-            estadoReserva: 'CON',
+            saldoPendiente: total,
+            origenCanalReserva: bk.canalOrigen || 'Pooking',
+            estadoReserva: mappedEstado,
             provider: providerName,
             tipoServicio: 'auto',
             lodgingName: bk.nombreServicioSnap || 'Vehículo Sedán Familiar',
             lodgingImage: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=500&q=80',
+            observaciones: bk.observaciones || '',
             cliente: {
-              nombres: this.user?.name || 'Invitado',
-              correo: this.user?.email || 'invitado@example.com',
-              telefono: '—',
-              direccion: '—'
+              nombres: this.user ? `${this.user.nombres || ''} ${this.user.apellidos || ''}`.trim() || this.user.name : 'Invitado',
+              correo: this.user?.correo || this.user?.email || 'invitado@example.com',
+              telefono: this.user?.telefono || '—',
+              direccion: this.user?.direccion || '—'
             },
             habitaciones: []
           });
@@ -436,7 +547,7 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    const requests = filteredBookings.map(bk => {
+    const requests = filteredBookings.map((bk: any) => {
       return this.lodgingService.getReservaByGuid(bk.provider, bk.reservaGuid).pipe(
         catchError(err => {
           console.warn(`Error getting reservation details for ${bk.reservaGuid}:`, err);
@@ -507,8 +618,8 @@ export class ProfileComponent implements OnInit {
       );
     });
 
-    forkJoin(requests).subscribe(results => {
-      this.reservations = results.filter(r => r !== null);
+    forkJoin(requests).subscribe((results: any) => {
+      this.reservations = results.filter((r: any) => r !== null);
       this.isLoadingReservations = false;
       if (this.user) {
         this.user.stats.trips = this.reservations.length;
@@ -544,6 +655,23 @@ export class ProfileComponent implements OnInit {
     console.log('[DEBUG] closeReservaDetails');
     this.selectedReserva = null;
     this.cdr.detectChanges();
+  }
+
+  getReservationGradient(res: any): string {
+    const seed = res?.codigoReserva || res?.reservaGuid || '';
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % 5;
+    const gradients = [
+      'linear-gradient(135deg, #8E5A54 0%, #C6B17D 100%)',
+      'linear-gradient(135deg, #606256 0%, #C6B17D 100%)',
+      'linear-gradient(135deg, #8E5A54 0%, #46403C 100%)',
+      'linear-gradient(135deg, #606256 0%, #8E5A54 100%)',
+      'linear-gradient(135deg, #46403C 0%, #C6B17D 100%)'
+    ];
+    return gradients[index];
   }
 
   // Formateadores de fecha
