@@ -54,10 +54,10 @@ export class Login {
   showToast(message: string, type: 'error' | 'success' = 'error'): void {
     if (this.toastTimer) clearTimeout(this.toastTimer);
     this.toastMessage = message;
-    this.toastType    = type;
+    this.toastType = type;
     this.toastVisible = true;
     this.cdr.detectChanges(); // <-- Forzar actualización de pantalla
-    this.toastTimer   = setTimeout(() => {
+    this.toastTimer = setTimeout(() => {
       this.toastVisible = false;
       this.cdr.detectChanges();
     }, 5000);
@@ -91,11 +91,11 @@ export class Login {
       next: (response: any) => {
         this.zone.run(() => {
           console.log('Login successful', response);
-          
+
           const token = response?.data?.token || response?.token;
           const guid = response?.data?.usuarioGuid || response?.usuarioGuid || response?.data?.guid || response?.guid;
           const roles = response?.data?.roles || response?.roles || [];
-          
+
           if (token && guid) {
             localStorage.setItem('token', token);
             localStorage.setItem('usuarioGuid', guid);
@@ -130,7 +130,7 @@ export class Login {
       error: (err) => {
         this.zone.run(() => {
           this.loginStatus = 'error';
-          
+
           let body = err?.error;
           if (typeof body === 'string') {
             try { body = JSON.parse(body); } catch (e) { /* ignore */ }
@@ -148,23 +148,23 @@ export class Login {
           }
 
           // Extraer mensaje general y forzar a string
-          let rawMessage = body?.message 
-            ?? body?.title 
-            ?? body?.detail 
-            ?? (typeof body === 'string' ? body : null) 
+          let rawMessage = body?.message
+            ?? body?.title
+            ?? body?.detail
+            ?? (typeof body === 'string' ? body : null)
             ?? `Error ${err.status}: Credenciales inválidas. Por favor intenta de nuevo.`;
-            
+
           let finalMessage = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
 
           if (messages.length > 0) {
             const errorMsg = messages.join(' • ');
             this.generalError = errorMsg;
-            
+
             // Mostrar toast inmediatamente
-            this.showToast(errorMsg); 
+            this.showToast(errorMsg);
           } else {
             this.generalError = finalMessage;
-            
+
             // Mostrar toast inmediatamente
             this.showToast(finalMessage);
           }
