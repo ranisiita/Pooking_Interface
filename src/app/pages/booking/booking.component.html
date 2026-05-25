@@ -1,28 +1,33 @@
 <app-navbar></app-navbar>
 
-<!-- ══ STEPS ══ -->
-<div class="steps-bar">
-  <div class="step-item done" [routerLink]="['/alojamiento/resultados']">
-    <div class="step-num">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-        <polyline points="20 6 9 17 4 12"/>
-      </svg>
+<!-- ══ STEPS (Premium Stepper matching Automóviles) ══ -->
+<div class="stepper-rail" aria-label="Progreso de la reserva" role="navigation">
+  <div class="stepper-inner">
+    <!-- Paso 1 -->
+    <div class="step done" [routerLink]="['/alojamiento/resultados']" style="cursor: pointer;">
+      <div class="step-circle" aria-hidden="true">
+        <span class="material-icons">check</span>
+      </div>
+      <div class="step-label">Alojamiento</div>
     </div>
-    <div class="step-label">Alojamiento</div>
-  </div>
-  <div class="step-sep"></div>
-  <div class="step-item done" [routerLink]="['/alojamiento', lodging?.id]">
-    <div class="step-num">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-        <polyline points="20 6 9 17 4 12"/>
-      </svg>
+    <div class="step-line done" aria-hidden="true"></div>
+    
+    <!-- Paso 2 -->
+    <div class="step done" [routerLink]="['/alojamiento', lodging?.id]" style="cursor: pointer;">
+      <div class="step-circle" aria-hidden="true">
+        <span class="material-icons">check</span>
+      </div>
+      <div class="step-label">Habitación</div>
     </div>
-    <div class="step-label">Habitación</div>
-  </div>
-  <div class="step-sep"></div>
-  <div class="step-item active">
-    <div class="step-num">3</div>
-    <div class="step-label">Tus datos</div>
+    <div class="step-line done" aria-hidden="true"></div>
+    
+    <!-- Paso 3 -->
+    <div class="step active">
+      <div class="step-circle" aria-hidden="true">
+        <span>3</span>
+      </div>
+      <div class="step-label">Confirmación</div>
+    </div>
   </div>
 </div>
 
@@ -386,8 +391,11 @@
     [totalInput]="total"
     [overrideNombre]="nombres + ' ' + (apellidos || '')"
     [overrideEmail]="correo"
+    [serviceType]="'alojamiento'"
+    [customDetails]="paymentDetails"
     buttonLabel="Realizar reserva"
     (pagoExitoso)="procesarPagoYReserva()"
+    (datosEditados)="actualizarDatosHuesped($event)"
     (onCancel)="cancelarPago()">
   </app-payment>
 }

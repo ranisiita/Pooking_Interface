@@ -98,81 +98,88 @@
 /* ════════════════════════════════════════
    STEPS BAR
 ════════════════════════════════════════ */
-.steps-bar {
+/* ════════════════════════════════════════
+   STEPS BAR (Premium Stepper matching Automóviles)
+   ════════════════════════════════════════ */
+.stepper-rail {
+  background: var(--white);
+  border-bottom: 2px solid rgba(198, 177, 125, 0.2);
+  padding: 1.25rem 2rem;
+  box-shadow: 0 2px 12px rgba(70, 64, 60, 0.07);
   position: sticky;
   top: 64px;
   z-index: 99;
-  background: var(--white);
-  border-bottom: 1px solid var(--border);
-  padding: 0 40px;
+}
+
+.stepper-inner {
   display: flex;
   align-items: center;
-  overflow-x: auto;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.step-item {
+.step {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 14px 20px;
-  white-space: nowrap;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  text-decoration: none;
 }
 
-.step-item.active {
-  border-bottom-color: var(--titulo);
-}
-
-.step-item.done {
-  border-bottom-color: var(--green-tx);
-}
-
-.step-num {
-  width: 24px;
-  height: 24px;
+.step-circle {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  border: 2.5px solid rgba(198, 177, 125, 0.4);
+  background: var(--bg);
+  color: var(--sub);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-family: var(--fb);
+  font-size: 0.9rem;
   font-weight: 700;
-  flex-shrink: 0;
-  background: var(--border);
-  color: var(--sub);
+  transition: all 0.3s ease;
 }
 
-.step-item.active .step-num {
+.step.active .step-circle {
   background: var(--titulo);
+  border-color: var(--titulo);
   color: var(--white);
+  box-shadow: 0 4px 14px rgba(142, 90, 84, 0.35);
 }
 
-.step-item.done .step-num {
-  background: var(--green-tx);
-  color: var(--white);
+.step.done .step-circle {
+  background: rgba(198, 177, 125, 0.2);
+  border-color: var(--extra2);
+  color: var(--titulo);
 }
+
+.step.done .step-circle .material-icons { font-size: 1.2rem; }
 
 .step-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--sub);
-}
-
-.step-item.active .step-label {
-  color: var(--titulo);
+  font-size: 0.72rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sub);
+  transition: color 0.3s ease;
 }
 
-.step-item.done .step-label {
-  color: var(--green-tx);
+.step.active .step-label { color: var(--titulo); }
+.step.done .step-label   { color: var(--extra1); }
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: rgba(198, 177, 125, 0.25);
+  margin: 0 0.5rem;
+  margin-bottom: 1.5rem;
+  transition: background 0.3s ease;
 }
 
-.step-sep {
-  width: 28px;
-  height: 1px;
-  background: var(--border);
-  flex-shrink: 0;
-}
+.step-line.done { background: var(--extra2); }
 
 /* ════════════════════════════════════════
    PAGE WRAP

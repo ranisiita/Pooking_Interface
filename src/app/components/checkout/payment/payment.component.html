@@ -179,12 +179,21 @@
 
             @if (detallesExpandidos()) {
               <div class="details-expandidos">
+                @if (customDetails && customDetails.length > 0) {
+                  @for (item of customDetails; track item.name) {
+                    <div class="detail-row">
+                      <span>{{ item.name }}</span>
+                      <span>${{ item.value | number:'1.2-2' }}</span>
+                    </div>
+                  }
+                } @else {
+                  <div class="detail-row">
+                    <span>{{ itemName || getServiceDefaultName() }}</span>
+                    <span>${{ subtotal() | number:'1.2-2' }}</span>
+                  </div>
+                }
                 <div class="detail-row">
-                  <span>Reserva vuelo</span>
-                  <span>${{ subtotal() | number:'1.2-2' }}</span>
-                </div>
-                <div class="detail-row">
-                  <span>IVA (9,4%)</span>
+                  <span>IVA ({{ getIvaPercentageLabel() }})</span>
                   <span>${{ iva() | number:'1.2-2' }}</span>
                 </div>
               </div>

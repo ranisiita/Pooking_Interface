@@ -322,6 +322,13 @@ export class BookingComponent implements OnInit {
     return lines;
   }
 
+  get paymentDetails(): { name: string; value: number }[] {
+    return this.selectedLines.map(line => ({
+      name: `${line.name} (x${line.rooms} hab. x ${this.nights}n)`,
+      value: line.lineTotal
+    }));
+  }
+
   // Calculations
   get subtotal(): number {
     return this.selectedLines.reduce((acc, line) => acc + line.lineTotal, 0);
@@ -490,6 +497,27 @@ export class BookingComponent implements OnInit {
   cancelarPago(): void {
     console.log('[DEBUG] cancelarPago triggered. Closing payment hall (mostrarPago => false).');
     this.mostrarPago.set(false);
+    this.cdr.detectChanges();
+  }
+
+  actualizarDatosHuesped(datos: any): void {
+    if (!datos) return;
+    console.log('[DEBUG] Guest details updated from payment modal:', datos);
+    
+    if (datos.nombre) {
+      const partes = datos.nombre.trim().split(' ');
+      this.nombres = partes[0] || '';
+      this.apellidos = partes.slice(1).join(' ') || datos.apellidos || '';
+    }
+    if (datos.apellidos) {
+      this.apellidos = datos.apellidos;
+    }
+    if (datos.email) {
+      this.correo = datos.email;
+    }
+    if (datos.telefono) {
+      this.telefono = datos.telefono;
+    }
     this.cdr.detectChanges();
   }
 
