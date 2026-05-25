@@ -7,6 +7,7 @@ import { FooterComponent } from '../../../components/navbar/footer.component';
 import {
   ACTIVE_ATTRACTION_PROVIDER,
   ALL_ATTRACTION_PROVIDERS,
+  ATTRACTION_PROVIDER_LABELS,
   AtraccionesService,
 } from '../services/atracciones.service';
 import {
@@ -19,6 +20,11 @@ import {
   ReservaPayload,
   Ticket,
 } from '../models/atracciones.models';
+import {
+  BookingReservaPayload,
+  BookingReservasService,
+  TIPO_SERVICIO_GUIDS,
+} from '../../../shared/services/booking-reservas.service';
 
 type EstadoCarga = 'loading' | 'success' | 'not_found' | 'error';
 type CampoCliente =
@@ -40,6 +46,7 @@ export class AtraccionesReservaComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private svc = inject(AtraccionesService);
+  private booking = inject(BookingReservasService);
 
   // ── Carga del detalle ────────────────────────────────────
   estado = signal<EstadoCarga>('loading');
@@ -83,7 +90,8 @@ export class AtraccionesReservaComponent implements OnInit {
   reservaCreada = signal<ReservaCreada | null>(null);
   enviando = signal(false);
   errorReserva = signal<string | null>(null);
-  mostrarDebug = signal(false);
+  /** Aviso suave si el registro en /clientes/reservas falló o se omitió. */
+  advertenciaRegistro = signal<string | null>(null);
 
   // ── Computed ─────────────────────────────────────────────
   readonly totalTickets = computed(() =>
@@ -313,16 +321,103 @@ export class AtraccionesReservaComponent implements OnInit {
     this.payloadListo.set(payload);
     this.enviando.set(true);
     this.errorReserva.set(null);
+    this.advertenciaRegistro.set(null);
     this.svc.crearReserva(payload, this.provider).subscribe({
       next: (resp) => {
         this.reservaCreada.set(resp.data);
         this.enviando.set(false);
         console.info('[Reserva] Respuesta del backend:', resp);
+        // Registro en la base general de clientes/Booking en cuanto tenemos
+        // rev_guid. La reserva nace PENDIENTE; la actualización de estado
+        // a PAGADA se hará después en el flujo de pago si aplica.
+        this.registrarEnClientes(resp.data);
       },
       error: (err) => {
         this.enviando.set(false);
         this.errorReserva.set(this.mensajeErrorReserva(err));
         console.error('[Reserva] Error al crear reserva:', err);
+      },
+    });
+  }
+
+  /**
+   * Registra la reserva recién creada en el endpoint del middleware
+   * `POST /clientes/reservas` para que aparezca en la tabla general de
+   * reservas del cliente. Es best-effort: si falla, el flujo de pago sigue
+   * adelante pero queda advertencia en consola y `advertenciaRegistro`.
+   *
+   * NOTA: se ejecuta a nivel de creación (estado PENDIENTE). Si el flujo
+   * de pago confirma con éxito, esa misma reserva en atracciones queda en
+   * PAGADA — pero en el registro general permanece como PENDIENTE hasta
+   * que el backend exponga un endpoint de actualización de estado.
+   */
+  private registrarEnClientes(r: ReservaCreada): void {
+    const guidCliente = BookingReservasService.obtenerGuidCliente();
+    // Logs temporales — TODO(debug): retirar tras validación en prod.
+    console.info('[Reserva] guidCliente leído de localStorage:', guidCliente);
+    console.info('[Reserva] provider de origen:', this.provider);
+    console.info('[Reserva] rev_guid:', r.rev_guid);
+
+    if (!guidCliente) {
+      console.warn(
+        '[Reserva] Sin guidCliente — no se registra en /clientes/reservas (usuario invitado).',
+      );
+      // No bloqueamos el flujo del usuario; se le avisa en el modal.
+      this.advertenciaRegistro.set(
+        'Tu reserva quedó creada con el proveedor, pero como invitado no la asociamos a tu historial. Inicia sesión la próxima vez para guardar tus reservas.',
+      );
+      return;
+    }
+
+    const payload: BookingReservaPayload = {
+      guidCliente,
+      guidServicioRef: TIPO_SERVICIO_GUIDS.ATRACCIONES,
+      nombreServicioSnap: r.atraccion_nombre,
+      // Mismo patrón que cars (`"2"` para vehículos). Atracciones = 3 según
+      // la tabla de tipos de servicio del backend.
+      tipoServicioSnap: '3',
+      nombreProveedor: ATTRACTION_PROVIDER_LABELS[this.provider] ?? this.provider,
+      idReservaExterna: r.rev_guid,
+      fechaInicio: BookingReservasService.combinarFechaHora(r.hor_fecha, r.hor_hora_inicio),
+      fechaFin: BookingReservasService.combinarFechaHora(r.hor_fecha, r.hor_hora_fin),
+      // El valor real que aceptan la tabla y los demás flujos es "Pooking"
+      // (con P mayúscula), no "BOOKING". Confirmado revisando cars.
+      canalOrigen: 'Pooking',
+      montoTotal: r.rev_total,
+      moneda: r.moneda,
+      // Código corto del estado para alinearse con el formato general
+      // ("PEND" en vez de "PENDIENTE"). El estado a nivel de microservicio
+      // de atracciones sí sigue siendo "PENDIENTE" — esto es solo para la
+      // descripción legible que se guarda en observaciones.
+      observaciones: `Reserva atracción ${r.atraccion_nombre} - Código ${r.rev_codigo} - Estado PEND`,
+    };
+
+    console.info('[Reserva] URL final:', this.booking.endpointUrl);
+    console.info('[Reserva] canalOrigen:', payload.canalOrigen);
+    console.info('[Reserva] tipoServicioSnap:', payload.tipoServicioSnap);
+    console.info('[Reserva] Payload /clientes/reservas:', payload);
+
+    this.booking.registrarReserva(payload).subscribe({
+      next: (resp) => {
+        console.info(
+          '[Reserva] /clientes/reservas OK · idReservaExterna=',
+          payload.idReservaExterna,
+          '· response=',
+          resp,
+        );
+      },
+      error: (err) => {
+        console.error(
+          '[Reserva] /clientes/reservas FALLÓ · status=',
+          err?.status,
+          '· body=',
+          err?.error,
+          '· err=',
+          err,
+        );
+        this.advertenciaRegistro.set(
+          'Tu reserva quedó creada con el proveedor, pero no pudimos guardarla en tu historial en este momento. Guarda el código de reserva por si necesitas referenciarla.',
+        );
       },
     });
   }
@@ -344,15 +439,31 @@ export class AtraccionesReservaComponent implements OnInit {
 
   /**
    * Acción "Continuar al pago" del modal de confirmación.
-   * Por ahora solo registra el endpoint que se llamará y cierra el modal.
-   * TODO(API): integrar con POST /api/v2/reservas/{guid}/pagos/confirmacion
-   * usando `reserva._links.confirmar_pago`.
+   * Guarda en sessionStorage la reserva creada, el proveedor de origen y los
+   * datos del cliente_invitado (para precargar el formulario del receptor de
+   * la factura) y navega a la pantalla de pago. El POST real a
+   * /reservas/{guid}/pagos/confirmacion lo hace la pantalla de pago.
    */
   continuarAlPago(): void {
     const r = this.reservaCreada();
     if (!r) return;
-    console.info('[Pago] Endpoint pendiente:', r._links.confirmar_pago);
+    try {
+      sessionStorage.setItem(
+        'atraccion-pago',
+        JSON.stringify({
+          reserva: r,
+          provider: this.provider,
+          cliente: this.cliente,
+        }),
+      );
+    } catch {
+      // Si sessionStorage no está disponible, la pantalla de pago hará
+      // fallback a getReservaDetalle(revGuid, provider).
+    }
     this.reservaCreada.set(null);
+    this.router.navigate(['/atracciones/reservas', r.rev_guid, 'pago'], {
+      queryParams: { provider: this.provider },
+    });
   }
 
   verMisReservas(): void {
@@ -364,11 +475,6 @@ export class AtraccionesReservaComponent implements OnInit {
   cerrarConfirmacion(): void {
     this.reservaCreada.set(null);
   }
-
-  toggleDebug(): void {
-    this.mostrarDebug.update((v) => !v);
-  }
-
 
   reintentar(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -395,10 +501,6 @@ export class AtraccionesReservaComponent implements OnInit {
 
   cantidadDe(tck: string): number {
     return this.cantidades()[tck] ?? 0;
-  }
-
-  payloadJson(): string {
-    return JSON.stringify(this.payloadListo(), null, 2);
   }
 
   trackHorario(_: number, h: Horario): string {

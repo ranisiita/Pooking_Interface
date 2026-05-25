@@ -281,7 +281,6 @@
 }
 
 .rsv-field-hint code,
-.rs-foot code,
 .rsv-modal-sub code {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -644,22 +643,6 @@
   margin-top: 1px;
 }
 
-.rs-foot {
-  display: flex;
-  align-items: flex-start;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--color-subtitulo);
-  margin: 0;
-  line-height: 1.4;
-}
-
-.rs-foot .material-icons {
-  font-size: 14px;
-  color: var(--color-extra2);
-  margin-top: 1px;
-}
-
 /* ────────────────────────────────────────────
    MODAL DE RESERVA CREADA (response de POST /reservas)
    Inspirado en la confirmación de Alojamientos.
@@ -943,6 +926,24 @@
 
 .stt-saldo .material-icons { font-size: 16px; }
 .stt-saldo strong { font-weight: 700; }
+
+/* Advertencia suave (registro en historial falló o se omitió) */
+.success-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  background: var(--color-warn-bg);
+  border: 1px solid var(--color-warn-bd);
+  color: var(--color-warn-tx);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 12px;
+  text-align: left;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.success-warning .material-icons { font-size: 16px; margin-top: 1px; }
 
 /* Acciones */
 .success-actions {
