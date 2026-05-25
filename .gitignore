@@ -47,3 +47,6 @@ Thumbs.db
 .claude/
 # Environment files
 src/environments/environment.prod.ts
+
+# Contratos Alojamiento
+/Contratos Alojamiento/
