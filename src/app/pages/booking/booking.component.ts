@@ -1,106 +1,114 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-
-interface Room {
-  id: number;
-  nombre: string;
-  piso: string;
-  cama: string;
-  capacidad: string;
-  metros: number;
-  precio: number;
-  disponibles: number;
-  imagen: string;
-}
-
-interface Lodging {
-  id: number;
-  nombre: string;
-  tipo: string;
-  categoria: number;
-  calidad: string;
-  direccion: string;
-  ciudad: string;
-  descripcion: string;
-  imagenes: string[];
-  precio: number;
-  valoracion: number;
-  ratingTexto: string;
-  reviewsCount: number;
-  checkIn: string;
-  checkOut: string;
-  habitaciones: Room[];
-}
+import { Lodging, Room, LodgingService } from '../../services/lodging.service';
+import { PaymentComponent } from '../../components/checkout/payment/payment.component';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+import { NavbarComponent } from '../../components/navbar/navbar.component';
+import { FooterComponent } from '../../components/navbar/footer.component';
 
 @Component({
   selector: 'app-booking',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, PaymentComponent, NavbarComponent, FooterComponent],
   templateUrl: './booking.component.html',
   styleUrls: ['./booking.component.css']
 })
 export class BookingComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private lodgingService = inject(LodgingService);
+  private cdr = inject(ChangeDetectorRef);
+  private http = inject(HttpClient);
+  private provider = 'juan';
 
-  // Lodging dataset
-  lodgings: Lodging[] = [
-    {
-      id: 1,
-      nombre: 'Hotel Las Velas Quito',
-      tipo: 'Hotel',
-      categoria: 4,
-      calidad: 'Negocios',
-      direccion: 'Av. Amazonas N34-123, Quito, Pichincha · Ecuador',
-      ciudad: 'Quito',
-      descripcion: 'Hotel céntrico para viajes de negocio y turismo.',
-      imagenes: ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=720&q=80'],
-      precio: 25,
-      valoracion: 4.6,
-      ratingTexto: 'Muy bueno',
-      reviewsCount: 25,
-      checkIn: '14:00',
-      checkOut: '12:00',
-      habitaciones: [
-        {
-          id: 1, nombre: 'Habitación Estándar', piso: 'Piso 1–3', cama: 'Cama matrimonial',
-          capacidad: '2 adultos · 1 niño', metros: 25, precio: 25, disponibles: 5,
-          imagen: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80'
-        },
-        {
-          id: 2, nombre: 'Suite Junior', piso: 'Piso 4–7', cama: 'Cama King',
-          capacidad: '3 adultos · 2 niños', metros: 45, precio: 85, disponibles: 1,
-          imagen: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&q=80'
-        }
-      ]
-    },
-    {
-      id: 2,
-      nombre: 'Casa del Arco Boutique',
-      tipo: 'Hostal',
-      categoria: 4,
-      calidad: 'Familia',
-      direccion: 'García Moreno 362, Centro Histórico, Quito',
-      ciudad: 'Quito',
-      descripcion: 'Hostal boutique en el corazón del Centro Histórico.',
-      imagenes: ['https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=720&q=80'],
-      precio: 52,
-      valoracion: 4.8,
-      ratingTexto: 'Excelente',
-      reviewsCount: 41,
-      checkIn: '15:00',
-      checkOut: '11:00',
-      habitaciones: [
-        {
-          id: 1, nombre: 'Habitación Colonial', piso: 'Piso 1', cama: 'Cama matrimonial',
-          capacidad: '2 adultos', metros: 22, precio: 52, disponibles: 3,
-          imagen: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80'
-        }
-      ]
+  // Login Modal State
+  mostrarLoginModal = signal(false);
+  loginData = { identificador: '', password: '' };
+  showPassword = false;
+  loginStatus: 'idle' | 'loading' | 'success' | 'error' = 'idle';
+  generalError = '';
+
+  get isLoggedIn(): boolean {
+    try {
+      return !!localStorage.getItem('token');
+    } catch {
+      return false;
     }
-  ];
+  }
+
+  onLoginModalSubmit() {
+    if (!this.loginData.identificador || !this.loginData.password) return;
+
+    this.loginStatus = 'loading';
+    this.generalError = '';
+
+    const apiUrl = `${environment.apiGatewayUrl}/api/v2/booking/auth/login`;
+
+    this.http.post(apiUrl, this.loginData).subscribe({
+      next: (response: any) => {
+        console.log('Login successful via modal', response);
+        
+        const token = response?.data?.token || response?.token;
+        const usuarioGuid = response?.data?.usuarioGuid || response?.usuarioGuid;
+        const clienteGuid = response?.data?.clienteGuid || response?.clienteGuid || response?.data?.guidCliente || response?.guidCliente || response?.data?.guid || response?.guid;
+        const roles = response?.data?.roles || response?.roles || [];
+        
+        if (token) {
+          localStorage.setItem('token', token);
+          if (usuarioGuid) localStorage.setItem('usuarioGuid', usuarioGuid);
+          if (clienteGuid) localStorage.setItem('clienteGuid', clienteGuid);
+          localStorage.setItem('roles', JSON.stringify(roles));
+          console.log('Saved to localStorage via modal:', { token, usuarioGuid, clienteGuid, roles });
+        } else {
+          console.warn('Token missing in response', response);
+        }
+        
+        this.loginStatus = 'success';
+        setTimeout(() => {
+          this.mostrarLoginModal.set(false);
+          this.loginData = { identificador: '', password: '' };
+          this.loginStatus = 'idle';
+          this.submitReserva(); // Automatically proceed to reservation!
+          this.cdr.detectChanges();
+        }, 1200);
+      },
+      error: (err) => {
+        this.loginStatus = 'error';
+        let body = err?.error;
+        if (typeof body === 'string') {
+          try { body = JSON.parse(body); } catch (e) { /* ignore */ }
+        }
+
+        console.log('🚨 [Login Modal] HTTP status:', err.status);
+        console.log('🚨 [Login Modal] err.error (body):', body);
+
+        let messages: string[] = [];
+        if (Array.isArray(body?.errors)) {
+          messages = body.errors;
+        } else if (body?.errors && typeof body.errors === 'object') {
+          messages = Object.values(body.errors).flat() as string[];
+        }
+
+        let rawMessage = body?.message 
+          ?? body?.title 
+          ?? body?.detail 
+          ?? (typeof body === 'string' ? body : null) 
+          ?? `Error ${err.status}: Credenciales inválidas.`;
+          
+        let finalMessage = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
+
+        if (messages.length > 0) {
+          this.generalError = messages.join(' • ');
+        } else {
+          this.generalError = finalMessage;
+        }
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
   lodging: Lodging | null = null;
 
@@ -135,20 +143,107 @@ export class BookingComponent implements OnInit {
   successCode = '';
   mockTotal = 0;
 
+  // Payment hall state
+  mostrarPago = signal(false);
+  procesandoReserva = signal(false);
+  errorMsg = signal<string | null>(null);
+
   ngOnInit(): void {
-    this.route.params.subscribe(params => {
-      const id = +params['id'] || 1;
-      this.lodging = this.lodgings.find(l => l.id === id) || this.lodgings[0];
-      
-      // Initialize room selections based on lodging rooms
-      if (this.lodging) {
-        this.roomSelections = this.lodging.habitaciones.map((room, index) => ({
-          selected: index === 0, // default select first room
-          roomsCount: 1,
-          adultsCount: 2,
-          kidsCount: index === 0 ? 1 : 0
-        }));
+    // Intentar decodificar clienteGuid del token JWT si existe en localStorage
+    try {
+      const token = localStorage.getItem('token');
+      const uGuid = localStorage.getItem('usuarioGuid');
+      if (token && !localStorage.getItem('clienteGuid')) {
+        const parts = token.split('.');
+        if (parts.length >= 2) {
+          const payloadBase64 = parts[1];
+          let base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+          const pad = base64.length % 4;
+          if (pad) {
+            base64 += '='.repeat(4 - pad);
+          }
+          const decodedStr = atob(base64);
+          const utf8Decoded = decodeURIComponent(
+            decodedStr.split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+          );
+          const parsed = JSON.parse(utf8Decoded);
+          console.log('[DEBUG] Decoded active JWT token in booking component:', parsed);
+
+          const resolved = parsed.clienteGuid 
+            || parsed.guidCliente 
+            || parsed.guid 
+            || parsed['clienteGuid']
+            || parsed['guidCliente']
+            || parsed['guid']
+            || parsed['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
+            || parsed['sub']
+            || '';
+
+          if (resolved) {
+            if (resolved !== uGuid) {
+              localStorage.setItem('clienteGuid', resolved);
+              console.log('[DEBUG] Extracted and saved clienteGuid from active JWT:', resolved);
+            } else {
+              const otherKeys = ['clienteGuid', 'guidCliente', 'cliente_guid'];
+              let foundAlternative = '';
+              for (const key of otherKeys) {
+                if (parsed[key] && parsed[key] !== uGuid) {
+                  foundAlternative = parsed[key];
+                  break;
+                }
+              }
+              if (foundAlternative) {
+                localStorage.setItem('clienteGuid', foundAlternative);
+                console.log('[DEBUG] Extracted and saved alternative clienteGuid from active JWT:', foundAlternative);
+              }
+            }
+          }
+        }
       }
+    } catch (e) {
+      console.error('[ERROR] Failed to decode active token in booking component:', e);
+    }
+
+    this.route.params.subscribe(params => {
+      const id = params['id'];
+      this.route.queryParams.subscribe(qParams => {
+        this.provider = qParams['provider'] || 'juan';
+        this.fechaInicio = qParams['llegada'] || '2026-05-20';
+        this.fechaFin = qParams['salida'] || '2026-05-22';
+        
+        const adults = qParams['adultos'] ? +qParams['adultos'] : 2;
+        const kids = qParams['ninos'] ? +qParams['ninos'] : 0;
+        const seleccionStr = qParams['seleccion'];
+
+        let selectionsData: any[] = [];
+        if (seleccionStr) {
+          try {
+            selectionsData = JSON.parse(seleccionStr);
+          } catch (e) {
+            console.error('Error parsing room selections:', e);
+          }
+        }
+
+        this.lodgingService.getLodgingById(id, this.provider, this.fechaInicio, this.fechaFin, adults, kids).subscribe(lodging => {
+          if (lodging) {
+            this.lodging = lodging;
+            
+            // Initialize room selections based on serialized selected rooms
+            if (this.lodging && this.lodging.habitaciones) {
+              this.roomSelections = this.lodging.habitaciones.map((room) => {
+                const selMatch = selectionsData.find((s: any) => s.roomId === room.id);
+                return {
+                  selected: !!selMatch,
+                  roomsCount: selMatch ? selMatch.habitaciones : 1,
+                  adultsCount: selMatch ? selMatch.adultos : 1,
+                  kidsCount: selMatch ? selMatch.ninos : 0
+                };
+              });
+            }
+            this.cdr.detectChanges();
+          }
+        });
+      });
     });
   }
 
@@ -227,6 +322,13 @@ export class BookingComponent implements OnInit {
     return lines;
   }
 
+  get paymentDetails(): { name: string; value: number }[] {
+    return this.selectedLines.map(line => ({
+      name: `${line.name} (x${line.rooms} hab. x ${this.nights}n)`,
+      value: line.lineTotal
+    }));
+  }
+
   // Calculations
   get subtotal(): number {
     return this.selectedLines.reduce((acc, line) => acc + line.lineTotal, 0);
@@ -283,8 +385,8 @@ export class BookingComponent implements OnInit {
           return 'El RUC debe tener exactamente 13 dígitos';
         }
       } else if (this.tipoIdentificacion === 'PAS') {
-        if (this.numeroIdentificacion.length !== 20) {
-          return 'El pasaporte debe tener exactamente 20 caracteres';
+        if (this.numeroIdentificacion.length < 5 || this.numeroIdentificacion.length > 20) {
+          return 'El pasaporte debe tener entre 5 y 20 caracteres';
         }
       }
     }
@@ -303,9 +405,13 @@ export class BookingComponent implements OnInit {
 
     if (field === 'telefono') {
       if (!this.telefono) return 'El teléfono es requerido';
-      if (!/^\d{10}$/.test(this.telefono)) {
-        return 'El teléfono debe tener exactamente 10 dígitos';
+      if (!/^\d{9,15}$/.test(this.telefono)) {
+        return 'El teléfono debe tener entre 9 y 15 dígitos';
       }
+    }
+
+    if (field === 'direccion') {
+      if (!this.direccion.trim()) return 'La dirección es requerida';
     }
 
     return '';
@@ -315,42 +421,251 @@ export class BookingComponent implements OnInit {
     return !!this.getFieldErrorMsg(field);
   }
 
-  // Submit Reserva
+  // Submit Reserva (abre el Hall de Pagos)
   submitReserva(): void {
+    console.log('[DEBUG] submitReserva triggered');
+    console.log('[DEBUG] activeTab:', this.activeTab);
+
+    // Validar si el usuario está autenticado antes de continuar
+    if (!this.isLoggedIn) {
+      console.log('[DEBUG] submitReserva blocked: User not logged in. Opening login modal.');
+      this.mostrarLoginModal.set(true);
+      this.cdr.detectChanges();
+      return;
+    }
+    
     if (this.activeTab === 'nuevo') {
-      const fields = ['tipoIdentificacion', 'numeroIdentificacion', 'nombres', 'correo', 'telefono'];
+      const fields = ['tipoIdentificacion', 'numeroIdentificacion', 'nombres', 'correo', 'telefono', 'direccion'];
       fields.forEach(field => this.touchedFields.add(field));
 
       let hasErrors = false;
       for (const field of fields) {
-        if (this.isFieldError(field)) {
+        const errMsg = this.getFieldErrorMsg(field);
+        if (errMsg) {
+          console.log(`[DEBUG] Validation Error in field "${field}":`, errMsg);
           hasErrors = true;
         }
       }
 
       if (hasErrors) {
-        const el = document.getElementById('tab-nuevo');
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        console.log('[DEBUG] submitReserva blocked due to form field validation errors.');
+        
+        // Scroll to the first field with an error and focus it
+        for (const field of fields) {
+          if (this.isFieldError(field)) {
+            const el = document.getElementById(field);
+            if (el) {
+              console.log(`[DEBUG] Scrolling to invalid field: ${field}`);
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.focus();
+              break;
+            }
+          }
+        }
+        
+        this.cdr.detectChanges();
         return;
       }
     }
 
+    console.log('[DEBUG] Number of nights:', this.nights);
     if (this.nights <= 0) {
+      console.log('[DEBUG] submitReserva blocked: nights <= 0');
       this.fechaError = true;
       const el = document.getElementById('fechaFin');
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      this.cdr.detectChanges();
       return;
     }
 
-    // Mock confirmation code
-    const rand = Math.floor(Math.random() * 9000 + 1000);
-    this.successCode = `RES-20260520-${rand}`;
-    this.mockTotal = this.total;
-    this.showSuccess = true;
+    // Validar que haya al menos una habitación seleccionada
+    const hasRoom = this.roomSelections.some(r => r.selected);
+    console.log('[DEBUG] hasRoom selected:', hasRoom, this.roomSelections);
+    if (!hasRoom) {
+      console.log('[DEBUG] submitReserva blocked: No room selected.');
+      this.errorMsg.set('Por favor selecciona al menos una habitación.');
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Abre el hall de pagos en lugar de hacer la reserva directamente
+    console.log('[DEBUG] Form and selections validated. Opening payment hall (mostrarPago => true).');
+    this.mostrarPago.set(true);
+    this.cdr.detectChanges();
+  }
+
+  cancelarPago(): void {
+    console.log('[DEBUG] cancelarPago triggered. Closing payment hall (mostrarPago => false).');
+    this.mostrarPago.set(false);
+    this.cdr.detectChanges();
+  }
+
+  actualizarDatosHuesped(datos: any): void {
+    if (!datos) return;
+    console.log('[DEBUG] Guest details updated from payment modal:', datos);
+    
+    if (datos.nombre) {
+      const partes = datos.nombre.trim().split(' ');
+      this.nombres = partes[0] || '';
+      this.apellidos = partes.slice(1).join(' ') || datos.apellidos || '';
+    }
+    if (datos.apellidos) {
+      this.apellidos = datos.apellidos;
+    }
+    if (datos.email) {
+      this.correo = datos.email;
+    }
+    if (datos.telefono) {
+      this.telefono = datos.telefono;
+    }
+    this.cdr.detectChanges();
+  }
+
+  // Se llama al completarse el pago simulado de forma exitosa
+  procesarPagoYReserva(): void {
+    console.log('[DEBUG] procesarPagoYReserva triggered. Initiating API request...');
+    this.procesandoReserva.set(true);
+    this.cdr.detectChanges();
+
+    const habitacionesPayload = this.roomSelections
+      .map((sel, index) => {
+        if (!sel.selected) return null;
+        const room = this.lodging!.habitaciones![index];
+        return {
+          tipoHabitacionGuid: room.id,
+          numHabitaciones: sel.roomsCount,
+          numAdultos: sel.adultsCount,
+          numNinos: sel.kidsCount
+        };
+      })
+      .filter(h => h !== null) as any[];
+
+    const payload = {
+      sucursalGuid: this.lodging!.id,
+      fechaInicio: this.fechaInicio + 'T14:00:00.000Z',
+      fechaFin: this.fechaFin + 'T12:00:00.000Z',
+      observaciones: this.observaciones || 'Reserva desde marketplace',
+      esWalkin: false,
+      origenCanalReserva: 'MARKETPLACE',
+      cliente: {
+        tipoIdentificacion: this.tipoIdentificacion,
+        numeroIdentificacion: this.numeroIdentificacion,
+        nombres: this.nombres,
+        apellidos: this.apellidos || '',
+        correo: this.correo,
+        telefono: this.telefono,
+        direccion: this.direccion
+      },
+      habitaciones: habitacionesPayload
+    };
+
+    console.log('[DEBUG] payload created:', payload);
+
+    this.lodgingService.crearReserva(this.provider, payload).subscribe({
+      next: (res) => {
+        console.log('[DEBUG] API response received successfully:', res);
+        this.procesandoReserva.set(false);
+        this.mostrarPago.set(false); // Cierra pasarela de pagos
+        if (res) {
+          this.successCode = res.codigoReserva || `RES-20260520-${Math.floor(Math.random() * 9000 + 1000)}`;
+          this.mockTotal = res.totalReserva || this.total;
+          this.showSuccess = true;
+
+          // Guardar en localStorage para el historial de reservas
+          const guidCliente = localStorage.getItem('usuarioGuid') || '3fa85f64-5717-4562-b3fc-2c963f66afa6';
+          const newBookingItem = {
+            reservaGuid: res.reservaGuid || `guid-${this.successCode}`,
+            usuarioGuid: guidCliente, // Guardar el guid del usuario para filtrar
+            provider: this.provider,
+            lodgingName: this.lodging?.nombre || 'Hotel',
+            lodgingImage: this.lodging?.imagen || '',
+            fechaInicio: this.fechaInicio,
+            clienteNombre: `${this.nombres} ${this.apellidos || ''}`.trim(),
+            clienteEmail: this.correo,
+            clienteTelefono: this.telefono,
+            clienteDireccion: this.direccion
+          };
+          try {
+            const listStr = localStorage.getItem('pooking_lodging_reservations') || '[]';
+            const list = JSON.parse(listStr);
+            list.push(newBookingItem);
+            localStorage.setItem('pooking_lodging_reservations', JSON.stringify(list));
+            console.log('[DEBUG] Saved lodging reservation to localStorage:', newBookingItem);
+          } catch (e) {
+            console.error('Error saving reservation to localStorage:', e);
+          }
+
+          // AHORA: Guardar reserva centralizada en el middleware (POST /api/v2/booking/clientes/reservas)
+          const token = localStorage.getItem('token');
+          const usuarioGuid = localStorage.getItem('usuarioGuid');
+          const storedClienteGuid = localStorage.getItem('clienteGuid');
+
+          const saveToMiddleware = (resolvedClienteGuid: string) => {
+            const middlewarePayload = {
+              guidCliente: resolvedClienteGuid,
+              guidServicioRef: "48f44e82-2717-412c-90bb-bfe1168c3164",
+              nombreServicioSnap: this.provider, // Igual al nombre del servidor/proveedor
+              tipoServicioSnap: "alojamiento",   // Siempre alojamiento para hospedaje
+              nombreProveedor: this.provider,
+              idReservaExterna: res.reservaGuid || `guid-${this.successCode}`,
+              fechaInicio: this.fechaInicio + 'T14:00:00.000Z',
+              fechaFin: this.fechaFin + 'T12:00:00.000Z',
+              canalOrigen: 'MARKETPLACE',
+              montoTotal: res.totalReserva || this.total,
+              moneda: 'USD',
+              observaciones: this.observaciones || 'Reserva desde marketplace'
+            };
+
+            console.log('[DEBUG] Sending reservation payload to middleware:', middlewarePayload);
+            this.http.post(`${environment.apiGatewayUrl}/api/v2/booking/clientes/reservas`, middlewarePayload).subscribe({
+              next: (midRes) => {
+                console.log('[DEBUG] Reservation saved to middleware successfully:', midRes);
+              },
+              error: (midErr) => {
+                console.error('[ERROR] Failed to save reservation to middleware:', midErr);
+              }
+            });
+          };
+
+          if (storedClienteGuid) {
+            console.log('[DEBUG] Using stored clienteGuid from localStorage:', storedClienteGuid);
+            saveToMiddleware(storedClienteGuid);
+          } else if (token && usuarioGuid) {
+            const headers = new HttpHeaders({
+              'Authorization': `Bearer ${token}`
+            });
+            this.http.get(`${environment.apiGatewayUrl}/api/v1/clientes/usuario/${usuarioGuid}`, { headers }).subscribe({
+              next: (cliRes: any) => {
+                const actualClienteGuid = cliRes?.data?.guid || cliRes?.data?.clienteGuid || cliRes?.data?.guidCliente || usuarioGuid;
+                console.log('[DEBUG] Fetched actual clienteGuid:', actualClienteGuid, 'for usuarioGuid:', usuarioGuid);
+                saveToMiddleware(actualClienteGuid);
+              },
+              error: (cliErr) => {
+                console.warn('[WARNING] Failed to fetch actual clienteGuid. Falling back to usuarioGuid:', cliErr);
+                saveToMiddleware(usuarioGuid);
+              }
+            });
+          } else {
+            saveToMiddleware(guidCliente);
+          }
+        } else {
+          this.errorMsg.set('Hubo un error al procesar tu reserva con el proveedor. Por favor intenta de nuevo.');
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('[ERROR] API request failed:', err);
+        this.procesandoReserva.set(false);
+        this.mostrarPago.set(false);
+        this.errorMsg.set('Hubo un error de red al procesar tu reserva. Por favor intenta de nuevo.');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   closeSuccess(): void {
+    console.log('[DEBUG] closeSuccess triggered. Routing to profile page...');
     this.showSuccess = false;
-    this.router.navigate(['/']);
+    this.router.navigate(['/profile']);
   }
 }

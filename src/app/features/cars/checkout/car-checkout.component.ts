@@ -90,6 +90,26 @@ export class CarCheckoutComponent implements OnInit {
 
   readonly cantidadDias = computed(() => this.vehiculo()?.disponibilidad.cantidadDias ?? 1);
 
+  readonly paymentDetails = computed(() => {
+    const list: { name: string; value: number }[] = [];
+    const car = this.vehiculo();
+    if (car) {
+      list.push({
+        name: `Alquiler de ${car.marca} ${car.modelo} (x${this.cantidadDias()} días)`,
+        value: this.subtotalVehiculo()
+      });
+    }
+    this.extrasSeleccionados().forEach((e) => {
+      if (e.cantidad > 0) {
+        list.push({
+          name: `${e.extra.nombre} (x${e.cantidad})`,
+          value: e.extra.valorFijo * e.cantidad
+        });
+      }
+    });
+    return list;
+  });
+
   readonly localizacionDevolucion = computed(() => {
     if (!this.idLocalizacionDevolucion()) return this.vehiculo()?.localizacion ?? null;
     return this.localizaciones.find(l => l.idLocalizacion === this.idLocalizacionDevolucion())

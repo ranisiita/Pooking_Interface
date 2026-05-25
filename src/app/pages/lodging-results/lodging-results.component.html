@@ -367,7 +367,7 @@
               </span>
               <span class="noche">por noche</span>
             </div>
-            <button class="btn-ver" [routerLink]="['/alojamiento', h.id]" aria-label="Ver detalles y reservar este alojamiento">
+            <button class="btn-ver" [routerLink]="['/alojamiento', h.id]" [queryParams]="{ provider: h.provider, llegada: busqueda.llegada, salida: busqueda.salida, adultos: busqueda.adultos, ninos: busqueda.ninos }" aria-label="Ver detalles y reservar este alojamiento">
               <span>Ver alojamiento</span>
               <span class="material-icons arrow-btn">arrow_forward</span>
             </button>

@@ -25,9 +25,14 @@ export class PaymentComponent implements OnInit {
   @Input() ivaInput = 0;
   @Input() overrideEmail = '';
   @Input() overrideNombre = '';
+  @Input() buttonLabel = 'Pagar de forma segura';
+  @Input() serviceType: 'vuelo' | 'alojamiento' | 'atraccion' | 'auto' | 'vehiculo' = 'vuelo';
+  @Input() itemName = '';
+  @Input() customDetails: { name: string; value: number }[] = [];
 
   @Output() pagoExitoso = new EventEmitter<void>();
   @Output() onCancel = new EventEmitter<void>();
+  @Output() datosEditados = new EventEmitter<any>();
 
   guid = '';
   vuelo = signal<FlightItem | null>(null);
@@ -91,7 +96,15 @@ export class PaymentComponent implements OnInit {
     } else {
       // Uso embebido
       if (this.overrideNombre) {
-        this.datosPersonales.nombre = this.overrideNombre;
+        const nombreCompleto = this.overrideNombre.trim();
+        const espacioIdx = nombreCompleto.indexOf(' ');
+        if (espacioIdx !== -1) {
+          this.datosPersonales.nombre = nombreCompleto.substring(0, espacioIdx).trim();
+          this.datosPersonales.apellidos = nombreCompleto.substring(espacioIdx + 1).trim();
+        } else {
+          this.datosPersonales.nombre = nombreCompleto;
+          this.datosPersonales.apellidos = '';
+        }
       }
       if (this.overrideEmail) {
         this.datosPersonales.email = this.overrideEmail;
@@ -126,6 +139,7 @@ export class PaymentComponent implements OnInit {
   continuarAlPago(): void {
     if (!this.validarDatos()) return;
     this.paso.set(2);
+    this.datosEditados.emit(this.datosPersonales);
   }
 
   // ---- Formateo tarjeta ----
@@ -199,12 +213,36 @@ export class PaymentComponent implements OnInit {
   }
 
   volverAlPaso1(): void {
-    if (this.initialStep === 1) {
-      this.paso.set(1);
-    }
+    this.paso.set(1);
   }
 
   get hayErroresTarjeta(): boolean {
     return Object.keys(this.erroresTarjeta).length > 0;
+  }
+
+  getServiceDefaultName(): string {
+    switch (this.serviceType) {
+      case 'alojamiento':
+        return 'Reserva de Alojamiento';
+      case 'atraccion':
+        return 'Reserva de Atracción';
+      case 'auto':
+      case 'vehiculo':
+        return 'Alquiler de Vehículo';
+      case 'vuelo':
+      default:
+        return 'Reserva de Vuelo';
+    }
+  }
+
+  getIvaPercentageLabel(): string {
+    if (this.isStandalone) {
+      return '9,4%';
+    }
+    if (this.subtotalInput > 0 && this.ivaInput > 0) {
+      const pct = Math.round((this.ivaInput / this.subtotalInput) * 100);
+      return `${pct}%`;
+    }
+    return '15%';
   }
 }
