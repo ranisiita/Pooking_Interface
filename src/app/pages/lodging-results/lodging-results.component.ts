@@ -90,14 +90,7 @@ export class LodgingResultsComponent implements OnInit {
     'Apartamento': false
   };
 
-  filtroInstalaciones: { [key: string]: boolean } = {
-    'Piscina': false,
-    'Wifi': false,
-    'Spa': false,
-    'Gimnasio': false,
-    'Restaurante': false,
-    'Estacionamiento': false
-  };
+
 
   filtroNinos: boolean = false;
   filtroMascotas: boolean = false;
@@ -301,10 +294,6 @@ export class LodgingResultsComponent implements OnInit {
     this.aplicarFiltros();
   }
 
-  toggleInstalacion(inst: string): void {
-    this.filtroInstalaciones[inst] = !this.filtroInstalaciones[inst];
-    this.aplicarFiltros();
-  }
 
   toggleNinos(): void {
     this.filtroNinos = !this.filtroNinos;
@@ -339,14 +328,6 @@ export class LodgingResultsComponent implements OnInit {
       result = result.filter(h => tiposSeleccionados.includes(h.tipo));
     }
 
-    // 5. Filtrar por Instalaciones / Servicios (debe cumplir TODOS los seleccionados)
-    const serviciosSeleccionados = Object.keys(this.filtroInstalaciones)
-      .filter(key => this.filtroInstalaciones[key]);
-    if (serviciosSeleccionados.length > 0) {
-      result = result.filter(h =>
-        serviciosSeleccionados.every(serv => h.servicios.includes(serv))
-      );
-    }
 
     // 6. Filtrar por Aceptación de Niños
     if (this.filtroNinos) {
@@ -424,16 +405,6 @@ export class LodgingResultsComponent implements OnInit {
       }
     });
 
-    // Tags de instalaciones
-    Object.keys(this.filtroInstalaciones).forEach(i => {
-      if (this.filtroInstalaciones[i]) {
-        tags.push({
-          label: i,
-          type: 'instalacion',
-          value: i
-        });
-      }
-    });
 
     // Tag acepta niños
     if (this.filtroNinos) {
@@ -466,8 +437,7 @@ export class LodgingResultsComponent implements OnInit {
       this.filtroEstrellas[tag.value] = false;
     } else if (tag.type === 'tipo') {
       this.filtroTipos[tag.value] = false;
-    } else if (tag.type === 'instalacion') {
-      this.filtroInstalaciones[tag.value] = false;
+
     } else if (tag.type === 'ninos') {
       this.filtroNinos = false;
     } else if (tag.type === 'mascotas') {
@@ -484,7 +454,7 @@ export class LodgingResultsComponent implements OnInit {
 
     Object.keys(this.filtroEstrellas).forEach(k => this.filtroEstrellas[+k] = false);
     Object.keys(this.filtroTipos).forEach(k => this.filtroTipos[k] = false);
-    Object.keys(this.filtroInstalaciones).forEach(k => this.filtroInstalaciones[k] = false);
+
 
     this.filtroNinos = false;
     this.filtroMascotas = false;

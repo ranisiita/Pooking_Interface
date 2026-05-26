@@ -206,14 +206,7 @@
       </label>
     </section>
 
-    <!-- INSTALACIONES / SERVICIOS -->
-    <section class="filter-section filter-group">
-      <h3 class="section-title">Instalaciones</h3>
-      <label class="fcheck" *ngFor="let serv of ['Piscina', 'Wifi', 'Spa', 'Gimnasio', 'Restaurante', 'Estacionamiento']">
-        <input type="checkbox" [checked]="filtroInstalaciones[serv]" (change)="toggleInstalacion(serv)" [attr.aria-label]="serv">
-        <span class="fc-label">{{ serv }}</span>
-      </label>
-    </section>
+
 
     <!-- ESTRELLAS -->
     <section class="filter-section filter-group">
