@@ -635,7 +635,7 @@ export class ProfileComponent implements OnInit {
     // Consultar detalles del hospedaje para mapear el tipo de habitación dinámicamente
     if (reserva.sucursalGuid && reserva.provider) {
       this.lodgingService.getLodgingById(reserva.sucursalGuid, reserva.provider).subscribe(lodging => {
-        if (lodging && lodging.habitaciones) {
+        if (lodging && lodging.habitaciones && this.selectedReserva.habitaciones) {
           this.selectedReserva.habitaciones = this.selectedReserva.habitaciones.map((rm: any) => {
             const roomMatch = lodging.habitaciones.find((r: any) => r.id === rm.habitacionGuid);
             return {
