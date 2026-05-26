@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { NavbarComponent } from '../../components/navbar/navbar.component';
 import { FooterComponent } from '../../components/navbar/footer.component';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -20,9 +20,16 @@ import { catchError, map, switchMap } from 'rxjs/operators';
 export class ProfileComponent implements OnInit {
   private http = inject(HttpClient);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private lodgingService = inject(LodgingService);
   private atraccionesService = inject(AtraccionesService);
   private cdr = inject(ChangeDetectorRef);
+
+  // GUIDs fijos de tipo de servicio (acordados con backend).
+  private readonly TIPO_ATRACCIONES_GUID = '5bbd422f-6ddb-48c3-86c3-28046ff263ee';
+  private readonly TIPO_ALOJAMIENTO_GUID = '7649eca9-0480-44b0-aaf0-2dcf4ebc45bc';
+  private readonly TIPO_AUTOS_GUID = '1c6219ac-9154-4fa7-9c4d-91b3a5d1e673';
+  private readonly TIPO_VUELOS_GUID = '55efed9f-f9f0-4376-acec-fa8c76954cc6';
 
   user: any = null;
   isLoading = true;
@@ -36,12 +43,25 @@ export class ProfileComponent implements OnInit {
   isLoadingReservations = true;
   selectedReserva: any = null;
 
+  /** Tipo de servicio de la reserva actualmente abierta en el modal. */
+  tipoServicioActual: 'lodging' | 'attractions' | 'cars' | 'flights' | 'unknown' = 'unknown';
+
+  /** Aviso suave cuando el detalle externo del proveedor falla. */
+  detalleApiCaida: string | null = null;
+
   setTab(tab: 'alojamiento' | 'atracciones' | 'automoviles'): void {
     this.activeTab = tab;
     this.cdr.detectChanges();
   }
 
   ngOnInit(): void {
+    // Si llegamos con ?tab=atracciones / alojamiento / automoviles, abrimos
+    // esa pestaña directamente (atracciones lo usa al "Ver mis reservas").
+    const tabParam = this.route.snapshot.queryParamMap.get('tab');
+    if (tabParam === 'atracciones' || tabParam === 'alojamiento' || tabParam === 'automoviles') {
+      this.activeTab = tabParam;
+    }
+
     let token = null;
     let guid = null;
     try {
@@ -112,7 +132,7 @@ export class ProfileComponent implements OnInit {
         level: 'Explorador',
         avatarUrl: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
         coverUrl: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80',
-        stats: { trips: 0, reviews: 0, points: 0 }
+        stats: { trips: 0, reviews: 0, points: 0, lodgingCount: 0, attractionsCount: 0, carsCount: 0 }
       };
       this.cargarReservasDesdeMiddleware();
       return;
@@ -143,7 +163,7 @@ export class ProfileComponent implements OnInit {
               level: 'Viajero Frecuente',
               avatarUrl: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
               coverUrl: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80',
-              stats: { trips: 0, reviews: 0, points: 0 },
+              stats: { trips: 0, reviews: 0, points: 0, lodgingCount: 0, attractionsCount: 0, carsCount: 0 },
               ...data
             };
           }
@@ -161,7 +181,7 @@ export class ProfileComponent implements OnInit {
             level: 'Explorador',
             avatarUrl: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
             coverUrl: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1500&q=80',
-            stats: { trips: 0, reviews: 0, points: 0 }
+            stats: { trips: 0, reviews: 0, points: 0, lodgingCount: 0, attractionsCount: 0, carsCount: 0 }
           };
           this.cargarReservasDesdeMiddleware();
         }
@@ -230,20 +250,12 @@ export class ProfileComponent implements OnInit {
         }
         console.log('[DEBUG] Fetched reservations from middleware:', items);
 
-        // Agrupación por tipo de servicio
-        const lodgingItems = items.filter((item: any) => 
-          (item.tipoServicioSnap || '').toLowerCase() === 'alojamiento' || 
-          (item.nombreServicioSnap || '').toLowerCase() === 'alojamiento'
-        );
-        const attractionItems = items.filter((item: any) => 
-          (item.tipoServicioSnap || '').toLowerCase() === 'atraccion' || 
-          (item.tipoServicioSnap || '').toLowerCase() === 'atracciones'
-        );
-        const carItems = items.filter((item: any) => 
-          (item.tipoServicioSnap || '').toLowerCase() === 'auto' || 
-          (item.tipoServicioSnap || '').toLowerCase() === 'automoviles' || 
-          (item.tipoServicioSnap || '').toLowerCase() === 'vehiculo'
-        );
+        // Agrupación por tipo — usa la función centralizada `getServiceType`.
+        // Acepta tanto el `guidServicioRef` (GUID fijo) como `tipoServicioSnap`
+        // en formato ID numérico ('1'/'3'/'5') o textual ('alojamiento', etc.).
+        const lodgingItems = items.filter((it: any) => this.getServiceType(it) === 'lodging');
+        const attractionItems = items.filter((it: any) => this.getServiceType(it) === 'attractions');
+        const carItems = items.filter((it: any) => this.getServiceType(it) === 'cars');
 
         // ── 1. MAPEAR ALOJAMIENTOS DINÁMICAMENTE ──
         let lodgingRequests = lodgingItems.map((bk: any) => {
@@ -359,6 +371,11 @@ export class ProfileComponent implements OnInit {
               const subtotal = total / 1.15;
               const iva = total - subtotal;
 
+              // Imagen real de la atracción persistida al momento de reservar
+              // (el endpoint general /clientes/reservas no la expone). Si no
+              // existe, el template usa el gradient como fallback automático.
+              const imagenAtraccion = this.obtenerImagenAtraccionLocal(externalId);
+
               if (res) {
                 const data = res.data || res;
                 return {
@@ -379,7 +396,7 @@ export class ProfileComponent implements OnInit {
                   provider: providerName,
                   tipoServicio: 'atraccion',
                   lodgingName: data.atraccion_nombre || bk.nombreServicioSnap || 'Atracción Turística',
-                  lodgingImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80',
+                  lodgingImage: imagenAtraccion,
                   cliente: {
                     nombres: this.user ? `${this.user.nombres || ''} ${this.user.apellidos || ''}`.trim() || this.user.name : 'Invitado',
                     correo: this.user?.correo || this.user?.email || 'invitado@example.com',
@@ -408,7 +425,7 @@ export class ProfileComponent implements OnInit {
                   provider: providerName,
                   tipoServicio: 'atraccion',
                   lodgingName: bk.nombreServicioSnap || 'Atracción Turística',
-                  lodgingImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80',
+                  lodgingImage: imagenAtraccion,
                   observaciones: bk.observaciones || '',
                   cliente: {
                     nombres: this.user ? `${this.user.nombres || ''} ${this.user.apellidos || ''}`.trim() || this.user.name : 'Invitado',
@@ -490,12 +507,20 @@ export class ProfileComponent implements OnInit {
             this.reservations = (lodgings || []).filter((r: any) => r !== null);
             this.attractionReservations = (attractions || []).filter((r: any) => r !== null);
             this.carReservations = (cars || []).filter((r: any) => r !== null);
-            
+
             this.isLoadingReservations = false;
             if (this.user) {
-              this.user.stats.trips = this.reservations.length + this.attractionReservations.length + this.carReservations.length;
+              this.user.stats.lodgingCount = this.reservations.length;
+              this.user.stats.attractionsCount = this.attractionReservations.length;
+              this.user.stats.carsCount = this.carReservations.length;
+              // `trips` se conserva por retro-compatibilidad como total general.
+              this.user.stats.trips =
+                this.reservations.length + this.attractionReservations.length + this.carReservations.length;
             }
             this.cdr.detectChanges();
+            // Hidratación diferida: para reservas de atracciones sin imagen
+            // cacheada, consulta el listado del proveedor y matchea por nombre.
+            this.hidratarImagenesAtraccionesPendientes();
           },
           error: (err) => {
             console.error('Error combining reservation requests:', err);
@@ -631,29 +656,112 @@ export class ProfileComponent implements OnInit {
   openReservaDetails(reserva: any): void {
     console.log('[DEBUG] openReservaDetails:', reserva);
     this.selectedReserva = reserva;
-    
-    // Consultar detalles del hospedaje para mapear el tipo de habitación dinámicamente
-    if (reserva.sucursalGuid && reserva.provider) {
-      this.lodgingService.getLodgingById(reserva.sucursalGuid, reserva.provider).subscribe(lodging => {
-        if (lodging && lodging.habitaciones && this.selectedReserva.habitaciones) {
-          this.selectedReserva.habitaciones = this.selectedReserva.habitaciones.map((rm: any) => {
-            const roomMatch = lodging.habitaciones.find((r: any) => r.id === rm.habitacionGuid);
-            return {
-              ...rm,
-              tipoHabitacion: roomMatch ? roomMatch.nombre : (rm.tipoHabitacion || 'Habitación Premium')
-            };
+    this.detalleApiCaida = null;
+    this.tipoServicioActual = this.getServiceType(reserva);
+
+    const provider = this.normalizeProvider(reserva.provider || reserva.nombreProveedor);
+
+    switch (this.tipoServicioActual) {
+      case 'lodging':
+        // Comportamiento original de alojamientos — NO TOCAR.
+        if (reserva.sucursalGuid && provider) {
+          this.lodgingService.getLodgingById(reserva.sucursalGuid, provider).subscribe({
+            next: (lodging: any) => {
+              if (lodging && lodging.habitaciones && this.selectedReserva?.habitaciones) {
+                this.selectedReserva.habitaciones = this.selectedReserva.habitaciones.map((rm: any) => {
+                  const roomMatch = lodging.habitaciones.find((r: any) => r.id === rm.habitacionGuid);
+                  return {
+                    ...rm,
+                    tipoHabitacion: roomMatch ? roomMatch.nombre : (rm.tipoHabitacion || 'Habitación Premium'),
+                  };
+                });
+                this.cdr.detectChanges();
+              }
+            },
+            error: () => {
+              this.detalleApiCaida =
+                'No se pudo obtener el detalle actualizado del proveedor. Se muestra la información guardada en tu historial.';
+              this.cdr.detectChanges();
+            },
           });
+        }
+        break;
+
+      case 'attractions':
+        this.cargarDetalleAtraccion(reserva, provider);
+        break;
+
+      // Autos / vuelos / desconocido: usar snapshot del historial sin
+      // llamadas adicionales — el modal ya tiene los datos básicos.
+      default:
+        break;
+    }
+
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Detalle de atracción — consulta el endpoint correcto del proveedor:
+   *   GET /{provider}/api/v2/reservas/{rev_guid}
+   *
+   * `idReservaExterna` del historial = `rev_guid` de la reserva externa.
+   * Si el proveedor está apagado o falla, no rompe el modal: se muestra el
+   * snapshot del historial + un aviso ámbar suave.
+   */
+  private cargarDetalleAtraccion(reserva: any, provider: string): void {
+    const revGuid = reserva.idReservaExterna || reserva.codigoReserva || reserva.reservaGuid;
+    if (!provider || !revGuid) {
+      console.warn('[Profile] Falta provider o rev_guid para detalle de atracción', { provider, revGuid });
+      return;
+    }
+    this.atraccionesService.getReservaDetalle(revGuid, provider as any).subscribe({
+      next: (resp: any) => {
+        const data = resp?.data ?? resp;
+        if (data) {
+          this.selectedReserva = {
+            ...this.selectedReserva,
+            codigoReserva: data.rev_codigo ?? this.selectedReserva.codigoReserva,
+            lodgingName: data.atraccion_nombre ?? this.selectedReserva.lodgingName,
+            fechaInicio: data.hor_fecha
+              ? `${data.hor_fecha}T${(data.hor_hora_inicio || '00:00')}:00`
+              : this.selectedReserva.fechaInicio,
+            fechaFin: data.hor_fecha
+              ? `${data.hor_fecha}T${(data.hor_hora_fin || '23:59')}:00`
+              : this.selectedReserva.fechaFin,
+            estadoReservaProveedor: data.rev_estado ?? '',
+            subtotalReserva: data.rev_subtotal ?? this.selectedReserva.subtotalReserva,
+            valorIva: data.rev_valor_iva ?? this.selectedReserva.valorIva,
+            totalReserva: data.rev_total ?? this.selectedReserva.totalReserva,
+            detalleAtraccion: data.detalle ?? [],
+          };
           this.cdr.detectChanges();
         }
-      });
-    }
-    
-    this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        console.warn(
+          '[Profile] Detalle de atracción falló · status=', err?.status,
+          '· provider=', provider, '· rev_guid=', revGuid,
+        );
+        const providerLbl = this.providerLabel(provider);
+        if (err?.status === 0 || err?.status >= 500) {
+          this.detalleApiCaida = `El proveedor ${providerLbl} no está disponible en este momento. Se muestra la información guardada en tu historial.`;
+        } else if (err?.status === 404) {
+          this.detalleApiCaida =
+            'No encontramos la reserva en el proveedor. Se muestra la información guardada en tu historial.';
+        } else {
+          this.detalleApiCaida =
+            'No se pudo obtener el detalle actualizado del proveedor. Se muestra la información guardada en tu historial.';
+        }
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   closeReservaDetails(): void {
     console.log('[DEBUG] closeReservaDetails');
     this.selectedReserva = null;
+    this.tipoServicioActual = 'unknown';
+    this.detalleApiCaida = null;
     this.cdr.detectChanges();
   }
 
@@ -683,5 +791,182 @@ export class ProfileComponent implements OnInit {
   fmtDateTime(val: string): string {
     if (!val) return '—';
     return new Date(val).toLocaleString('es-EC', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  /** Devuelve solo la hora (HH:mm) de un ISO. Útil para horarios de atracciones. */
+  fmtTime(val: string): string {
+    if (!val) return '';
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
+  /** Capitaliza el nombre del proveedor para UI: "luis" → "Luis". */
+  providerLabel(p: string | undefined | null): string {
+    if (!p) return 'Pooking';
+    return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+  }
+
+  /**
+   * Función centralizada para clasificar reservas por tipo de servicio.
+   * Reglas (en orden de prioridad):
+   *   1) `guidServicioRef` coincide con un GUID fijo → fuente de verdad.
+   *   2) `tipoServicioSnap` como ID numérico ('1'/'2'/'3'/'5') o nombre textual.
+   *   3) Fallback histórico por `nombreServicioSnap` para alojamiento.
+   *   4) Si nada coincide → 'unknown' (NO se asume alojamiento).
+   */
+  getServiceType(reserva: any): 'lodging' | 'attractions' | 'cars' | 'flights' | 'unknown' {
+    if (!reserva) return 'unknown';
+    const guidRef = reserva.guidServicioRef;
+    if (guidRef === this.TIPO_ATRACCIONES_GUID) return 'attractions';
+    if (guidRef === this.TIPO_ALOJAMIENTO_GUID) return 'lodging';
+    if (guidRef === this.TIPO_AUTOS_GUID) return 'cars';
+    if (guidRef === this.TIPO_VUELOS_GUID) return 'flights';
+
+    const tipo = String(reserva.tipoServicioSnap ?? '').toLowerCase().trim();
+    if (tipo === '3' || tipo === 'atraccion' || tipo === 'atracciones' || tipo === 'atracción') return 'attractions';
+    if (tipo === '1' || tipo === 'alojamiento' || tipo === 'hotel' || tipo === 'hospedaje') return 'lodging';
+    if (
+      tipo === '5' || tipo === '2' ||
+      tipo === 'auto' || tipo === 'autos' ||
+      tipo === 'automovil' || tipo === 'automoviles' || tipo === 'automóviles' ||
+      tipo === 'vehiculo' || tipo === 'vehículo' || tipo === 'vehiculos' || tipo === 'vehículos'
+    ) {
+      return 'cars';
+    }
+    if (tipo === 'vuelo' || tipo === 'vuelos' || tipo === 'flight') return 'flights';
+
+    // Fallback histórico: registros antiguos pueden no traer guidServicioRef
+    // ni tipo numérico, pero sí 'alojamiento' en nombreServicioSnap.
+    const nombre = String(reserva.nombreServicioSnap ?? '').toLowerCase().trim();
+    if (nombre === 'alojamiento') return 'lodging';
+
+    return 'unknown';
+  }
+
+  /** Normaliza "Luis"/"LUIS" → "luis" para construir rutas del bus. */
+  normalizeProvider(name: string | undefined | null): string {
+    if (!name) return '';
+    return String(name).trim().toLowerCase();
+  }
+
+  /**
+   * Lee del localStorage la imagen real de una atracción asociada a
+   * `revGuid`. La persistencia la hace `atracciones-reserva` al momento
+   * de crear la reserva, o se hidrata después por matching de nombre
+   * en `hidratarImagenesAtraccionesPendientes()`.
+   * Si no hay imagen, devuelve cadena vacía → el template usa el gradient
+   * como fallback automático.
+   */
+  private obtenerImagenAtraccionLocal(revGuid: string | undefined | null): string {
+    if (!revGuid) return '';
+    try {
+      const raw = localStorage.getItem('pooking_atracciones_images');
+      if (!raw) return '';
+      const map = JSON.parse(raw);
+      return (map[revGuid] as string) || '';
+    } catch {
+      return '';
+    }
+  }
+
+  /** Cachea en localStorage la imagen real para una reserva por rev_guid. */
+  private guardarImagenAtraccionLocal(revGuid: string, url: string): void {
+    if (!revGuid || !url) return;
+    try {
+      const raw = localStorage.getItem('pooking_atracciones_images') ?? '{}';
+      const map = JSON.parse(raw);
+      map[revGuid] = url;
+      localStorage.setItem('pooking_atracciones_images', JSON.stringify(map));
+    } catch (e) {
+      console.warn('[Profile] No se pudo cachear imagen de atracción:', e);
+    }
+  }
+
+  /**
+   * Hidratación diferida (lazy + best-effort) de las imágenes de atracciones.
+   *
+   * Para reservas anteriores que NO tienen imagen cacheada en localStorage
+   * (por ejemplo, creadas en otra sesión/navegador), intenta recuperar la
+   * imagen real haciendo matching por nombre contra el listado público del
+   * proveedor:
+   *
+   *   GET /{provider}/api/v2/atracciones
+   *
+   * Estrategia:
+   *   1) Filtra reservas de atracciones que están sin imagen.
+   *   2) Agrupa por provider (normalizado).
+   *   3) Por cada provider, hace UNA SOLA consulta al listado y matchea cada
+   *      reserva por `nombre`. Esto evita N requests por reserva.
+   *   4) Si hay match, actualiza la card y cachea en localStorage.
+   *   5) Si el provider falla (caído/CORS), no rompe nada: la card queda
+   *      con gradient, sin errores visibles para el usuario.
+   *
+   * El detalle externo `/reservas/{rev_guid}` no expone la imagen ni el
+   * `at_guid` según el contrato — por eso el matching va contra el listado.
+   * Si en el futuro el backend agrega `at_guid` al response del detalle de
+   * reserva, esta función puede simplificarse a consultar el detalle de
+   * atracción directamente por id.
+   */
+  private hidratarImagenesAtraccionesPendientes(): void {
+    const pendientes = this.attractionReservations.filter((r) => !r.lodgingImage);
+    if (pendientes.length === 0) return;
+
+    // Agrupa pendientes por provider normalizado (1 request por provider).
+    const porProvider = new Map<string, any[]>();
+    for (const r of pendientes) {
+      const prov = this.normalizeProvider(r.provider || r.nombreProveedor);
+      if (!prov) continue;
+      if (!porProvider.has(prov)) porProvider.set(prov, []);
+      porProvider.get(prov)!.push(r);
+    }
+    if (porProvider.size === 0) return;
+
+    porProvider.forEach((reservas, provider) => {
+      console.info('[Profile] Hidratando imágenes de atracciones · provider=', provider, '· N=', reservas.length);
+      this.atraccionesService.getAtracciones({ limit: 50 }, provider as any).subscribe({
+        next: (resp: any) => {
+          const lista: any[] = resp?.data ?? [];
+          if (!lista.length) return;
+
+          let actualizada = false;
+          for (const reserva of reservas) {
+            const nombreReserva = String(reserva.lodgingName ?? '').toLowerCase().trim();
+            if (!nombreReserva) continue;
+
+            const match = lista.find(
+              (a) => String(a?.nombre ?? '').toLowerCase().trim() === nombreReserva,
+            );
+            const url = match?.imagen_principal
+              || (Array.isArray(match?.imagenes) && match.imagenes.length ? match.imagenes[0] : '');
+            if (url) {
+              reserva.lodgingImage = url;
+              this.guardarImagenAtraccionLocal(
+                reserva.reservaGuid || reserva.codigoReserva,
+                url,
+              );
+              actualizada = true;
+            }
+          }
+          if (actualizada) this.cdr.detectChanges();
+        },
+        error: (err: any) => {
+          // Proveedor caído (CORS, 0, 5xx) — no rompe nada, las cards se
+          // quedan con gradient. Log informativo sin alertar al usuario.
+          console.warn(
+            '[Profile] Hidratación imágenes falló · provider=', provider,
+            '· status=', err?.status,
+          );
+        },
+      });
+    });
+  }
+
+  /** Estados que se consideran activos en historial. */
+  isActiveReservation(estado: string | undefined | null): boolean {
+    const e = String(estado ?? '').toUpperCase().trim();
+    if (!e) return true;
+    const inactivos = ['CAN', 'CANC', 'CANCEL', 'CANCELADA', 'ANULADA', 'EXPIRADA'];
+    return !inactivos.includes(e);
   }
 }
