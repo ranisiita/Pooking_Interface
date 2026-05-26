@@ -220,6 +220,70 @@
   font-size: 13px;
 }
 
+/* ── Bloque fecha + chips de rango ─────────────────────────────── */
+.rsv-fecha-rango {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rsv-rango-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.rsv-chip {
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid #d4c9af;
+  color: var(--color-extra1, #46403c);
+  font-family: var(--font-body), 'Poppins', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  border-radius: 100px;
+  padding: 7px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+
+.rsv-chip:hover {
+  border-color: var(--color-titulo, #8e5a54);
+  color: var(--color-titulo, #8e5a54);
+  background: var(--color-bg, #fbf8ea);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(70, 64, 60, 0.08);
+}
+
+.rsv-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(142, 90, 84, 0.18);
+}
+
+.rsv-chip.active {
+  background: var(--color-titulo, #8e5a54);
+  border-color: var(--color-titulo, #8e5a54);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(142, 90, 84, 0.25);
+}
+
+.rsv-chip.active:hover {
+  background: #a36861;
+  border-color: #a36861;
+  color: #ffffff;
+}
+
+@media (max-width: 520px) {
+  .rsv-chip {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+  }
+}
+
 /* ── Campos / formulario ───────────────────────────────────────── */
 .rsv-grid {
   display: grid;

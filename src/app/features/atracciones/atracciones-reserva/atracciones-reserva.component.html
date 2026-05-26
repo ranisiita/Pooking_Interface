@@ -63,31 +63,43 @@
         <!-- ── COLUMNA PRINCIPAL ── -->
         <div class="rsv-main">
 
-          <!-- 1. FECHA DE VISITA -->
+          <!-- 1. FECHA DE VISITA + RANGO -->
           <section class="rsv-section">
             <div class="rsv-section-head">
               <span class="material-icons">event</span>
               <h3>Selecciona la fecha de visita</h3>
             </div>
 
-            <div class="rsv-field" [class.has-error]="fechaError">
-              <label for="rsv-fecha">Fecha</label>
-              <input
-                type="date"
-                id="rsv-fecha"
-                class="rsv-input"
-                [(ngModel)]="fechaVisita"
-                [min]="today"
-                (ngModelChange)="onFechaChange()"
-              />
-              @if (fechaError) {
-                <span class="rsv-field-error">{{ fechaError }}</span>
-              } @else {
-                <span class="rsv-field-hint">
-                  Consultaremos los horarios reales con
-                  <code>GET /horarios?fecha=YYYY-MM-DD</code> cuando esté la API.
-                </span>
-              }
+            <div class="rsv-fecha-rango">
+              <div class="rsv-field" [class.has-error]="fechaError">
+                <label>Fecha desde</label>
+                <app-date-picker
+                  [value]="fechaInicio()"
+                  [min]="today"
+                  [hasError]="!!fechaError"
+                  placeholder="dd/mm/aaaa"
+                  theme="light"
+                  (valueChange)="onFechaInicioChange($event)"
+                ></app-date-picker>
+                @if (fechaError) {
+                  <span class="rsv-field-error">{{ fechaError }}</span>
+                }
+              </div>
+
+              <div class="rsv-rango-chips" role="group" aria-label="Rango de días">
+                <button type="button" class="rsv-chip" [class.active]="rangoDias() === 1" (click)="setRango(1)">
+                  Solo ese día
+                </button>
+                <button type="button" class="rsv-chip" [class.active]="rangoDias() === 3" (click)="setRango(3)">
+                  Próximos 3 días
+                </button>
+                <button type="button" class="rsv-chip" [class.active]="rangoDias() === 7" (click)="setRango(7)">
+                  Próximos 7 días
+                </button>
+                <button type="button" class="rsv-chip" [class.active]="rangoDias() === 15" (click)="setRango(15)">
+                  Próximos 15 días
+                </button>
+              </div>
             </div>
           </section>
 
@@ -98,9 +110,7 @@
               <h3>Horarios disponibles</h3>
             </div>
 
-            @if (!fechaVisita) {
-              <p class="rsv-empty-msg">Elige primero una fecha para ver los horarios disponibles.</p>
-            } @else if (horariosLoading()) {
+            @if (horariosLoading()) {
               <div class="rsv-inline-loading">
                 <div class="rsv-spinner sm" aria-hidden="true"></div>
                 <span>Cargando horarios…</span>
@@ -108,7 +118,7 @@
             } @else if (horariosError()) {
               <p class="rsv-empty-msg error">{{ horariosError() }}</p>
             } @else if (horarios().length === 0) {
-              <p class="rsv-empty-msg">No hay horarios con cupos disponibles para esta fecha.</p>
+              <p class="rsv-empty-msg">No hay horarios disponibles para el rango seleccionado.</p>
             } @else {
               <div class="horarios-grid">
                 @for (h of horarios(); track trackHorario($index, h)) {
@@ -327,7 +337,7 @@
             <!-- Fecha y horario -->
             <div class="rs-line">
               <span class="rs-key"><span class="material-icons">event</span> Fecha de visita</span>
-              <span class="rs-val">{{ fechaVisita || '—' }}</span>
+              <span class="rs-val">{{ fechaInicio() || '—' }}</span>
             </div>
             <div class="rs-line">
               <span class="rs-key"><span class="material-icons">schedule</span> Horario</span>
@@ -399,7 +409,8 @@
       </div>
 
       <!-- ══ MODAL: RESERVA CREADA (response de POST /api/v2/reservas) ══ -->
-      @if (reservaCreada(); as r) {
+      @if (!mostrarPago() && !factura()) {
+       @if (reservaCreada(); as r) {
         <div class="success-overlay show" (click)="cerrarConfirmacion()">
           <div class="success-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
 
@@ -504,6 +515,104 @@
               </button>
             </div>
 
+          </div>
+        </div>
+       }
+      }
+
+      <!-- ══ HALL DE PAGOS (componente compartido) ══ -->
+      @if (mostrarPago()) {
+       @if (reservaCreada(); as r) {
+        <app-payment
+          [isStandalone]="false"
+          [initialStep]="2"
+          [subtotalInput]="r.rev_subtotal"
+          [ivaInput]="r.rev_valor_iva"
+          [totalInput]="r.rev_total"
+          [overrideNombre]="nombreCompletoCliente()"
+          [overrideEmail]="correoClientePago()"
+          [serviceType]="'atraccion'"
+          [itemName]="r.atraccion_nombre"
+          [customDetails]="detallesLineas()"
+          buttonLabel="Confirmar pago"
+          (datosEditados)="onDatosEditadosPago($event)"
+          (pagoExitoso)="onPagoExitoso()"
+          (onCancel)="onCancelarPago()"
+        ></app-payment>
+        @if (errorPago(); as ep) {
+          <div class="success-overlay show" (click)="onCancelarPago()">
+            <div class="success-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+              <button class="success-close" (click)="onCancelarPago()" aria-label="Cerrar">
+                <span class="material-icons">close</span>
+              </button>
+              <div class="success-icon" style="background: linear-gradient(135deg, #b91c1c 0%, #ef6b6b 100%); box-shadow: 0 10px 24px rgba(185,28,28,0.35);">
+                <span class="material-icons">error_outline</span>
+              </div>
+              <h2>No pudimos confirmar el pago</h2>
+              <p class="success-sub">{{ ep }}</p>
+              <div class="success-actions">
+                <button class="btn-success" (click)="onCancelarPago()">Cerrar</button>
+              </div>
+            </div>
+          </div>
+        }
+       }
+      }
+
+      <!-- ══ MODAL DE FACTURA EMITIDA ══ -->
+      @if (factura(); as f) {
+        <div class="success-overlay show" (click)="cerrarFactura()">
+          <div class="success-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+
+            <button class="success-close" (click)="cerrarFactura()" aria-label="Cerrar">
+              <span class="material-icons">close</span>
+            </button>
+
+            <div class="success-icon">
+              <span class="material-icons">check</span>
+            </div>
+
+            <h2>¡Pago confirmado!</h2>
+            <p class="success-sub">
+              Tu factura ha sido emitida correctamente y enviada al correo del receptor.
+            </p>
+
+            <div class="success-code">
+              <div class="sc-label">Número de factura</div>
+              <div class="sc-val">{{ f.fac_numero }}</div>
+            </div>
+
+            <div class="success-meta">
+              <div class="sm-item">
+                <div class="smi-label">Código de reserva</div>
+                <div class="smi-val">{{ f.rev_codigo }}</div>
+              </div>
+              <div class="sm-item">
+                <div class="smi-label">Estado factura</div>
+                <div class="smi-val">
+                  <span class="sm-estado" [class.pendiente]="f.estado !== 'A'">
+                    ● {{ f.estado === 'A' ? 'Activa' : f.estado }}
+                  </span>
+                </div>
+              </div>
+              <div class="sm-item">
+                <div class="smi-label">Total pagado</div>
+                <div class="smi-val">${{ f.total | number: '1.2-2' }} {{ f.moneda }}</div>
+              </div>
+              <div class="sm-item">
+                <div class="smi-label">Fecha de emisión</div>
+                <div class="smi-val">{{ formatearFechaEmision(f.fecha_emision) }}</div>
+              </div>
+            </div>
+
+            <div class="success-actions">
+              <button class="btn-success" (click)="verMisReservas()">
+                Ver mis reservas
+              </button>
+              <button class="btn-success-ghost" (click)="cerrarFactura()">
+                Volver al listado de atracciones
+              </button>
+            </div>
           </div>
         </div>
       }
