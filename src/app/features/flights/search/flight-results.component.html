@@ -51,21 +51,25 @@
 
         <div class="flight-field">
           <label class="flight-label">FECHA DE SALIDA</label>
-          <div class="flight-input-wrapper">
-            <span class="material-icons" aria-hidden="true">event</span>
-            <input type="date" [value]="criterios().fechaSalida" style="color-scheme:light"
-              (change)="criterios.set({...criterios(), fechaSalida: $any($event.target).value})" />
-          </div>
+          <app-date-picker
+            [value]="criterios().fechaSalida"
+            [min]="''"
+            placeholder="Seleccionar fecha"
+            theme="dark"
+            (valueChange)="criterios.set({...criterios(), fechaSalida: $event})"
+          ></app-date-picker>
         </div>
 
         <div class="flight-field">
           <label class="flight-label">FECHA DE REGRESO</label>
-          <div class="flight-input-wrapper" [class.flight-input-disabled]="criterios().tipoViaje === 'oneway'">
-            <span class="material-icons" aria-hidden="true">event</span>
-            <input type="date" [value]="criterios().fechaRegreso" style="color-scheme:light"
-              [disabled]="criterios().tipoViaje === 'oneway'"
-              (change)="criterios.set({...criterios(), fechaRegreso: $any($event.target).value})" />
-          </div>
+          <app-date-picker
+            [value]="criterios().fechaRegreso"
+            [min]="criterios().fechaSalida || ''"
+            placeholder="Seleccionar fecha"
+            theme="dark"
+            [class.picker-disabled]="criterios().tipoViaje === 'oneway'"
+            (valueChange)="criterios.set({...criterios(), fechaRegreso: $event})"
+          ></app-date-picker>
         </div>
 
         <div class="flight-field flight-field-full">

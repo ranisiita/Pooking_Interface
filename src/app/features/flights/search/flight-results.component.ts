@@ -6,6 +6,7 @@ import { catchError, of } from 'rxjs';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
 import { FooterComponent } from '../../../components/navbar/footer.component';
 import { AirportAutocompleteComponent } from '../components/airport-autocomplete/airport-autocomplete.component';
+import { DatePickerComponent } from '../../../components/date-picker/date-picker.component';
 import { FlightService } from '../services/flight.service';
 import { AeropuertoSugerencia, FlightItem, FlightSearchParams } from '../shared/flight.models';
 
@@ -14,7 +15,7 @@ export type { FlightItem } from '../shared/flight.models';
 @Component({
   selector: 'app-flight-results',
   standalone: true,
-  imports: [CommonModule, DatePipe, RouterModule, FormsModule, NavbarComponent, FooterComponent, AirportAutocompleteComponent],
+  imports: [CommonModule, DatePipe, RouterModule, FormsModule, NavbarComponent, FooterComponent, AirportAutocompleteComponent, DatePickerComponent],
   templateUrl: './flight-results.component.html',
   styleUrls: ['./flight-results.component.css'],
 })

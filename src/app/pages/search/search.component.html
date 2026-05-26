@@ -135,22 +135,31 @@
           </div>
 
           <div class="field">
-            <label for="vSalida">FECHA DE SALIDA</label>
-            <div class="input-icon-wrapper">
-              <span class="material-icons">event</span>
-              <input id="vSalida" type="date" [(ngModel)]="vuelos.salida"
-                style="color-scheme:light" />
-            </div>
+            <label>FECHA DE SALIDA</label>
+            <app-date-picker
+              [value]="vuelos.salida"
+              [min]="fechaHoy"
+              [hasError]="!!vueloErrors.salida"
+              placeholder="dd/mm/aaaa"
+              theme="light"
+              (valueChange)="vuelos.salida = $event; validarVuelo('salida')"
+            ></app-date-picker>
+            <small class="field-error" *ngIf="vueloErrors.salida">{{ vueloErrors.salida }}</small>
           </div>
 
           <div class="field">
-            <label for="vRegreso">FECHA DE REGRESO</label>
-            <div class="input-icon-wrapper" [class.input-disabled]="vuelos.tipoViaje === 'oneway'">
-              <span class="material-icons">event</span>
-              <input id="vRegreso" type="date" [(ngModel)]="vuelos.regreso"
-                [disabled]="vuelos.tipoViaje === 'oneway'"
-                style="color-scheme:light" />
-            </div>
+            <label>FECHA DE REGRESO</label>
+            <app-date-picker
+              [value]="vuelos.regreso"
+              [min]="vuelos.salida || fechaHoy"
+              [hasError]="!!vueloErrors.regreso"
+              placeholder="dd/mm/aaaa"
+              theme="light"
+              [attr.aria-disabled]="vuelos.tipoViaje === 'oneway' ? 'true' : null"
+              (valueChange)="vuelos.regreso = $event; validarVuelo('regreso')"
+              [class.picker-disabled]="vuelos.tipoViaje === 'oneway'"
+            ></app-date-picker>
+            <small class="field-error" *ngIf="vueloErrors.regreso">{{ vueloErrors.regreso }}</small>
           </div>
 
           <div class="field full-width" *ngIf="flightFormError">

@@ -138,7 +138,12 @@ export class FlightService {
         const items: FlightItem[] = [];
         for (const r of results) {
           const label = PROVEEDORES.find(p => p.key === r.proveedor)?.label ?? r.proveedor;
-          for (const v of r.vuelos) {
+          const vuelosDisponibles = r.vuelos.filter(
+            v => v.asientosDisponibles !== null &&
+                 v.asientosDisponibles !== undefined &&
+                 v.asientosDisponibles > 0
+          );
+          for (const v of vuelosDisponibles) {
             items.push(this.mapRawToFlightItem(v, r.proveedor, label));
           }
         }

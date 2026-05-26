@@ -262,6 +262,12 @@ label {
   background: rgba(198, 177, 125, 0.08) !important;
 }
 
+/* Aplica el mismo estado deshabilitado al app-date-picker de vuelos */
+.picker-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 .flight-error {
   font-family: var(--font-body);
   font-size: 0.82rem;
