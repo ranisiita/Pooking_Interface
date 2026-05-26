@@ -224,36 +224,41 @@
 /* ══════════════════════════════════════════════════════════════════════
    TEMA DARK (glassmorphism para la barra de búsqueda de resultados)
 ══════════════════════════════════════════════════════════════════════ */
+/* Trigger dark: recuadro glassmorphism igual al flight-input-wrapper original */
 .dp-dark .dp-trigger {
-  background: transparent;
-  border: none;
-  padding: 0;
-  gap: 0;
-  border-radius: 0;
-  box-shadow: none;
-  min-height: unset;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  gap: 0.6rem;
+  min-height: 44px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.dp-dark .dp-trigger:hover,
+.dp-dark .dp-trigger:hover {
+  border-color: rgba(198, 177, 125, 0.5);
+  background: rgba(0, 0, 0, 0.4);
+}
+
 .dp-dark .dp-trigger.dp-open {
-  border: none;
-  box-shadow: none;
-  background: transparent;
+  border-color: rgba(198, 177, 125, 0.8);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 3px rgba(198, 177, 125, 0.18);
 }
 
 .dp-dark .dp-value {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #fbf8ea;
 }
 
 .dp-dark .dp-placeholder {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(251, 248, 234, 0.45);
 }
 
 .dp-dark .dp-chevron {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 1rem;
+  color: rgba(251, 248, 234, 0.7);
+  font-size: 1.2rem;
 }
 
 /* Calendario dark */

@@ -50,3 +50,24 @@ src/environments/environment.prod.ts
 
 # Contratos Alojamiento
 /Contratos Alojamiento/
+
+# Environment files - faltan estas variantes
+.env
+.env.local
+src/environments/environment.development.ts
+
+# Build output alternativo
+/out
+
+# Package lock alternativo
+package-lock.json
+yarn.lock
+
+# Angular cache adicional
+.angular/
+
+# Test coverage
+/coverage/
+
+# Karma
+karma-results/

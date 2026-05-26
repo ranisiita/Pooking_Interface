@@ -104,6 +104,9 @@ export class SearchComponent implements OnInit {
     this.aloj.llegada = this.fechaHoy;
     this.aloj.salida = this.fechaManana;
 
+    // Fecha de salida de vuelos: hoy por defecto (mismo formato YYYY-MM-DD del date-picker)
+    this.vuelos.salida = this.fechaHoy;
+
     this.route.queryParams.subscribe((params) => {
       const tab = params['tab'];
       this.activeTab = this.tabsValidas.has(tab) ? tab : 'alojamiento';
