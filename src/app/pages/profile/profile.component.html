@@ -37,11 +37,6 @@
               }}</span>
           </div>
         </div>
-
-        <div class="profile-actions">
-          <button class="btn btn-outline" style="cursor: not-allowed; opacity: 0.7;">Editar Perfil</button>
-          <button class="btn btn-primary" style="cursor: not-allowed; opacity: 0.7;">Configuración</button>
-        </div>
       </div>
     </div>
 
@@ -59,24 +54,6 @@
             <div class="stat-info">
               <span class="stat-value">{{ user.stats.trips }}</span>
               <span class="stat-label">Alojamientos</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon-wrapper reviews">
-              <span class="material-icons">rate_review</span>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">0</span>
-              <span class="stat-label">Reseñas</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon-wrapper points">
-              <span class="material-icons">loyalty</span>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">150</span>
-              <span class="stat-label">Puntos Pooking</span>
             </div>
           </div>
         </div>
@@ -117,10 +94,9 @@
         <!-- Bookings Grid: ALOJAMIENTOS -->
         <div *ngIf="!isLoadingReservations && activeTab === 'alojamiento'" class="trips-grid">
           <div class="trip-card" *ngFor="let res of reservations">
-            <div class="trip-image" [ngStyle]="{'background': getReservationGradient(res)}">
-              <span class="trip-status" [ngClass]="res.estadoReserva">
-                {{ (res.estadoReserva === 'PEN' || res.estadoReserva === 'PEND' || res.estadoReserva === 'PENDIENTE') ?
-                'Pendiente' : (res.estadoReserva === 'CON' ? 'Confirmada' : 'Cancelada') }}
+            <div class="trip-image" [ngStyle]="{'background-image': res.lodgingImage ? 'url(' + res.lodgingImage + ')' : getReservationGradient(res)}">
+              <span *ngIf="res.estadoReserva === 'CAN' || res.estadoReserva === 'CANC' || res.estadoReserva === 'CANCELADA'" class="trip-status CAN">
+                Cancelada
               </span>
             </div>
             <div class="trip-details">
@@ -152,10 +128,9 @@
         <!-- Bookings Grid: ATRACCIONES -->
         <div *ngIf="!isLoadingReservations && activeTab === 'atracciones'" class="trips-grid">
           <div class="trip-card" *ngFor="let res of attractionReservations">
-            <div class="trip-image" [ngStyle]="{'background': getReservationGradient(res)}">
-              <span class="trip-status" [ngClass]="res.estadoReserva">
-                {{ (res.estadoReserva === 'PEN' || res.estadoReserva === 'PEND' || res.estadoReserva === 'PENDIENTE') ?
-                'Pendiente' : (res.estadoReserva === 'CON' ? 'Confirmada' : 'Cancelada') }}
+            <div class="trip-image" [ngStyle]="{'background-image': res.lodgingImage ? 'url(' + res.lodgingImage + ')' : getReservationGradient(res)}">
+              <span *ngIf="res.estadoReserva === 'CAN' || res.estadoReserva === 'CANC' || res.estadoReserva === 'CANCELADA'" class="trip-status CAN">
+                Cancelada
               </span>
             </div>
             <div class="trip-details">
@@ -186,10 +161,9 @@
         <!-- Bookings Grid: AUTOMÓVILES -->
         <div *ngIf="!isLoadingReservations && activeTab === 'automoviles'" class="trips-grid">
           <div class="trip-card" *ngFor="let res of carReservations">
-            <div class="trip-image" [ngStyle]="{'background': getReservationGradient(res)}">
-              <span class="trip-status" [ngClass]="res.estadoReserva">
-                {{ (res.estadoReserva === 'PEN' || res.estadoReserva === 'PEND' || res.estadoReserva === 'PENDIENTE') ?
-                'Pendiente' : (res.estadoReserva === 'CON' ? 'Confirmada' : 'Cancelada') }}
+            <div class="trip-image" [ngStyle]="{'background-image': res.lodgingImage ? 'url(' + res.lodgingImage + ')' : getReservationGradient(res)}">
+              <span *ngIf="res.estadoReserva === 'CAN' || res.estadoReserva === 'CANC' || res.estadoReserva === 'CANCELADA'" class="trip-status CAN">
+                Cancelada
               </span>
             </div>
             <div class="trip-details">
@@ -244,15 +218,13 @@
 
       <!-- Visual Card -->
       <div class="contract-hotel-banner"
-        [ngStyle]="{'background': 'linear-gradient(to right, rgba(15,12,10,0.45), rgba(15,12,10,0.15)), ' + getReservationGradient(selectedReserva)}">
+        [ngStyle]="{'background-image': selectedReserva.lodgingImage ? 'linear-gradient(to right, rgba(15,12,10,0.55), rgba(15,12,10,0.3)), url(' + selectedReserva.lodgingImage + ')' : 'linear-gradient(to right, rgba(15,12,10,0.55), rgba(15,12,10,0.3)), ' + getReservationGradient(selectedReserva)}">
         <div class="chb-info">
           <h3>{{ selectedReserva.lodgingName }}</h3>
           <p><span class="material-icons">place</span> Ecuador</p>
         </div>
-        <div class="chb-status-badge" [ngClass]="selectedReserva.estadoReserva">
-          {{ (selectedReserva.estadoReserva === 'PEN' || selectedReserva.estadoReserva === 'PEND' ||
-          selectedReserva.estadoReserva === 'PENDIENTE') ? 'Pendiente' : (selectedReserva.estadoReserva === 'CON' ?
-          'Confirmada' : 'Cancelada') }}
+        <div *ngIf="selectedReserva.estadoReserva === 'CAN' || selectedReserva.estadoReserva === 'CANC' || selectedReserva.estadoReserva === 'CANCELADA'" class="chb-status-badge CAN">
+          Cancelada
         </div>
       </div>
 
@@ -317,8 +289,7 @@
               </div>
               <div class="c-field">
                 <span class="c-label">OBSERVACIONES</span>
-                <span class="c-val italic" style="white-space: pre-wrap;">"{{ selectedReserva.observaciones || 'Sin
-                  observaciones adicionales' }}"</span>
+                <span class="c-val italic" style="white-space: pre-wrap;">"{{ selectedReserva.observaciones || 'Sin observaciones adicionales' }}"</span>
               </div>
             </div>
           </div>
@@ -356,6 +327,55 @@
               <div class="money-row pending-balance">
                 <span>SALDO PENDIENTE</span>
                 <strong>${{ selectedReserva.saldoPendiente | number:'1.2-2' }} USD</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Habitaciones Reservadas (Detalle Detallado de Habitaciones) -->
+          <div class="contract-section" *ngIf="selectedReserva.habitaciones && selectedReserva.habitaciones.length > 0">
+            <h4><span class="material-icons">king_bed</span> Habitaciones Adquiridas</h4>
+            <div class="contract-rooms-list">
+              <div class="c-room-item" *ngFor="let rm of selectedReserva.habitaciones">
+                <div class="cri-header">
+                  <span class="cri-title">{{ rm.tipoHabitacion || 'Habitación Premium' }}</span>
+                  <span *ngIf="rm.estadoDetalle === 'CAN' || rm.estadoDetalle === 'CANC' || rm.estadoDetalle === 'CANCELADA' || selectedReserva.estadoReserva === 'CAN' || selectedReserva.estadoReserva === 'CANC' || selectedReserva.estadoReserva === 'CANCELADA'" class="cri-status CAN">
+                    Cancelada
+                  </span>
+                </div>
+                <div class="cri-body">
+                  <div class="cri-meta-grid">
+                    <div>
+                      <span class="cri-label">ADULTOS</span>
+                      <strong>{{ rm.numAdultos || 1 }}</strong>
+                    </div>
+                    <div>
+                      <span class="cri-label">NIÑOS</span>
+                      <strong>{{ rm.numNinos || 0 }}</strong>
+                    </div>
+                    <div>
+                      <span class="cri-label">ESTANCIA</span>
+                      <strong style="font-size: 0.75rem;">{{ fmtDateShort(rm.fechaInicio || selectedReserva.fechaInicio) }} a {{ fmtDateShort(rm.fechaFin || selectedReserva.fechaFin) }}</strong>
+                    </div>
+                  </div>
+                  <div class="cri-line-details">
+                    <div class="crld-row">
+                      <span>Precio por noche</span>
+                      <span>${{ rm.precioNocheAplicado | number:'1.2-2' }} USD</span>
+                    </div>
+                    <div class="crld-row" *ngIf="rm.subtotalLinea">
+                      <span>Subtotal</span>
+                      <span>${{ rm.subtotalLinea | number:'1.2-2' }} USD</span>
+                    </div>
+                    <div class="crld-row" *ngIf="rm.valorIvaLinea">
+                      <span>IVA (15%)</span>
+                      <span>${{ rm.valorIvaLinea | number:'1.2-2' }} USD</span>
+                    </div>
+                    <div class="crld-row crld-total">
+                      <span>Total línea</span>
+                      <span>${{ rm.totalLinea | number:'1.2-2' }} USD</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
