@@ -202,7 +202,7 @@ export class LodgingService {
       const url = `${API_GATEWAY_URL}/${provider}/api/v1/accommodations/search`;
       console.log(`[DEBUG] Requesting search to provider ${provider}:`, url, 'Params:', params.toString());
       return this.http.get<any>(url, { params }).pipe(
-        timeout(3000),
+        timeout(60000),
         map(res => {
           const items = res?.items || [];
           console.log(`[DEBUG] Raw response from provider ${provider}:`, items);
