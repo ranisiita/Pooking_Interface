@@ -116,14 +116,9 @@ export const routes: Routes = [
       ),
   },
 
-  // Atracciones — pago (POST real /reservas/{guid}/pagos/confirmacion)
-  {
-    path: 'atracciones/reservas/:revGuid/pago',
-    loadComponent: () =>
-      import('./features/atracciones/atracciones-pago/atracciones-pago.component').then(
-        (m) => m.AtraccionesPagoComponent,
-      ),
-  },
+  // Nota: ya NO hay una ruta `atracciones/reservas/:revGuid/pago`. El hall
+  // de pagos se embebe ahora como overlay dentro de la pantalla de reserva
+  // usando `<app-payment>` (componente compartido), igual que alojamiento.
 
   // Atracciones — detalle (datos mock, sin API por ahora)
   {

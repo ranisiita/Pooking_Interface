@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NavbarComponent } from '../../../components/navbar/navbar.component';
 import { FooterComponent } from '../../../components/navbar/footer.component';
+import { PaymentComponent } from '../../../components/checkout/payment/payment.component';
+import { DatePickerComponent } from '../../../components/date-picker/date-picker.component';
 import {
   ACTIVE_ATTRACTION_PROVIDER,
   ALL_ATTRACTION_PROVIDERS,
@@ -14,8 +16,10 @@ import {
   AtraccionDetalle,
   AttractionProvider,
   ClienteInvitado,
+  FacturaCreada,
   Horario,
   LineaReserva,
+  PagoConfirmacionBody,
   ReservaCreada,
   ReservaPayload,
   Ticket,
@@ -38,7 +42,15 @@ type CampoCliente =
 @Component({
   selector: 'app-atracciones-reserva',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NavbarComponent, FooterComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    NavbarComponent,
+    FooterComponent,
+    PaymentComponent,
+    DatePickerComponent,
+  ],
   templateUrl: './atracciones-reserva.component.html',
   styleUrls: ['./atracciones-reserva.component.css'],
 })
@@ -59,7 +71,29 @@ export class AtraccionesReservaComponent implements OnInit {
   // ── Horarios ─────────────────────────────────────────────
   horariosLoading = signal(false);
   horariosError = signal<string | null>(null);
-  horarios = signal<Horario[]>([]);
+  /** Lista cruda de horarios devuelta por el backend (próximos N días). */
+  horariosCrudos = signal<Horario[]>([]);
+  /** Días a mostrar desde `fechaInicio`. Valores: 1, 3, 7, 15. */
+  rangoDias = signal<1 | 3 | 7 | 15>(7);
+  /** Horarios visibles tras aplicar el filtro por rango. */
+  readonly horarios = computed<Horario[]>(() => {
+    const inicio = this.fechaInicio();
+    const fin = this.fechaFinRango();
+    if (!inicio || !fin) return this.horariosCrudos();
+    return this.horariosCrudos().filter((h) => h.fecha >= inicio && h.fecha <= fin);
+  });
+  /** Fecha "hasta" derivada de fechaInicio + rangoDias. */
+  readonly fechaFinRango = computed<string>(() => {
+    const inicio = this.fechaInicio();
+    const dias = this.rangoDias();
+    if (!inicio) return '';
+    const d = new Date(inicio + 'T00:00:00');
+    d.setDate(d.getDate() + (dias - 1));
+    const yy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yy}-${mm}-${dd}`;
+  });
 
   // ── Tickets del horario ──────────────────────────────────
   ticketsLoading = signal(false);
@@ -68,7 +102,8 @@ export class AtraccionesReservaComponent implements OnInit {
 
   // ── Selecciones ──────────────────────────────────────────
   today = new Date().toISOString().split('T')[0];
-  fechaVisita = '';
+  /** Fecha "desde" del filtro de horarios. Default: hoy. */
+  fechaInicio = signal<string>(this.today);
   fechaError = '';
   horarioSeleccionado = signal<Horario | null>(null);
   cantidades = signal<Record<string, number>>({});
@@ -92,6 +127,19 @@ export class AtraccionesReservaComponent implements OnInit {
   errorReserva = signal<string | null>(null);
   /** Aviso suave si el registro en /clientes/reservas falló o se omitió. */
   advertenciaRegistro = signal<string | null>(null);
+
+  // ── Hall de pagos embebido (mismo <app-payment> que usa lodging) ──
+  mostrarPago = signal(false);
+  enviandoPago = signal(false);
+  errorPago = signal<string | null>(null);
+  factura = signal<FacturaCreada | null>(null);
+  /** Datos del receptor editados dentro de `<app-payment>` (paso 1). */
+  private datosReceptorPago: {
+    nombre: string;
+    apellidos: string;
+    email: string;
+    telefono: string;
+  } | null = null;
 
   // ── Computed ─────────────────────────────────────────────
   readonly totalTickets = computed(() =>
@@ -129,6 +177,8 @@ export class AtraccionesReservaComponent implements OnInit {
       next: (resp) => {
         this.detalle.set(resp.data);
         this.estado.set('success');
+        // Carga los horarios futuros una sola vez; el filtro por rango es local.
+        this.cargarHorarios();
       },
       error: (err) => {
         if (err?.status === 404) this.estado.set('not_found');
@@ -140,40 +190,59 @@ export class AtraccionesReservaComponent implements OnInit {
     });
   }
 
-  // ── Fecha de visita ──────────────────────────────────────
-  onFechaChange(): void {
-    if (!this.fechaVisita) {
+  // ── Filtro de fecha / rango ──────────────────────────────
+  onFechaInicioChange(nueva: string): void {
+    if (!nueva) {
       this.fechaError = '';
-      this.horarios.set([]);
-      this.horarioSeleccionado.set(null);
-      this.ticketsHorario.set([]);
-      this.cantidades.set({});
+      this.fechaInicio.set('');
       return;
     }
-    if (this.fechaVisita < this.today) {
+    if (nueva < this.today) {
       this.fechaError = 'No puedes elegir una fecha anterior a hoy.';
       return;
     }
     this.fechaError = '';
-    this.horarioSeleccionado.set(null);
-    this.ticketsHorario.set([]);
-    this.cantidades.set({});
-    this.cargarHorarios();
+    this.fechaInicio.set(nueva);
+    this.limpiarSeleccionFueraDelRango();
   }
 
+  /** Cambia el rango en días (1, 3, 7 o 15). */
+  setRango(dias: 1 | 3 | 7 | 15): void {
+    if (this.rangoDias() === dias) return;
+    this.rangoDias.set(dias);
+    this.limpiarSeleccionFueraDelRango();
+  }
+
+  /** Si el horario seleccionado queda fuera del rango activo, lo limpia. */
+  private limpiarSeleccionFueraDelRango(): void {
+    const sel = this.horarioSeleccionado();
+    if (!sel) return;
+    const enRango = this.horarios().some((h) => h.hor_guid === sel.hor_guid);
+    if (!enRango) {
+      this.horarioSeleccionado.set(null);
+      this.ticketsHorario.set([]);
+      this.cantidades.set({});
+    }
+  }
+
+  /**
+   * Carga todos los horarios futuros del backend en una sola consulta.
+   * El filtro por rango se aplica localmente en el `computed` `horarios`.
+   */
   cargarHorarios(): void {
     const d = this.detalle();
-    if (!d || !this.fechaVisita) return;
+    if (!d) return;
     this.horariosLoading.set(true);
     this.horariosError.set(null);
-    this.svc.getHorarios(d.id, this.fechaVisita, this.provider).subscribe({
+    this.svc.getHorarios(d.id, undefined, this.provider).subscribe({
       next: (resp) => {
-        this.horarios.set(resp.data);
+        this.horariosCrudos.set(resp.data ?? []);
         this.horariosLoading.set(false);
+        this.limpiarSeleccionFueraDelRango();
       },
       error: () => {
-        this.horariosError.set('No pudimos cargar los horarios.');
-        this.horarios.set([]);
+        this.horariosError.set('No pudimos cargar los horarios disponibles.');
+        this.horariosCrudos.set([]);
         this.horariosLoading.set(false);
       },
     });
@@ -257,8 +326,8 @@ export class AtraccionesReservaComponent implements OnInit {
   // ── Validación global de la reserva ──────────────────────
   get puedeReservar(): boolean {
     return (
-      !!this.fechaVisita &&
-      this.fechaVisita >= this.today &&
+      !!this.fechaInicio() &&
+      this.fechaInicio() >= this.today &&
       !!this.horarioSeleccionado() &&
       this.totalTickets() > 0 &&
       this.clienteValido()
@@ -438,38 +507,148 @@ export class AtraccionesReservaComponent implements OnInit {
   }
 
   /**
-   * Acción "Continuar al pago" del modal de confirmación.
-   * Guarda en sessionStorage la reserva creada, el proveedor de origen y los
-   * datos del cliente_invitado (para precargar el formulario del receptor de
-   * la factura) y navega a la pantalla de pago. El POST real a
-   * /reservas/{guid}/pagos/confirmacion lo hace la pantalla de pago.
+   * Acción "Continuar al pago" del modal "Reserva creada".
+   * Abre el overlay del componente compartido `<app-payment>` SOBRE la
+   * misma pantalla — mismo patrón que usa alojamiento. NO navega a una
+   * pantalla separada y NO usa sessionStorage.
    */
   continuarAlPago(): void {
     const r = this.reservaCreada();
     if (!r) return;
-    try {
-      sessionStorage.setItem(
-        'atraccion-pago',
-        JSON.stringify({
-          reserva: r,
-          provider: this.provider,
-          cliente: this.cliente,
-        }),
-      );
-    } catch {
-      // Si sessionStorage no está disponible, la pantalla de pago hará
-      // fallback a getReservaDetalle(revGuid, provider).
-    }
-    this.reservaCreada.set(null);
-    this.router.navigate(['/atracciones/reservas', r.rev_guid, 'pago'], {
-      queryParams: { provider: this.provider },
+    this.errorPago.set(null);
+    this.mostrarPago.set(true);
+  }
+
+  // ── Eventos del componente compartido <app-payment> ──────────────
+  onDatosEditadosPago(datos: {
+    nombre: string;
+    apellidos: string;
+    email: string;
+    telefono: string;
+  }): void {
+    this.datosReceptorPago = datos;
+  }
+
+  onPagoExitoso(): void {
+    this.procesarConfirmacionPago();
+  }
+
+  onCancelarPago(): void {
+    this.mostrarPago.set(false);
+    this.errorPago.set(null);
+  }
+
+  /**
+   * POST real al microservicio del proveedor para confirmar el pago:
+   *   /{provider}/api/v2/reservas/{rev_guid}/pagos/confirmacion
+   *
+   * Se usa el provider de origen de la reserva (el mismo donde se creó).
+   * Si el receptor de la factura fue editado en `<app-payment>`, se usan
+   * esos datos; si no, se caen al `cliente_invitado` original.
+   */
+  private procesarConfirmacionPago(): void {
+    const r = this.reservaCreada();
+    if (!r) return;
+    if (this.enviandoPago()) return;
+
+    const body = this.armarBodyConfirmacion(r);
+    this.enviandoPago.set(true);
+    this.errorPago.set(null);
+
+    this.svc.confirmarPago(r.rev_guid, body, this.provider).subscribe({
+      next: (resp) => {
+        this.factura.set(resp.data);
+        this.mostrarPago.set(false);
+        this.enviandoPago.set(false);
+        console.info('[Pago] Factura emitida:', resp.data);
+      },
+      error: (err) => {
+        this.enviandoPago.set(false);
+        const detalle = this.detalleErrPago(err);
+        if (err?.status === 400 && /confirmad|paga/i.test(detalle)) {
+          this.errorPago.set('Esta reserva ya fue confirmada anteriormente.');
+        } else {
+          this.errorPago.set(this.mensajeErrorPago(err));
+        }
+        console.error('[Pago] Error al confirmar pago:', err);
+      },
     });
   }
 
-  verMisReservas(): void {
-    // TODO(navegación): cuando exista la pantalla "Mis reservas" se redirigirá ahí.
+  private armarBodyConfirmacion(r: ReservaCreada): PagoConfirmacionBody {
+    const editado = this.datosReceptorPago;
+    return {
+      nombre_receptor: (editado?.nombre ?? this.cliente.nombres ?? '').trim(),
+      apellido_receptor: (editado?.apellidos ?? this.cliente.apellidos ?? '').trim(),
+      correo_receptor: (editado?.email ?? this.cliente.correo ?? '').trim(),
+      telefono_receptor: (editado?.telefono ?? this.cliente.telefono ?? '').trim() || undefined,
+      observacion: `Pago reserva ${r.atraccion_nombre}`,
+    };
+  }
+
+  private detalleErrPago(err: any): string {
+    const body = err?.error;
+    if (Array.isArray(body?.details) && body.details.length) return String(body.details[0]);
+    if (typeof body?.message === 'string') return body.message;
+    return '';
+  }
+
+  private mensajeErrorPago(err: any): string {
+    const detalle = this.detalleErrPago(err);
+    if (detalle) return detalle;
+    if (err?.status === 0) {
+      const lbl = ATTRACTION_PROVIDER_LABELS[this.provider] ?? this.provider;
+      return `El proveedor ${lbl} no está disponible en este momento.`;
+    }
+    if (err?.status === 404) return 'No se encontró la reserva para confirmar el pago.';
+    if (err?.status === 400) return 'Hay datos inválidos en la confirmación.';
+    if (err?.status === 500) return 'Error interno del servidor de pagos. Intenta más tarde.';
+    return 'No pudimos confirmar el pago. Intenta nuevamente en unos segundos.';
+  }
+
+  // ── Helpers de presentación para el modal de factura ─────────────
+  nombreCompletoCliente(): string {
+    return `${(this.cliente.nombres ?? '').trim()} ${(this.cliente.apellidos ?? '').trim()}`.trim();
+  }
+
+  correoClientePago(): string {
+    return (this.cliente.correo ?? '').trim();
+  }
+
+  detallesLineas(): { name: string; value: number }[] {
+    const r = this.reservaCreada();
+    if (!r?.detalle) return [];
+    return r.detalle.map((l) => ({
+      name: `${l.cantidad} × ${l.tck_tipo_participante}`,
+      value: l.subtotal,
+    }));
+  }
+
+  formatearFechaEmision(iso: string | undefined | null): string {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString('es-EC', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  cerrarFactura(): void {
+    this.factura.set(null);
     this.reservaCreada.set(null);
     this.router.navigate(['/atracciones']);
+  }
+
+  verMisReservas(): void {
+    // Lleva al historial del perfil con la pestaña de Atracciones abierta.
+    this.reservaCreada.set(null);
+    this.factura.set(null);
+    this.mostrarPago.set(false);
+    this.router.navigate(['/profile'], { queryParams: { tab: 'atracciones' } });
   }
 
   cerrarConfirmacion(): void {
