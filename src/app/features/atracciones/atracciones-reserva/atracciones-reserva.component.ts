@@ -396,6 +396,10 @@ export class AtraccionesReservaComponent implements OnInit {
         this.reservaCreada.set(resp.data);
         this.enviando.set(false);
         console.info('[Reserva] Respuesta del backend:', resp);
+        // Persiste la imagen real de la atracción indexada por rev_guid,
+        // para que el historial (Profile) pueda mostrarla luego — el
+        // endpoint general /clientes/reservas no devuelve la imagen.
+        this.persistirImagenAtraccion(resp.data.rev_guid);
         // Registro en la base general de clientes/Booking en cuanto tenemos
         // rev_guid. La reserva nace PENDIENTE; la actualización de estado
         // a PAGADA se hará después en el flujo de pago si aplica.
@@ -407,6 +411,32 @@ export class AtraccionesReservaComponent implements OnInit {
         console.error('[Reserva] Error al crear reserva:', err);
       },
     });
+  }
+
+  /**
+   * Guarda en localStorage la imagen real de la atracción indexada por
+   * `rev_guid`. El historial (Profile) lee esto para mostrar la imagen
+   * correcta en la card de cada reserva (el backend general
+   * `/clientes/reservas` no la expone).
+   *
+   * Estructura en storage:
+   *   pooking_atracciones_images = { "<rev_guid>": "<url>", ... }
+   */
+  private persistirImagenAtraccion(revGuid: string): void {
+    if (!revGuid) return;
+    const imagen = this.detalle()?.imagen_principal;
+    if (!imagen) return;
+    try {
+      const raw = localStorage.getItem('pooking_atracciones_images') ?? '{}';
+      const map = JSON.parse(raw);
+      map[revGuid] = imagen;
+      // Si el storage crece demasiado, podaríamos por LRU — por ahora se
+      // queda chico (cada entrada es pequeña). No expira.
+      localStorage.setItem('pooking_atracciones_images', JSON.stringify(map));
+      console.info('[Reserva] Imagen de atracción persistida para', revGuid);
+    } catch (e) {
+      console.warn('[Reserva] No se pudo persistir la imagen de atracción:', e);
+    }
   }
 
   /**

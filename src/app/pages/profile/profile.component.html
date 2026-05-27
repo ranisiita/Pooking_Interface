@@ -52,8 +52,26 @@
               <span class="material-icons">hotel</span>
             </div>
             <div class="stat-info">
-              <span class="stat-value">{{ user.stats.trips }}</span>
+              <span class="stat-value">{{ user.stats.lodgingCount || 0 }}</span>
               <span class="stat-label">Alojamientos</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon-wrapper trips">
+              <span class="material-icons">local_activity</span>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ user.stats.attractionsCount || 0 }}</span>
+              <span class="stat-label">Atracciones</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon-wrapper trips">
+              <span class="material-icons">directions_car</span>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value">{{ user.stats.carsCount || 0 }}</span>
+              <span class="stat-label">Automóviles</span>
             </div>
           </div>
         </div>
@@ -228,6 +246,13 @@
         </div>
       </div>
 
+      <!-- Banner suave cuando el detalle externo del proveedor falló -->
+      <div *ngIf="detalleApiCaida" role="status"
+        style="display: flex; align-items: flex-start; gap: 8px; background: #fff4e0; border: 1px solid #ffcc80; color: #b25a00; border-radius: 10px; padding: 10px 12px; margin: 14px 0; font-size: 12.5px; font-weight: 600; line-height: 1.45;">
+        <span class="material-icons" style="font-size: 16px; margin-top: 1px;">info</span>
+        <span>{{ detalleApiCaida }}</span>
+      </div>
+
       <div class="contract-grid">
 
         <!-- Left Section: Meta details -->
@@ -242,18 +267,41 @@
                 <span class="c-val highlight">{{ selectedReserva.codigoReserva }}</span>
               </div>
               <div class="c-field">
-                <span class="c-label">NOMBRE DE LA SUCURSAL</span>
+                <span class="c-label">
+                  {{
+                    tipoServicioActual === 'attractions' ? 'NOMBRE DE LA ATRACCIÓN' :
+                    tipoServicioActual === 'cars' ? 'VEHÍCULO RESERVADO' :
+                    'NOMBRE DE LA SUCURSAL'
+                  }}
+                </span>
                 <span class="c-val font-semibold">{{ selectedReserva.lodgingName }}</span>
+              </div>
+              <div class="c-field" *ngIf="selectedReserva.provider">
+                <span class="c-label">PROVEEDOR</span>
+                <span class="c-val font-semibold">{{ providerLabel(selectedReserva.provider) }}</span>
               </div>
             </div>
           </div>
 
           <!-- Datos de Estancia & Cliente -->
           <div class="contract-section">
-            <h4><span class="material-icons">person</span> Datos del Huésped & Estancia</h4>
+            <h4>
+              <span class="material-icons">person</span>
+              {{
+                tipoServicioActual === 'attractions' ? 'Datos del Cliente & Visita' :
+                tipoServicioActual === 'cars' ? 'Datos del Conductor & Alquiler' :
+                'Datos del Huésped & Estancia'
+              }}
+            </h4>
             <div class="c-fields">
               <div class="c-field">
-                <span class="c-label">HUESPED</span>
+                <span class="c-label">
+                  {{
+                    tipoServicioActual === 'attractions' ? 'CLIENTE' :
+                    tipoServicioActual === 'cars' ? 'CONDUCTOR' :
+                    'HUESPED'
+                  }}
+                </span>
                 <span class="c-val font-semibold">{{ selectedReserva.cliente?.nombres || 'Invitado' }}</span>
               </div>
               <div class="c-field" *ngIf="selectedReserva.cliente?.correo">
@@ -268,14 +316,33 @@
                 <span class="c-label">DIRECCIÓN</span>
                 <span class="c-val">{{ selectedReserva.cliente?.direccion }}</span>
               </div>
-              <div class="c-field">
-                <span class="c-label">CHECK-IN</span>
-                <span class="c-val">{{ fmtDateTime(selectedReserva.fechaInicio) }}</span>
-              </div>
-              <div class="c-field">
-                <span class="c-label">CHECK-OUT</span>
-                <span class="c-val">{{ fmtDateTime(selectedReserva.fechaFin) }}</span>
-              </div>
+
+              <!-- Fechas adaptadas al tipo de servicio -->
+              <ng-container *ngIf="tipoServicioActual === 'attractions'">
+                <div class="c-field">
+                  <span class="c-label">FECHA DE VISITA</span>
+                  <span class="c-val">{{ fmtDateShort(selectedReserva.fechaInicio) }}</span>
+                </div>
+                <div class="c-field" *ngIf="fmtTime(selectedReserva.fechaInicio)">
+                  <span class="c-label">HORARIO</span>
+                  <span class="c-val">
+                    {{ fmtTime(selectedReserva.fechaInicio) }}
+                    <ng-container *ngIf="fmtTime(selectedReserva.fechaFin) && fmtTime(selectedReserva.fechaFin) !== fmtTime(selectedReserva.fechaInicio)">
+                      – {{ fmtTime(selectedReserva.fechaFin) }}
+                    </ng-container>
+                  </span>
+                </div>
+              </ng-container>
+              <ng-container *ngIf="tipoServicioActual !== 'attractions'">
+                <div class="c-field">
+                  <span class="c-label">{{ tipoServicioActual === 'cars' ? 'RECOGIDA' : 'CHECK-IN' }}</span>
+                  <span class="c-val">{{ fmtDateTime(selectedReserva.fechaInicio) }}</span>
+                </div>
+                <div class="c-field">
+                  <span class="c-label">{{ tipoServicioActual === 'cars' ? 'DEVOLUCIÓN' : 'CHECK-OUT' }}</span>
+                  <span class="c-val">{{ fmtDateTime(selectedReserva.fechaFin) }}</span>
+                </div>
+              </ng-container>
             </div>
           </div>
 
@@ -304,12 +371,23 @@
             <h4><span class="material-icons">receipt_long</span> Desglose del Contrato Financiero</h4>
 
             <div class="money-rows">
-              <!-- Item de costo por cada tipo de habitación que se reserva -->
-              <div class="money-row" *ngFor="let rm of selectedReserva.habitaciones">
-                <span>COSTO {{ rm.tipoHabitacion || 'HABITACIÓN' | uppercase }}</span>
-                <strong>${{ rm.totalLinea | number:'1.2-2' }} USD</strong>
-              </div>
-              <hr class="money-divider" *ngIf="selectedReserva.habitaciones?.length > 0">
+              <!-- ALOJAMIENTO: costo por habitación reservada (lógica original) -->
+              <ng-container *ngIf="tipoServicioActual === 'lodging' || tipoServicioActual === 'unknown'">
+                <div class="money-row" *ngFor="let rm of selectedReserva.habitaciones">
+                  <span>COSTO {{ rm.tipoHabitacion || 'HABITACIÓN' | uppercase }}</span>
+                  <strong>${{ rm.totalLinea | number:'1.2-2' }} USD</strong>
+                </div>
+                <hr class="money-divider" *ngIf="selectedReserva.habitaciones?.length > 0">
+              </ng-container>
+
+              <!-- ATRACCIONES: costo por tipo de ticket -->
+              <ng-container *ngIf="tipoServicioActual === 'attractions' && selectedReserva.detalleAtraccion?.length">
+                <div class="money-row" *ngFor="let tk of selectedReserva.detalleAtraccion">
+                  <span>{{ tk.cantidad }} × {{ tk.tck_tipo_participante | uppercase }}</span>
+                  <strong>${{ tk.subtotal | number:'1.2-2' }} USD</strong>
+                </div>
+                <hr class="money-divider">
+              </ng-container>
 
               <div class="money-row">
                 <span>SUBTOTAL RESERVA</span>
@@ -326,13 +404,14 @@
               </div>
               <div class="money-row pending-balance">
                 <span>SALDO PENDIENTE</span>
-                <strong>${{ selectedReserva.saldoPendiente | number:'1.2-2' }} USD</strong>
+                <strong>${{ (estaPagada(selectedReserva) ? 0 : selectedReserva.saldoPendiente) | number:'1.2-2' }} USD</strong>
               </div>
             </div>
           </div>
 
-          <!-- Habitaciones Reservadas (Detalle Detallado de Habitaciones) -->
-          <div class="contract-section" *ngIf="selectedReserva.habitaciones && selectedReserva.habitaciones.length > 0">
+          <!-- Habitaciones Reservadas (solo alojamiento) -->
+          <div class="contract-section"
+            *ngIf="(tipoServicioActual === 'lodging' || tipoServicioActual === 'unknown') && selectedReserva.habitaciones && selectedReserva.habitaciones.length > 0">
             <h4><span class="material-icons">king_bed</span> Habitaciones Adquiridas</h4>
             <div class="contract-rooms-list">
               <div class="c-room-item" *ngFor="let rm of selectedReserva.habitaciones">
@@ -373,6 +452,44 @@
                     <div class="crld-row crld-total">
                       <span>Total línea</span>
                       <span>${{ rm.totalLinea | number:'1.2-2' }} USD</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tickets Adquiridos (solo atracciones) — mismo diseño que habitaciones -->
+          <div class="contract-section"
+            *ngIf="tipoServicioActual === 'attractions' && selectedReserva.detalleAtraccion && selectedReserva.detalleAtraccion.length > 0">
+            <h4><span class="material-icons">confirmation_number</span> Tickets Adquiridos</h4>
+            <div class="contract-rooms-list">
+              <div class="c-room-item" *ngFor="let tk of selectedReserva.detalleAtraccion">
+                <div class="cri-header">
+                  <span class="cri-title">{{ tk.tck_tipo_participante || 'Ticket' }}</span>
+                  <span *ngIf="selectedReserva.estadoReserva === 'CAN' || selectedReserva.estadoReserva === 'CANC' || selectedReserva.estadoReserva === 'CANCELADA'" class="cri-status CAN">
+                    Cancelada
+                  </span>
+                </div>
+                <div class="cri-body">
+                  <div class="cri-meta-grid">
+                    <div>
+                      <span class="cri-label">CANTIDAD</span>
+                      <strong>{{ tk.cantidad || 1 }}</strong>
+                    </div>
+                    <div>
+                      <span class="cri-label">PRECIO UNITARIO</span>
+                      <strong>${{ tk.precio_unit | number:'1.2-2' }} {{ selectedReserva.moneda || 'USD' }}</strong>
+                    </div>
+                    <div>
+                      <span class="cri-label">FECHA DE VISITA</span>
+                      <strong style="font-size: 0.75rem;">{{ fmtDateShort(selectedReserva.fechaInicio) }}</strong>
+                    </div>
+                  </div>
+                  <div class="cri-line-details">
+                    <div class="crld-row crld-total">
+                      <span>Subtotal</span>
+                      <span>${{ tk.subtotal | number:'1.2-2' }} {{ selectedReserva.moneda || 'USD' }}</span>
                     </div>
                   </div>
                 </div>
