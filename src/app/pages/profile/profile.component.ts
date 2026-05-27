@@ -380,6 +380,10 @@ export class ProfileComponent implements OnInit {
                 const data = res.data || res;
                 return {
                   reservaGuid: data.rev_guid || externalId,
+                  // `idReservaExterna` se conserva explícito para que el
+                  // modal de detalle pueda re-consultar el endpoint correcto:
+                  //   GET /{provider}/api/v2/reservas/{rev_guid}
+                  idReservaExterna: externalId,
                   codigoReserva: data.rev_codigo || `RES-${externalId.substring(0, 8).toUpperCase()}`,
                   clienteGuid: bk.guidClienteRef || bk.guidCliente || guid,
                   sucursalGuid: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
@@ -409,6 +413,9 @@ export class ProfileComponent implements OnInit {
                 // If getReservaDetalle fails, we STILL show it with the middleware data
                 return {
                   reservaGuid: bk.guidReserva,
+                  // Mismo que arriba: idReservaExterna se conserva para que
+                  // el modal pueda reintentar el detalle externo del proveedor.
+                  idReservaExterna: externalId,
                   codigoReserva: bk.idReservaExterna || bk.guidReserva,
                   clienteGuid: bk.guidClienteRef || guidCliente,
                   sucursalGuid: bk.guidServicioRef || '',
@@ -658,14 +665,20 @@ export class ProfileComponent implements OnInit {
     this.selectedReserva = reserva;
     this.detalleApiCaida = null;
     this.tipoServicioActual = this.getServiceType(reserva);
-
-    const provider = this.normalizeProvider(reserva.provider || reserva.nombreProveedor);
+    // Logs temporales — TODO(debug): retirar tras validar en prod.
+    console.info(
+      '[Profile] Modal · tipo detectado =', this.tipoServicioActual,
+      '· tipoServicio=', reserva?.tipoServicio,
+      '· tipoServicioSnap=', reserva?.tipoServicioSnap,
+      '· guidServicioRef=', reserva?.guidServicioRef,
+    );
 
     switch (this.tipoServicioActual) {
       case 'lodging':
-        // Comportamiento original de alojamientos — NO TOCAR.
-        if (reserva.sucursalGuid && provider) {
-          this.lodgingService.getLodgingById(reserva.sucursalGuid, provider).subscribe({
+        // Comportamiento original de alojamientos — usa `reserva.provider`
+        // tal cual viene (sin normalizar) para preservar el patrón original.
+        if (reserva.sucursalGuid && reserva.provider) {
+          this.lodgingService.getLodgingById(reserva.sucursalGuid, reserva.provider).subscribe({
             next: (lodging: any) => {
               if (lodging && lodging.habitaciones && this.selectedReserva?.habitaciones) {
                 this.selectedReserva.habitaciones = this.selectedReserva.habitaciones.map((rm: any) => {
@@ -687,9 +700,15 @@ export class ProfileComponent implements OnInit {
         }
         break;
 
-      case 'attractions':
-        this.cargarDetalleAtraccion(reserva, provider);
+      case 'attractions': {
+        // Pasa el provider TAL CUAL viene del historial (preservando el
+        // case original, p. ej. "Luis"/"Jhonatan"). El middleware acepta
+        // ese formato en los demás endpoints de atracciones, así que no se
+        // normaliza a minúscula a ciegas para no romper la consulta.
+        const providerOriginal = String(reserva.provider || reserva.nombreProveedor || '').trim();
+        this.cargarDetalleAtraccion(reserva, providerOriginal);
         break;
+      }
 
       // Autos / vuelos / desconocido: usar snapshot del historial sin
       // llamadas adicionales — el modal ya tiene los datos básicos.
@@ -714,10 +733,31 @@ export class ProfileComponent implements OnInit {
       console.warn('[Profile] Falta provider o rev_guid para detalle de atracción', { provider, revGuid });
       return;
     }
+    console.info('[Profile] Llamando detalle atracción → /', provider, '/api/v2/reservas/', revGuid);
     this.atraccionesService.getReservaDetalle(revGuid, provider as any).subscribe({
       next: (resp: any) => {
         const data = resp?.data ?? resp;
+        // Logs temporales — TODO(debug): retirar tras validar en prod.
+        console.info('[Profile] Detalle atracción response:', data);
+        console.info('[Profile] data.detalle (tickets) =', data?.detalle);
         if (data) {
+          // Mapea el `rev_estado` del proveedor (PENDIENTE/PAGADA/CANCELADA)
+          // al código corto que usa el modal (PEN/CON/CAN) para que el badge
+          // y el saldo pendiente se actualicen correctamente.
+          const revEstado = String(data.rev_estado ?? '').toUpperCase();
+          let estadoCorto = this.selectedReserva.estadoReserva;
+          if (revEstado === 'PAGADA' || revEstado === 'PAG' || revEstado === 'CONFIRMADA') {
+            estadoCorto = 'CON';
+          } else if (revEstado === 'PENDIENTE' || revEstado === 'PEND' || revEstado === 'PEN') {
+            estadoCorto = 'PEN';
+          } else if (revEstado === 'CANCELADA' || revEstado === 'CANC' || revEstado === 'CAN') {
+            estadoCorto = 'CAN';
+          }
+
+          // Si está pagada, saldo pendiente = 0.
+          const totalReal = data.rev_total ?? this.selectedReserva.totalReserva;
+          const yaPagada = revEstado === 'PAGADA' || revEstado === 'PAG' || revEstado === 'CONFIRMADA';
+
           this.selectedReserva = {
             ...this.selectedReserva,
             codigoReserva: data.rev_codigo ?? this.selectedReserva.codigoReserva,
@@ -728,10 +768,14 @@ export class ProfileComponent implements OnInit {
             fechaFin: data.hor_fecha
               ? `${data.hor_fecha}T${(data.hor_hora_fin || '23:59')}:00`
               : this.selectedReserva.fechaFin,
+            moneda: data.moneda ?? this.selectedReserva.moneda ?? 'USD',
+            estadoReserva: estadoCorto,
             estadoReservaProveedor: data.rev_estado ?? '',
             subtotalReserva: data.rev_subtotal ?? this.selectedReserva.subtotalReserva,
             valorIva: data.rev_valor_iva ?? this.selectedReserva.valorIva,
-            totalReserva: data.rev_total ?? this.selectedReserva.totalReserva,
+            totalReserva: totalReal,
+            saldoPendiente: yaPagada ? 0 : (totalReal ?? this.selectedReserva.saldoPendiente),
+            fechaReservaUtc: data.rev_fecha_reserva_utc ?? this.selectedReserva.fechaReservaUtc,
             detalleAtraccion: data.detalle ?? [],
           };
           this.cdr.detectChanges();
@@ -809,20 +853,38 @@ export class ProfileComponent implements OnInit {
 
   /**
    * Función centralizada para clasificar reservas por tipo de servicio.
+   *
    * Reglas (en orden de prioridad):
    *   1) `guidServicioRef` coincide con un GUID fijo → fuente de verdad.
-   *   2) `tipoServicioSnap` como ID numérico ('1'/'2'/'3'/'5') o nombre textual.
-   *   3) Fallback histórico por `nombreServicioSnap` para alojamiento.
-   *   4) Si nada coincide → 'unknown' (NO se asume alojamiento).
+   *   2) `tipoServicio` interno (el mapping del historial guarda 'atraccion'
+   *      en atracciones y 'auto' en autos, por ejemplo).
+   *   3) `tipoServicioSnap` como ID numérico ('1'/'2'/'3'/'5') o textual.
+   *   4) Fallback histórico: por `nombreServicioSnap` (alojamiento) o por
+   *      presencia de `habitaciones[]` (lodging clásico que no marca tipo).
+   *   5) Sin match → 'unknown' (NO se asume alojamiento).
    */
   getServiceType(reserva: any): 'lodging' | 'attractions' | 'cars' | 'flights' | 'unknown' {
     if (!reserva) return 'unknown';
+
+    // (1) GUID fijo del tipo
     const guidRef = reserva.guidServicioRef;
     if (guidRef === this.TIPO_ATRACCIONES_GUID) return 'attractions';
     if (guidRef === this.TIPO_ALOJAMIENTO_GUID) return 'lodging';
     if (guidRef === this.TIPO_AUTOS_GUID) return 'cars';
     if (guidRef === this.TIPO_VUELOS_GUID) return 'flights';
 
+    // (2) Campo `tipoServicio` interno que asigna el mapping del historial.
+    //     attractionRequests guarda 'atraccion'; carRequests guarda 'auto'.
+    const tipoInterno = String(reserva.tipoServicio ?? '').toLowerCase().trim();
+    if (tipoInterno === 'atraccion' || tipoInterno === 'atracciones' || tipoInterno === 'attractions') return 'attractions';
+    if (
+      tipoInterno === 'auto' || tipoInterno === 'autos' ||
+      tipoInterno === 'cars' || tipoInterno === 'vehiculo' || tipoInterno === 'vehículo'
+    ) return 'cars';
+    if (tipoInterno === 'alojamiento' || tipoInterno === 'lodging' || tipoInterno === 'hotel') return 'lodging';
+    if (tipoInterno === 'vuelo' || tipoInterno === 'vuelos' || tipoInterno === 'flights') return 'flights';
+
+    // (3) tipoServicioSnap (formato directo del middleware)
     const tipo = String(reserva.tipoServicioSnap ?? '').toLowerCase().trim();
     if (tipo === '3' || tipo === 'atraccion' || tipo === 'atracciones' || tipo === 'atracción') return 'attractions';
     if (tipo === '1' || tipo === 'alojamiento' || tipo === 'hotel' || tipo === 'hospedaje') return 'lodging';
@@ -836,10 +898,12 @@ export class ProfileComponent implements OnInit {
     }
     if (tipo === 'vuelo' || tipo === 'vuelos' || tipo === 'flight') return 'flights';
 
-    // Fallback histórico: registros antiguos pueden no traer guidServicioRef
-    // ni tipo numérico, pero sí 'alojamiento' en nombreServicioSnap.
+    // (4) Fallback histórico
     const nombre = String(reserva.nombreServicioSnap ?? '').toLowerCase().trim();
     if (nombre === 'alojamiento') return 'lodging';
+    // Si tiene array `habitaciones` no vacío, es lodging clásico que no
+    // marcó su tipo (preserva el comportamiento previo a esta refactorización).
+    if (Array.isArray(reserva.habitaciones) && reserva.habitaciones.length > 0) return 'lodging';
 
     return 'unknown';
   }
@@ -960,6 +1024,12 @@ export class ProfileComponent implements OnInit {
         },
       });
     });
+  }
+
+  /** True si la reserva ya está pagada (cualquier código equivalente). */
+  estaPagada(reserva: any): boolean {
+    const e = String(reserva?.estadoReserva ?? reserva?.estadoReservaProveedor ?? '').toUpperCase().trim();
+    return e === 'PAG' || e === 'PAGADA' || e === 'CONFIRMADA' || e === 'CON';
   }
 
   /** Estados que se consideran activos en historial. */

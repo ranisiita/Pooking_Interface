@@ -404,13 +404,14 @@
               </div>
               <div class="money-row pending-balance">
                 <span>SALDO PENDIENTE</span>
-                <strong>${{ selectedReserva.saldoPendiente | number:'1.2-2' }} USD</strong>
+                <strong>${{ (estaPagada(selectedReserva) ? 0 : selectedReserva.saldoPendiente) | number:'1.2-2' }} USD</strong>
               </div>
             </div>
           </div>
 
-          <!-- Habitaciones Reservadas (Detalle Detallado de Habitaciones) -->
-          <div class="contract-section" *ngIf="selectedReserva.habitaciones && selectedReserva.habitaciones.length > 0">
+          <!-- Habitaciones Reservadas (solo alojamiento) -->
+          <div class="contract-section"
+            *ngIf="(tipoServicioActual === 'lodging' || tipoServicioActual === 'unknown') && selectedReserva.habitaciones && selectedReserva.habitaciones.length > 0">
             <h4><span class="material-icons">king_bed</span> Habitaciones Adquiridas</h4>
             <div class="contract-rooms-list">
               <div class="c-room-item" *ngFor="let rm of selectedReserva.habitaciones">
@@ -451,6 +452,44 @@
                     <div class="crld-row crld-total">
                       <span>Total línea</span>
                       <span>${{ rm.totalLinea | number:'1.2-2' }} USD</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tickets Adquiridos (solo atracciones) — mismo diseño que habitaciones -->
+          <div class="contract-section"
+            *ngIf="tipoServicioActual === 'attractions' && selectedReserva.detalleAtraccion && selectedReserva.detalleAtraccion.length > 0">
+            <h4><span class="material-icons">confirmation_number</span> Tickets Adquiridos</h4>
+            <div class="contract-rooms-list">
+              <div class="c-room-item" *ngFor="let tk of selectedReserva.detalleAtraccion">
+                <div class="cri-header">
+                  <span class="cri-title">{{ tk.tck_tipo_participante || 'Ticket' }}</span>
+                  <span *ngIf="selectedReserva.estadoReserva === 'CAN' || selectedReserva.estadoReserva === 'CANC' || selectedReserva.estadoReserva === 'CANCELADA'" class="cri-status CAN">
+                    Cancelada
+                  </span>
+                </div>
+                <div class="cri-body">
+                  <div class="cri-meta-grid">
+                    <div>
+                      <span class="cri-label">CANTIDAD</span>
+                      <strong>{{ tk.cantidad || 1 }}</strong>
+                    </div>
+                    <div>
+                      <span class="cri-label">PRECIO UNITARIO</span>
+                      <strong>${{ tk.precio_unit | number:'1.2-2' }} {{ selectedReserva.moneda || 'USD' }}</strong>
+                    </div>
+                    <div>
+                      <span class="cri-label">FECHA DE VISITA</span>
+                      <strong style="font-size: 0.75rem;">{{ fmtDateShort(selectedReserva.fechaInicio) }}</strong>
+                    </div>
+                  </div>
+                  <div class="cri-line-details">
+                    <div class="crld-row crld-total">
+                      <span>Subtotal</span>
+                      <span>${{ tk.subtotal | number:'1.2-2' }} {{ selectedReserva.moneda || 'USD' }}</span>
                     </div>
                   </div>
                 </div>
