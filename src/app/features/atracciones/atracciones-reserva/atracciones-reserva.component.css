@@ -1135,3 +1135,110 @@
   .rs-attr { grid-template-columns: 70px 1fr; }
   .rs-attr img { width: 70px; height: 70px; }
 }
+
+/* ── Overlay de carga premium (mismo patrón que carros) ──────────
+   Se muestra mientras se ejecuta la cadena de creación de reserva
+   y confirmación de pago. Bloquea toda interacción incluyendo el
+   modal del Hall de pagos (z-index por encima de su overlay = 100). */
+.premium-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(251, 248, 234, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10010;
+  animation: fadeInPremiumOverlay 0.3s ease-out;
+}
+
+.premium-loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.premium-spinner {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.premium-spinner .ring-1,
+.premium-spinner .ring-2 {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 4px solid transparent;
+}
+
+.premium-spinner .ring-1 {
+  border-top-color: var(--color-titulo, #8E5A54);
+  border-bottom-color: var(--color-titulo, #8E5A54);
+  animation: spinPremium 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+}
+
+.premium-spinner .ring-2 {
+  border-left-color: var(--color-extra2, #C6B17D);
+  border-right-color: var(--color-extra2, #C6B17D);
+  animation: spinPremiumReverse 2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite reverse;
+  opacity: 0.8;
+  inset: 8px;
+}
+
+.premium-spinner .attr-icon {
+  font-size: 32px;
+  color: var(--color-titulo, #8E5A54);
+  animation: pulsePremiumIcon 2s ease-in-out infinite;
+}
+
+.premium-loader-text {
+  font-family: var(--font-titulo, 'Playfair Display', serif);
+  font-size: 1.5rem;
+  color: var(--color-titulo, #8E5A54);
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.05em;
+  animation: pulsePremiumText 2s ease-in-out infinite;
+}
+
+.premium-loader-sub {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 0.95rem;
+  color: var(--color-extra1, #46403C);
+  opacity: 0.85;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+@keyframes spinPremium {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes spinPremiumReverse {
+  0% { transform: rotate(0deg) scale(0.9); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(0.9); }
+}
+
+@keyframes pulsePremiumIcon {
+  0%, 100% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes pulsePremiumText {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+@keyframes fadeInPremiumOverlay {
+  from { opacity: 0; transform: scale(1.05); }
+  to { opacity: 1; transform: scale(1); }
+}

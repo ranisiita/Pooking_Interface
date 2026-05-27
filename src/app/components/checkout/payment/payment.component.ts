@@ -25,6 +25,11 @@ export class PaymentComponent implements OnInit {
   @Input() ivaInput = 0;
   @Input() overrideEmail = '';
   @Input() overrideNombre = '';
+  /** Pre-rellena el teléfono del paso 1 + sidebar del Hall de pagos cuando
+   *  el feature que embebe el componente ya conoce el dato (e.g. atracciones
+   *  precarga al cliente asociado al usuario logueado). Opcional y
+   *  retro-compatible: si no se pasa, el comportamiento es el de siempre. */
+  @Input() overrideTelefono = '';
   @Input() buttonLabel = 'Pagar de forma segura';
   @Input() serviceType: 'vuelo' | 'alojamiento' | 'atraccion' | 'auto' | 'vehiculo' = 'vuelo';
   @Input() itemName = '';
@@ -108,6 +113,9 @@ export class PaymentComponent implements OnInit {
       }
       if (this.overrideEmail) {
         this.datosPersonales.email = this.overrideEmail;
+      }
+      if (this.overrideTelefono) {
+        this.datosPersonales.telefono = this.overrideTelefono;
       }
     }
     

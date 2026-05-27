@@ -6,7 +6,11 @@ import { FooterComponent } from '../../components/navbar/footer.component';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { LodgingService } from '../../services/lodging.service';
-import { AtraccionesService } from '../../features/atracciones/services/atracciones.service';
+import {
+  AtraccionesService,
+  getProviderCompanyName,
+  normalizeAttractionProvider,
+} from '../../features/atracciones/services/atracciones.service';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 
@@ -348,9 +352,14 @@ export class ProfileComponent implements OnInit {
 
         // ── 2. MAPEAR ATRACCIONES DINÁMICAMENTE ──
         let attractionRequests = attractionItems.map((bk: any) => {
-          const providerName = bk.nombreProveedor || 'jorge';
+          // El historial puede traer `nombreProveedor` como provider técnico
+          // ("luis"), como nombre legacy de persona ("Luis"), o como nombre
+          // de empresa nuevo ("Travel of your dreams"). Para llamar al bus
+          // del proveedor necesitamos siempre el técnico.
+          const providerName =
+            normalizeAttractionProvider(bk.nombreProveedor) || ('jorge' as any);
           const externalId = bk.idReservaExterna || bk.reservaGuid;
-          
+
           return this.atraccionesService.getReservaDetalle(externalId, providerName).pipe(
             catchError(err => {
               console.warn(`Error getting attraction reservation details for ${externalId}:`, err);
@@ -701,12 +710,13 @@ export class ProfileComponent implements OnInit {
         break;
 
       case 'attractions': {
-        // Pasa el provider TAL CUAL viene del historial (preservando el
-        // case original, p. ej. "Luis"/"Jhonatan"). El middleware acepta
-        // ese formato en los demás endpoints de atracciones, así que no se
-        // normaliza a minúscula a ciegas para no romper la consulta.
-        const providerOriginal = String(reserva.provider || reserva.nombreProveedor || '').trim();
-        this.cargarDetalleAtraccion(reserva, providerOriginal);
+        // El `provider`/`nombreProveedor` del historial puede ser técnico
+        // ("luis"), legacy persona ("Luis"), o nombre de empresa nuevo
+        // ("Travel of your dreams"). Para llamar al microservicio del
+        // proveedor necesitamos siempre el ID técnico.
+        const raw = String(reserva.provider || reserva.nombreProveedor || '').trim();
+        const providerTecnico = normalizeAttractionProvider(raw) || raw;
+        this.cargarDetalleAtraccion(reserva, providerTecnico);
         break;
       }
 
@@ -845,9 +855,18 @@ export class ProfileComponent implements OnInit {
     return d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
   }
 
-  /** Capitaliza el nombre del proveedor para UI: "luis" → "Luis". */
+  /**
+   * Etiqueta del proveedor para el modal de detalle de reserva.
+   * Para atracciones, mapea el provider técnico (o el legacy/empresa
+   * guardado en historial) al nombre de empresa actual (Atraxia, ReservX,
+   * Travel of your dreams, Aventuras Reservas). Para otros tipos de
+   * servicio mantiene el comportamiento original (capitalizar).
+   */
   providerLabel(p: string | undefined | null): string {
     if (!p) return 'Pooking';
+    if (this.tipoServicioActual === 'attractions') {
+      return getProviderCompanyName(p);
+    }
     return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
   }
 
@@ -976,10 +995,12 @@ export class ProfileComponent implements OnInit {
     const pendientes = this.attractionReservations.filter((r) => !r.lodgingImage);
     if (pendientes.length === 0) return;
 
-    // Agrupa pendientes por provider normalizado (1 request por provider).
+    // Agrupa pendientes por provider técnico (1 request por provider).
+    // Acepta valores legacy ("Luis") y nombres de empresa ("Atraxia") — los
+    // mapea al técnico antes de agrupar.
     const porProvider = new Map<string, any[]>();
     for (const r of pendientes) {
-      const prov = this.normalizeProvider(r.provider || r.nombreProveedor);
+      const prov = normalizeAttractionProvider(r.provider || r.nombreProveedor);
       if (!prov) continue;
       if (!porProvider.has(prov)) porProvider.set(prov, []);
       porProvider.get(prov)!.push(r);
