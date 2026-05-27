@@ -30,6 +30,21 @@
   @case ('success') {
     @if (detalle(); as d) {
 
+      <!-- ══ OVERLAY DE CARGA PREMIUM (mismo patrón que carros) ══ -->
+      @if (enviandoPago()) {
+        <div class="premium-overlay" role="status" aria-live="polite">
+          <div class="premium-loader-content">
+            <div class="premium-spinner">
+              <div class="ring-1"></div>
+              <div class="ring-2"></div>
+              <span class="material-icons attr-icon">local_activity</span>
+            </div>
+            <h3 class="premium-loader-text">Procesando...</h3>
+            <p class="premium-loader-sub">Asegurando tu reserva y verificando el pago</p>
+          </div>
+        </div>
+      }
+
       <!-- ══ BREADCRUMB ══ -->
       <nav class="rsv-breadcrumb" aria-label="Ruta de navegación">
         <a (click)="volverAlListado()">Atracciones</a>
@@ -386,11 +401,11 @@
             <!-- Acción -->
             <button
               class="rsv-btn-primary rs-cta"
-              [disabled]="!puedeReservar || enviando()"
+              [disabled]="!puedeReservar || enviando() || enviandoPago()"
               (click)="reservar()"
             >
-              @if (enviando()) {
-                <div class="rsv-spinner sm" aria-hidden="true"></div> Creando reserva…
+              @if (enviando() || enviandoPago()) {
+                <div class="rsv-spinner sm" aria-hidden="true"></div> Procesando…
               } @else {
                 <span class="material-icons">event_available</span> Reservar ahora
               }
@@ -408,132 +423,21 @@
 
       </div>
 
-      <!-- ══ MODAL: RESERVA CREADA (response de POST /api/v2/reservas) ══ -->
-      @if (!mostrarPago() && !factura()) {
-       @if (reservaCreada(); as r) {
-        <div class="success-overlay show" (click)="cerrarConfirmacion()">
-          <div class="success-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-
-            <button class="success-close" (click)="cerrarConfirmacion()" aria-label="Cerrar">
-              <span class="material-icons">close</span>
-            </button>
-
-            <div class="success-icon">
-              <span class="material-icons">check</span>
-            </div>
-
-            <h2>¡Reserva creada!</h2>
-            <p class="success-sub">
-              Tu reserva está <strong>pendiente de confirmación de pago</strong>.
-              Los cupos han sido bloqueados temporalmente.
-            </p>
-
-            <!-- Código de reserva -->
-            <div class="success-code">
-              <div class="sc-label">Código de reserva</div>
-              <div class="sc-val">{{ r.rev_codigo }}</div>
-            </div>
-
-            <!-- Información principal -->
-            <div class="success-meta">
-              <div class="sm-item">
-                <div class="smi-label">Atracción</div>
-                <div class="smi-val">{{ r.atraccion_nombre }}</div>
-              </div>
-              <div class="sm-item">
-                <div class="smi-label">Estado</div>
-                <div class="smi-val">
-                  <span class="sm-estado" [class.pendiente]="r.rev_estado === 'PENDIENTE'">
-                    ● {{ r.rev_estado }}
-                  </span>
-                </div>
-              </div>
-              <div class="sm-item">
-                <div class="smi-label">Fecha de visita</div>
-                <div class="smi-val">{{ r.hor_fecha }}</div>
-              </div>
-              <div class="sm-item">
-                <div class="smi-label">Horario</div>
-                <div class="smi-val">{{ r.hor_hora_inicio }} – {{ r.hor_hora_fin }}</div>
-              </div>
-            </div>
-
-            <!-- Detalle de tickets -->
-            <div class="success-tickets">
-              <div class="st-head">Tickets</div>
-              @for (linea of r.detalle; track $index) {
-                <div class="st-row">
-                  <div class="st-row-left">
-                    <span class="material-icons">confirmation_number</span>
-                    <div>
-                      <div class="st-tipo">{{ linea.tck_tipo_participante }}</div>
-                      <div class="st-sub">
-                        {{ linea.cantidad }} × ${{ linea.precio_unit | number: '1.2-2' }} {{ r.moneda }}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="st-subtotal">${{ linea.subtotal | number: '1.2-2' }}</div>
-                </div>
-              }
-            </div>
-
-            <!-- Totales -->
-            <div class="success-totals">
-              <div class="stt-row">
-                <span>Subtotal</span>
-                <span>${{ r.rev_subtotal | number: '1.2-2' }} {{ r.moneda }}</span>
-              </div>
-              <div class="stt-row">
-                <span>IVA</span>
-                <span>${{ r.rev_valor_iva | number: '1.2-2' }} {{ r.moneda }}</span>
-              </div>
-              <div class="stt-row stt-total">
-                <span>Total</span>
-                <span>${{ r.rev_total | number: '1.2-2' }} {{ r.moneda }}</span>
-              </div>
-              <div class="stt-saldo">
-                <span class="material-icons">payments</span>
-                Saldo pendiente de pago: <strong>${{ r.rev_total | number: '1.2-2' }} {{ r.moneda }}</strong>
-              </div>
-            </div>
-
-            @if (advertenciaRegistro(); as adv) {
-              <div class="success-warning" role="status">
-                <span class="material-icons">info</span>
-                <span>{{ adv }}</span>
-              </div>
-            }
-
-            <!-- Acciones -->
-            <div class="success-actions">
-              <button class="btn-success" (click)="continuarAlPago()">
-                <span class="material-icons">payments</span>
-                Continuar al pago
-              </button>
-              <button class="btn-success-ghost" (click)="verMisReservas()">
-                Ver mis reservas
-              </button>
-            </div>
-
-          </div>
-        </div>
-       }
-      }
-
-      <!-- ══ HALL DE PAGOS (componente compartido) ══ -->
+      <!-- ══ HALL DE PAGOS (componente compartido — mismo que alojamientos) ══ -->
       @if (mostrarPago()) {
-       @if (reservaCreada(); as r) {
+       @if (detalle(); as d) {
         <app-payment
           [isStandalone]="false"
           [initialStep]="2"
-          [subtotalInput]="r.rev_subtotal"
-          [ivaInput]="r.rev_valor_iva"
-          [totalInput]="r.rev_total"
+          [subtotalInput]="subtotalEstimado()"
+          [ivaInput]="ivaEstimado()"
+          [totalInput]="totalEstimado()"
           [overrideNombre]="nombreCompletoCliente()"
           [overrideEmail]="correoClientePago()"
+          [overrideTelefono]="telefonoClientePago()"
           [serviceType]="'atraccion'"
-          [itemName]="r.atraccion_nombre"
-          [customDetails]="detallesLineas()"
+          [itemName]="d.nombre"
+          [customDetails]="detallesLineasEstimadas()"
           buttonLabel="Confirmar pago"
           (datosEditados)="onDatosEditadosPago($event)"
           (pagoExitoso)="onPagoExitoso()"
@@ -572,38 +476,54 @@
               <span class="material-icons">check</span>
             </div>
 
-            <h2>¡Pago confirmado!</h2>
+            <h2>¡Reserva confirmada!</h2>
             <p class="success-sub">
-              Tu factura ha sido emitida correctamente y enviada al correo del receptor.
+              Tu reserva fue procesada y el pago confirmado. Recibirás la
+              factura en tu correo.
             </p>
 
             <div class="success-code">
-              <div class="sc-label">Número de factura</div>
-              <div class="sc-val">{{ f.fac_numero }}</div>
+              <div class="sc-label">Código de reserva</div>
+              <div class="sc-val">{{ f.rev_codigo }}</div>
             </div>
 
             <div class="success-meta">
-              <div class="sm-item">
-                <div class="smi-label">Código de reserva</div>
-                <div class="smi-val">{{ f.rev_codigo }}</div>
-              </div>
-              <div class="sm-item">
-                <div class="smi-label">Estado factura</div>
-                <div class="smi-val">
-                  <span class="sm-estado" [class.pendiente]="f.estado !== 'A'">
-                    ● {{ f.estado === 'A' ? 'Activa' : f.estado }}
-                  </span>
+              @if (reservaCreada(); as r) {
+                <div class="sm-item">
+                  <div class="smi-label">Atracción</div>
+                  <div class="smi-val">{{ r.atraccion_nombre }}</div>
                 </div>
-              </div>
+                <div class="sm-item">
+                  <div class="smi-label">Estado</div>
+                  <div class="smi-val">
+                    <span class="sm-estado">● Confirmada</span>
+                  </div>
+                </div>
+                <div class="sm-item">
+                  <div class="smi-label">Fecha de visita</div>
+                  <div class="smi-val">{{ r.hor_fecha }}</div>
+                </div>
+                <div class="sm-item">
+                  <div class="smi-label">Horario</div>
+                  <div class="smi-val">{{ r.hor_hora_inicio }} – {{ r.hor_hora_fin }}</div>
+                </div>
+              }
               <div class="sm-item">
                 <div class="smi-label">Total pagado</div>
                 <div class="smi-val">${{ f.total | number: '1.2-2' }} {{ f.moneda }}</div>
               </div>
               <div class="sm-item">
-                <div class="smi-label">Fecha de emisión</div>
-                <div class="smi-val">{{ formatearFechaEmision(f.fecha_emision) }}</div>
+                <div class="smi-label">Número de factura</div>
+                <div class="smi-val">{{ f.fac_numero }}</div>
               </div>
             </div>
+
+            @if (advertenciaRegistro(); as adv) {
+              <div class="success-warning" role="status">
+                <span class="material-icons">info</span>
+                <span>{{ adv }}</span>
+              </div>
+            }
 
             <div class="success-actions">
               <button class="btn-success" (click)="verMisReservas()">

@@ -152,6 +152,28 @@ export class AtraccionesReservaComponent implements OnInit {
     return tickets.reduce((acc, t) => acc + (cants[t.tck_guid] ?? 0) * t.precio, 0);
   });
 
+  /** IVA estimado (12% según el contrato). El backend lo recalcula al crear la reserva. */
+  readonly ivaEstimado = computed(() =>
+    Math.round(this.subtotalEstimado() * 0.15 * 100) / 100,
+  );
+
+  /** Total estimado = subtotal + IVA. */
+  readonly totalEstimado = computed(() =>
+    Math.round((this.subtotalEstimado() + this.ivaEstimado()) * 100) / 100,
+  );
+
+  /** Líneas de tickets seleccionados para mostrar en el Hall de pagos. */
+  readonly detallesLineasEstimadas = computed<{ name: string; value: number }[]>(() => {
+    const tickets = this.ticketsHorario();
+    const cants = this.cantidades();
+    return tickets
+      .filter((t) => (cants[t.tck_guid] ?? 0) > 0)
+      .map((t) => ({
+        name: `${cants[t.tck_guid]} × ${t.tipo}`,
+        value: (cants[t.tck_guid] ?? 0) * t.precio,
+      }));
+  });
+
   readonly monedaActiva = computed(() => {
     const t = this.ticketsHorario();
     return t[0]?.moneda ?? this.detalle()?.moneda ?? 'USD';
@@ -168,6 +190,48 @@ export class AtraccionesReservaComponent implements OnInit {
       this.provider = provQp as AttractionProvider;
     }
     this.cargarDetalle(id);
+    this.precargarClienteAsociado();
+  }
+
+  /**
+   * Si hay un `usuarioGuid` en localStorage (usuario logueado), consulta
+   * el cliente asociado y precarga el formulario "Datos del cliente".
+   * Mismo patrón que `cars` (`getClientePorUsuarioGuid`). Si el usuario
+   * no está logueado, o el endpoint falla, deja los campos vacíos para
+   * que el visitante los complete manualmente — no bloquea el flujo.
+   */
+  private precargarClienteAsociado(): void {
+    const usuarioGuid = (() => {
+      try { return localStorage.getItem('usuarioGuid'); } catch { return null; }
+    })();
+    if (!usuarioGuid) {
+      console.info('[Atracciones] Usuario invitado o sin usuarioGuid — no se precarga cliente.');
+      return;
+    }
+    this.svc.getClientePorUsuarioGuid(usuarioGuid).subscribe((cliente) => {
+      if (!cliente) return;
+      // Solo precarga campos vacíos para no pisar lo que el usuario ya escribió.
+      const set = (k: CampoCliente | 'direccion', v: string | undefined | null) => {
+        if (!v) return;
+        const actual = (this.cliente as any)[k] as string;
+        if (actual && actual.trim()) return;
+        (this.cliente as any)[k] = String(v);
+      };
+      set('nombres', cliente.nombres);
+      set('apellidos', cliente.apellidos);
+      set('correo', cliente.correo);
+      set('telefono', cliente.telefono);
+      set('numero_identificacion', cliente.numeroIdentificacion);
+      set('direccion', cliente.direccion);
+      // El select de atracciones solo acepta CEDULA y PASAPORTE — normalizamos
+      // los códigos cortos comunes; si llega RUC u otro tipo no soportado,
+      // dejamos el select vacío para que el usuario elija explícitamente.
+      const tipo = String(cliente.tipoIdentificacion ?? '').toUpperCase();
+      let tipoNorm = '';
+      if (tipo === 'CI' || tipo === 'CEDULA') tipoNorm = 'CEDULA';
+      else if (tipo === 'PAS' || tipo === 'PASAPORTE') tipoNorm = 'PASAPORTE';
+      if (tipoNorm) set('tipo_identificacion', tipoNorm);
+    });
   }
 
   // ── Carga inicial ────────────────────────────────────────
@@ -354,6 +418,13 @@ export class AtraccionesReservaComponent implements OnInit {
   }
 
   // ── Construcción del payload (sin enviar la API real) ───
+  /**
+   * Click en "Reservar ahora" — solo valida el formulario y abre el Hall de
+   * pagos. La cadena real (POST /reservas → POST /pagos → POST /historial)
+   * se ejecuta al confirmar pago dentro del Hall, igual que el patrón de
+   * alojamientos: el usuario no sale del flujo a media reserva, solo ve el
+   * resultado final tras pagar.
+   */
   reservar(): void {
     // Marca todos los campos como touched para que se vean los errores.
     (['tipo_identificacion', 'numero_identificacion', 'nombres', 'apellidos', 'correo', 'telefono'] as CampoCliente[])
@@ -386,31 +457,13 @@ export class AtraccionesReservaComponent implements OnInit {
       },
     };
 
-    // POST real a /{provider}/api/v2/reservas (provider de origen de la atracción).
+    // Solo guarda el payload y abre el Hall de pagos. La reserva se crea al
+    // confirmar el pago — no antes.
     this.payloadListo.set(payload);
-    this.enviando.set(true);
     this.errorReserva.set(null);
+    this.errorPago.set(null);
     this.advertenciaRegistro.set(null);
-    this.svc.crearReserva(payload, this.provider).subscribe({
-      next: (resp) => {
-        this.reservaCreada.set(resp.data);
-        this.enviando.set(false);
-        console.info('[Reserva] Respuesta del backend:', resp);
-        // Persiste la imagen real de la atracción indexada por rev_guid,
-        // para que el historial (Profile) pueda mostrarla luego — el
-        // endpoint general /clientes/reservas no devuelve la imagen.
-        this.persistirImagenAtraccion(resp.data.rev_guid);
-        // Registro en la base general de clientes/Booking en cuanto tenemos
-        // rev_guid. La reserva nace PENDIENTE; la actualización de estado
-        // a PAGADA se hará después en el flujo de pago si aplica.
-        this.registrarEnClientes(resp.data);
-      },
-      error: (err) => {
-        this.enviando.set(false);
-        this.errorReserva.set(this.mensajeErrorReserva(err));
-        console.error('[Reserva] Error al crear reserva:', err);
-      },
-    });
+    this.mostrarPago.set(true);
   }
 
   /**
@@ -569,28 +622,66 @@ export class AtraccionesReservaComponent implements OnInit {
   }
 
   /**
-   * POST real al microservicio del proveedor para confirmar el pago:
-   *   /{provider}/api/v2/reservas/{rev_guid}/pagos/confirmacion
+   * Orquesta la cadena completa al confirmar el pago en el Hall:
+   *   1) POST /{provider}/api/v2/reservas               (crea reserva PENDIENTE)
+   *   2) POST /{provider}/api/v2/reservas/{rev_guid}/pagos/confirmacion
+   *   3) POST /api/v2/booking/clientes/reservas         (registro general — best-effort)
    *
-   * Se usa el provider de origen de la reserva (el mismo donde se creó).
-   * Si el receptor de la factura fue editado en `<app-payment>`, se usan
-   * esos datos; si no, se caen al `cliente_invitado` original.
+   * El usuario solo ve el resultado final tras los 3 pasos. Si el paso (1)
+   * falla, no se cobra. Si el paso (2) falla, se conserva la reserva creada
+   * para que el usuario pueda reintentar el pago sin duplicar.
    */
   private procesarConfirmacionPago(): void {
-    const r = this.reservaCreada();
-    if (!r) return;
     if (this.enviandoPago()) return;
 
-    const body = this.armarBodyConfirmacion(r);
     this.enviandoPago.set(true);
     this.errorPago.set(null);
 
-    this.svc.confirmarPago(r.rev_guid, body, this.provider).subscribe({
-      next: (resp) => {
-        this.factura.set(resp.data);
+    // Si la reserva ya se creó en un intento anterior (el pago falló), no
+    // la creamos de nuevo — vamos directo al paso (2).
+    const reservaExistente = this.reservaCreada();
+    if (reservaExistente) {
+      this.confirmarPagoYRegistrarHistorial(reservaExistente);
+      return;
+    }
+
+    const payload = this.payloadListo();
+    if (!payload) {
+      this.enviandoPago.set(false);
+      this.errorPago.set('No se pudo construir el pedido. Vuelve a intentarlo.');
+      return;
+    }
+
+    // Paso 1: crear reserva PENDIENTE en el microservicio del proveedor.
+    this.svc.crearReserva(payload, this.provider).subscribe({
+      next: (respReserva) => {
+        const reserva = respReserva.data;
+        this.reservaCreada.set(reserva);
+        console.info('[Reserva] PENDIENTE creada:', reserva.rev_guid);
+        this.persistirImagenAtraccion(reserva.rev_guid);
+        // Paso 2 + 3
+        this.confirmarPagoYRegistrarHistorial(reserva);
+      },
+      error: (err) => {
+        this.enviandoPago.set(false);
+        this.errorPago.set(this.mensajeErrorReserva(err));
+        console.error('[Reserva] Error al crear reserva:', err);
+      },
+    });
+  }
+
+  /** Pasos 2 (confirmar pago) y 3 (registrar historial) de la cadena. */
+  private confirmarPagoYRegistrarHistorial(reserva: ReservaCreada): void {
+    const body = this.armarBodyConfirmacion(reserva);
+    this.svc.confirmarPago(reserva.rev_guid, body, this.provider).subscribe({
+      next: (respPago) => {
+        this.factura.set(respPago.data);
         this.mostrarPago.set(false);
         this.enviandoPago.set(false);
-        console.info('[Pago] Factura emitida:', resp.data);
+        console.info('[Pago] Factura emitida:', respPago.data);
+        // Paso 3: registrar en historial con estado PAGADA — best-effort.
+        // Si falla, el usuario igual ve el modal final con la factura.
+        this.registrarEnClientes({ ...reserva, rev_estado: 'PAGADA' });
       },
       error: (err) => {
         this.enviandoPago.set(false);
@@ -645,6 +736,10 @@ export class AtraccionesReservaComponent implements OnInit {
     return (this.cliente.correo ?? '').trim();
   }
 
+  telefonoClientePago(): string {
+    return (this.cliente.telefono ?? '').trim();
+  }
+
   detallesLineas(): { name: string; value: number }[] {
     const r = this.reservaCreada();
     if (!r?.detalle) return [];
@@ -670,6 +765,7 @@ export class AtraccionesReservaComponent implements OnInit {
   cerrarFactura(): void {
     this.factura.set(null);
     this.reservaCreada.set(null);
+    this.payloadListo.set(null);
     this.router.navigate(['/atracciones']);
   }
 
@@ -678,6 +774,7 @@ export class AtraccionesReservaComponent implements OnInit {
     this.reservaCreada.set(null);
     this.factura.set(null);
     this.mostrarPago.set(false);
+    this.payloadListo.set(null);
     this.router.navigate(['/profile'], { queryParams: { tab: 'atracciones' } });
   }
 

@@ -42,13 +42,79 @@ export const ALL_ATTRACTION_PROVIDERS: AttractionProvider[] = [
   ATTRACTION_PROVIDERS['ANGEL'],
 ];
 
-/** Etiqueta humana de un proveedor para mostrar en UI. */
+/**
+ * Etiqueta humana de un proveedor para mostrar en UI.
+ *
+ * IMPORTANTE: las claves del Record (jhonatan / luis / francisco / angel) son
+ * los IDs **técnicos** que viajan en la URL del API Gateway — NO se cambian.
+ * Los valores son los nombres de la **empresa** asociada al proveedor: es
+ * lo único que el usuario ve en pantalla.
+ *
+ *   francisco → Atraxia
+ *   luis      → Travel of your dreams
+ *   angel     → Aventuras Reservas
+ *   jhonatan  → ReservX
+ */
 export const ATTRACTION_PROVIDER_LABELS: Record<AttractionProvider, string> = {
-  jhonatan: 'Jhonatan',
-  luis: 'Luis',
-  francisco: 'Francisco',
-  angel: 'Angel',
+  jhonatan: 'ReservX',
+  luis: 'Travel of your dreams',
+  francisco: 'Atraxia',
+  angel: 'Aventuras Reservas',
 };
+
+/**
+ * Nombres legacy (persona) que algunas reservas en histórico guardaron como
+ * `nombreProveedor` antes del cambio a empresa. Sirven para reconvertir a
+ * provider técnico cuando se lee desde el historial.
+ */
+const ATTRACTION_LEGACY_PERSON_NAMES: Record<string, AttractionProvider> = {
+  jhonatan: 'jhonatan',
+  luis: 'luis',
+  francisco: 'francisco',
+  angel: 'angel',
+};
+
+/**
+ * Devuelve el nombre de empresa a mostrar en la UI para cualquier
+ * representación del proveedor: provider técnico ("luis"), nombre legacy
+ * de persona ("Luis"), o ya nombre de empresa ("Travel of your dreams").
+ * Si no se reconoce, devuelve el string original (capitalizado) — no rompe.
+ */
+export function getProviderCompanyName(value: string | null | undefined): string {
+  if (!value) return 'Pooking';
+  const tech = normalizeAttractionProvider(value);
+  if (tech) return ATTRACTION_PROVIDER_LABELS[tech];
+  // No matchea ninguno de los conocidos — devuelve tal cual con la primera
+  // letra en mayúscula para que se vea decente.
+  const s = String(value).trim();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Pooking';
+}
+
+/**
+ * Resuelve un provider técnico (`'luis' | 'jhonatan' | ...`) a partir de
+ * cualquier representación: técnico, nombre legacy de persona, o nombre
+ * de empresa actual. Útil para construir endpoints `/{provider}/api/v2/...`
+ * cuando solo se conoce el `nombreProveedor` guardado en el historial.
+ */
+export function normalizeAttractionProvider(
+  value: string | null | undefined,
+): AttractionProvider | null {
+  if (!value) return null;
+  const t = String(value).trim().toLowerCase();
+  if ((ALL_ATTRACTION_PROVIDERS as string[]).includes(t)) {
+    return t as AttractionProvider;
+  }
+  if (ATTRACTION_LEGACY_PERSON_NAMES[t]) {
+    return ATTRACTION_LEGACY_PERSON_NAMES[t];
+  }
+  // Lookup inverso por nombre de empresa (case-insensitive, comparando con
+  // las etiquetas actuales — así sigue funcionando si en el futuro se añaden
+  // proveedores o se cambia el nombre comercial de alguno).
+  for (const p of ALL_ATTRACTION_PROVIDERS) {
+    if (ATTRACTION_PROVIDER_LABELS[p].toLowerCase() === t) return p;
+  }
+  return null;
+}
 
 /**
  * Proveedor activo por defecto. Cuando el componente no especifica selector
@@ -193,6 +259,28 @@ export class AtraccionesService {
     return this.http.post<PagoConfirmacionResponse>(
       `${this.reservasUrl(provider)}/${guid}/pagos/confirmacion`,
       body,
+    );
+  }
+
+  // ── 11. GET /api/v2/booking/clientes/usuario-guid/{usuarioGuid} ─
+  /**
+   * Obtiene el cliente asociado al usuario logueado para precargar los
+   * datos del visitante en el formulario de reserva. Reutiliza la misma
+   * ruta que `CarService.getClientePorUsuarioGuid` — endpoint compartido
+   * del middleware de Booking/Clientes.
+   *
+   * Tolerante a fallos: si el cliente no existe o el endpoint falla,
+   * resuelve a `null` para no bloquear el flujo (el usuario puede
+   * completar los datos manualmente).
+   */
+  getClientePorUsuarioGuid(usuarioGuid: string): Observable<any | null> {
+    const url = `${environment.apiGatewayUrl}/api/v2/booking/clientes/usuario-guid/${usuarioGuid}`;
+    return this.http.get<{ data: any }>(url).pipe(
+      map((res) => res?.data ?? null),
+      catchError((err) => {
+        console.warn('[Atracciones] No se pudo obtener cliente asociado:', err?.status ?? err);
+        return of(null);
+      }),
     );
   }
 

@@ -9,6 +9,11 @@ import { CarService } from '../../features/cars/services/car.service';
 import { Localizacion, Categoria } from '../../features/cars/shared/car.models';
 import { AirportAutocompleteComponent } from '../../features/flights/components/airport-autocomplete/airport-autocomplete.component';
 import { AeropuertoSugerencia } from '../../features/flights/shared/flight.models';
+import {
+  ALL_ATTRACTION_PROVIDERS,
+  ATTRACTION_PROVIDER_LABELS,
+} from '../../features/atracciones/services/atracciones.service';
+import { AttractionProvider } from '../../features/atracciones/models/atracciones.models';
 
 type FlightClass = 'Económica' | 'Ejecutiva' | 'Primera clase';
 interface FlightSearchCriteria {
@@ -37,6 +42,11 @@ export class SearchComponent implements OnInit {
   activeTab = 'alojamiento';
   fechaHoy = '';
   fechaManana = '';
+
+  /** Providers técnicos de atracciones (claves para construir la ruta `/{provider}/api/v2/...`). */
+  readonly attractionProviders: readonly AttractionProvider[] = ALL_ATTRACTION_PROVIDERS;
+  /** Mapeo provider técnico → nombre de empresa para el `<option>` del selector. */
+  readonly attractionProviderLabels = ATTRACTION_PROVIDER_LABELS;
 
   tabs = [
     { key: 'alojamiento',  icon: 'hotel',              label: 'Alojamiento' },
