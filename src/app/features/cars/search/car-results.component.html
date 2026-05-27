@@ -1,6 +1,18 @@
 <app-navbar></app-navbar>
 
-<!-- Hero -->
+@if (isLoading()) {
+  <div class="premium-overlay">
+    <div class="premium-loader-content">
+      <div class="premium-spinner">
+        <div class="ring-1"></div>
+        <div class="ring-2"></div>
+        <span class="material-icons car-icon">directions_car</span>
+      </div>
+      <h3 class="premium-loader-text">Buscando vehículos...</h3>
+      <p class="premium-loader-sub">Encontrando las mejores opciones para tu viaje</p>
+    </div>
+  </div>
+}<!-- Hero -->
 <section class="hero" aria-label="Buscador de vehículos">
   <div class="hero-bg" aria-hidden="true">
     <img src="https://image.winudf.com/v2/image1/Y29tLndhbGxwYXBlci5zdXBlcmNhcnN3YWxscGFwZXIyMDIwX3NjcmVlbl8wXzE2OTQxNDUxNjNfMDQz/screen-0.jpg?h=500&fakeurl=1&type=.jpg" alt="Coches de alquiler" class="hero-bg-img" />

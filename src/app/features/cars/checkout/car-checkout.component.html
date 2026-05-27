@@ -3,9 +3,17 @@
 <div class="checkout-page-bg" aria-hidden="true"></div>
 
 <!-- Loading -->
-@if (loading()) {
-  <div class="overlay-center">
-    <div class="spinner"></div>
+@if (loading() || procesando()) {
+  <div class="premium-overlay">
+    <div class="premium-loader-content">
+      <div class="premium-spinner">
+        <div class="ring-1"></div>
+        <div class="ring-2"></div>
+        <span class="material-icons car-icon">directions_car</span>
+      </div>
+      <h3 class="premium-loader-text">Procesando...</h3>
+      <p class="premium-loader-sub">Asegurando tu reserva y verificando detalles</p>
+    </div>
   </div>
 }
 
@@ -270,9 +278,9 @@
 
             <!-- PASAJEROS ADICIONALES -->
             @for (p of otrosPasajeros; track $index; let idx = $index) {
-              <div class="pasajero-adicional" style="margin-top: 2rem;">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ddd; padding-bottom:0.5rem; margin-bottom:1rem;">
-                  <h2 class="section-subtitle">Pasajero Adicional {{ idx + 1 }}</h2>
+              <div class="pasajero-adicional" style="margin-top: 2rem; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 1.5rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ddd; padding-bottom:0.5rem;">
+                  <h2 class="section-subtitle" style="margin: 0;">Pasajero Adicional {{ idx + 1 }}</h2>
                   <button type="button" class="btn btn-outline" style="padding: 0.25rem 0.5rem; color: #d9534f; border-color: #d9534f;" (click)="eliminarPasajero(idx)">Eliminar</button>
                 </div>
                 
@@ -331,14 +339,87 @@
                     }
                   </div>
                 </div>
+
+                <!-- Fecha licencia + Edad -->
+                <div class="form-row">
+                  <div class="form-field">
+                    <label class="field-label" [for]="'venc-licencia-' + idx">VENCIMIENTO LICENCIA <span class="required">*</span></label>
+                    <div class="input-wrap" [class.input-error]="erroresPasajeros[idx]['fechaVencimientoLicencia']">
+                      <span class="material-icons" aria-hidden="true">credit_card</span>
+                      <input [id]="'venc-licencia-' + idx" type="date" style="color-scheme:light"
+                        [(ngModel)]="p.fechaVencimientoLicencia" [name]="'fechaVencimientoLicencia-' + idx" />
+                    </div>
+                    @if (erroresPasajeros[idx]['fechaVencimientoLicencia']) {
+                      <div class="field-error" role="alert">
+                        <span class="material-icons" aria-hidden="true">error_outline</span>
+                        {{ erroresPasajeros[idx]['fechaVencimientoLicencia'] }}
+                      </div>
+                    }
+                  </div>
+
+                  <div class="form-field">
+                    <label class="field-label" [for]="'edad-' + idx">EDAD <span class="required">*</span></label>
+                    <div class="input-wrap" [class.input-error]="erroresPasajeros[idx]['edadConductor']">
+                      <span class="material-icons" aria-hidden="true">cake</span>
+                      <input [id]="'edad-' + idx" type="number" min="18" max="100"
+                        [(ngModel)]="p.edadConductor" [name]="'edadConductor-' + idx"
+                        placeholder="Ej: 28" />
+                    </div>
+                    @if (erroresPasajeros[idx]['edadConductor']) {
+                      <div class="field-error" role="alert">
+                        <span class="material-icons" aria-hidden="true">error_outline</span>
+                        {{ erroresPasajeros[idx]['edadConductor'] }}
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- Correo + Teléfono -->
+                <div class="form-row">
+                  <div class="form-field">
+                    <label class="field-label" [for]="'correo-' + idx">CORREO <span class="required">*</span></label>
+                    <div class="input-wrap" [class.input-error]="erroresPasajeros[idx]['correo']">
+                      <span class="material-icons" aria-hidden="true">email</span>
+                      <input [id]="'correo-' + idx" type="email" [(ngModel)]="p.correo" [name]="'correo-' + idx"
+                        placeholder="correo@ejemplo.com" />
+                    </div>
+                    @if (erroresPasajeros[idx]['correo']) {
+                      <div class="field-error" role="alert">
+                        <span class="material-icons" aria-hidden="true">error_outline</span>
+                        {{ erroresPasajeros[idx]['correo'] }}
+                      </div>
+                    }
+                  </div>
+
+                  <div class="form-field">
+                    <label class="field-label" [for]="'telefono-' + idx">TELÉFONO <span class="required">*</span></label>
+                    <div class="input-wrap" [class.input-error]="erroresPasajeros[idx]['telefono']">
+                      <span class="material-icons" aria-hidden="true">phone</span>
+                      <input [id]="'telefono-' + idx" type="tel" [(ngModel)]="p.telefono" [name]="'telefono-' + idx"
+                        placeholder="0991234567" />
+                    </div>
+                    @if (erroresPasajeros[idx]['telefono']) {
+                      <div class="field-error" role="alert">
+                        <span class="material-icons" aria-hidden="true">error_outline</span>
+                        {{ erroresPasajeros[idx]['telefono'] }}
+                      </div>
+                    }
+                  </div>
+                </div>
               </div>
             }
 
-            <div style="margin-top:1rem; margin-bottom:2rem;">
-              <button type="button" class="btn btn-outline" style="width:100%; border-style: dashed;" (click)="agregarPasajero()">
-                <span class="material-icons" aria-hidden="true">add</span> Agregar pasajero
-              </button>
-            </div>
+            @if (otrosPasajeros.length + 1 < (vehiculo()?.capacidadPasajeros ?? 5)) {
+              <div style="margin-top:1.5rem; margin-bottom:2rem;">
+                <button type="button" class="btn btn-outline" style="width:100%; border-style: dashed;" (click)="agregarPasajero()">
+                  <span class="material-icons" aria-hidden="true">add</span> Agregar pasajero
+                </button>
+              </div>
+            } @else {
+              <div style="margin-top:1.5rem; margin-bottom:2rem; text-align: center; color: var(--color-extra1); font-size: 0.95rem; background: rgba(142, 90, 84, 0.05); padding: 1rem; border-radius: 8px;">
+                Has alcanzado la capacidad máxima de pasajeros de este vehículo ({{ vehiculo()?.capacidadPasajeros }} pasajeros).
+              </div>
+            }
 
             <!-- Devolución y Fechas -->
             <div class="form-field form-field-full">
@@ -619,12 +700,44 @@
 }
 
 @if (mostrarConfirmacion()) {
-  <app-confirmation 
-    [isStandalone]="false" 
-    [overrideGuid]="reservaGeneradaId()"
-    overrideTitle="¡Reserva de Auto Confirmada!"
-    overrideSubtitle="Tu pago fue procesado exitosamente. Recibirás el comprobante y los detalles en tu correo electrónico.">
-  </app-confirmation>
+  <!-- ══ SUCCESS ══ -->
+  <div class="success-overlay" [class.show]="mostrarConfirmacion()">
+    <div class="success-card">
+      <button class="success-close-btn" (click)="irAInicio()" aria-label="Cerrar y volver al inicio">
+        <span class="material-icons">close</span>
+      </button>
+      <div class="success-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <h2>¡Reserva confirmada!</h2>
+      <p>Tu solicitud fue enviada exitosamente. El proveedor procesará tu reserva y recibirás la confirmación en tu correo.</p>
+      <div class="success-code">
+        <div class="sc-label">Código de reserva</div>
+        <div class="sc-val" id="sc-code">{{ reservaGeneradaId() }}</div>
+      </div>
+      <div class="success-meta">
+        <div class="sm-item">
+          <div class="smi-label">Vehículo</div>
+          <div class="smi-val">{{ vehiculo()?.marca }} {{ vehiculo()?.modelo }}</div>
+        </div>
+        <div class="sm-item">
+          <div class="smi-label">Recogida</div>
+          <div class="smi-val" id="sc-in">{{ vehiculo()?.disponibilidad?.fechaRecogida }}</div>
+        </div>
+        <div class="sm-item">
+          <div class="smi-label">Devolución</div>
+          <div class="smi-val" id="sc-out">{{ vehiculo()?.disponibilidad?.fechaDevolucion }}</div>
+        </div>
+        <div class="sm-item">
+          <div class="smi-label">Total reserva</div>
+          <div class="smi-val" id="sc-total">${{ total() | number:'1.2-2' }} USD</div>
+        </div>
+        <div class="sm-item">
+          <div class="smi-label">Saldo pendiente</div>
+          <div class="smi-val" id="sc-saldo">${{ total() | number:'1.2-2' }} USD</div>
+        </div>
+      </div>
+      <button class="btn-success" (click)="irAInicio()">Ver mis reservas →</button>
+    </div>
+  </div>
 }
 
 <app-footer></app-footer>
