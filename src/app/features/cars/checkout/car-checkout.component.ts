@@ -63,7 +63,7 @@ export class CarCheckoutComponent implements OnInit {
     esPrincipal: true,
   };
 
-  otrosPasajeros: DatosCliente[] = [];
+  otrosPasajeros: DatosConductor[] = [];
   erroresPasajeros: any[] = [];
 
   idLocalizacionDevolucion = signal<number | null>(null);
@@ -222,13 +222,21 @@ export class CarCheckoutComponent implements OnInit {
 
   // ─── Paso 2: Pasajeros ────────────────────────────────────────────────────
   agregarPasajero(): void {
+    const max = this.vehiculo()?.capacidadPasajeros ?? 5;
+    if (this.otrosPasajeros.length + 1 >= max) {
+      return;
+    }
+
     this.otrosPasajeros.push({
       nombres: '',
       apellidos: '',
       tipoIdentificacion: 'CEDULA',
       numeroIdentificacion: '',
+      fechaVencimientoLicencia: '',
+      edadConductor: null,
       correo: '',
       telefono: '',
+      esPrincipal: false,
     });
     this.erroresPasajeros.push({});
   }
@@ -279,6 +287,22 @@ export class CarCheckoutComponent implements OnInit {
       }
       if (!p.numeroIdentificacion.trim()) {
         this.erroresPasajeros[i]['numeroIdentificacion'] = 'Campo requerido.';
+        pasajerosValidos = false;
+      }
+      if (!p.fechaVencimientoLicencia) {
+        this.erroresPasajeros[i]['fechaVencimientoLicencia'] = 'Campo requerido.';
+        pasajerosValidos = false;
+      }
+      if (!p.edadConductor || p.edadConductor < 18) {
+        this.erroresPasajeros[i]['edadConductor'] = 'Mínimo 18 años.';
+        pasajerosValidos = false;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.correo)) {
+        this.erroresPasajeros[i]['correo'] = 'Correo inválido.';
+        pasajerosValidos = false;
+      }
+      if (!p.telefono.trim() || p.telefono.trim().length < 7) {
+        this.erroresPasajeros[i]['telefono'] = 'Mínimo 7 dígitos.';
         pasajerosValidos = false;
       }
     });
@@ -380,6 +404,8 @@ export class CarCheckoutComponent implements OnInit {
           apellidos: p.apellidos,
           tipoIdentificacion: p.tipoIdentificacion,
           numeroIdentificacion: p.numeroIdentificacion,
+          fechaVencimientoLicencia: p.fechaVencimientoLicencia,
+          edadConductor: p.edadConductor,
           correo: p.correo,
           telefono: p.telefono,
           esPrincipal: false,
